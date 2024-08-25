@@ -6,6 +6,7 @@ import squared_away/lang
 import squared_away/lang/interpreter
 import squared_away/lang/parser
 import squared_away/lang/scanner
+import squared_away/lang/typechecker
 
 pub fn main() {
   gleeunit.main()
@@ -120,5 +121,8 @@ pub fn integration_lang_test() {
   use tc <- list.each(test_cases)
   let assert Ok(tokens) = scanner.scan(tc.0)
   let assert Ok(expr) = parser.parse(tokens)
-  interpreter.interpret(dict.new(), expr) |> should.be_ok |> should.equal(tc.1)
+  let assert Ok(typed_expr) = typechecker.typecheck(dict.new(), expr)
+  interpreter.interpret(dict.new(), typed_expr)
+  |> should.be_ok
+  |> should.equal(tc.1)
 }

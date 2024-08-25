@@ -12,6 +12,7 @@ import lustre/event
 import squared_away/lang/interpreter
 import squared_away/lang/parser
 import squared_away/lang/scanner
+import squared_away/lang/typechecker
 
 pub fn main() {
   let app = lustre.application(init, update, view)
@@ -88,8 +89,13 @@ fn view(model: Model) -> element.Element(Msg) {
     })
 
   let active_cell_value = {
-    let assert Ok(expr) = dict.get(model.grid, model.active_cell)
-    string.inspect(interpreter.interpret(model.grid, expr))
+    let expr =
+      dict.get(model.grid, model.active_cell) |> result.unwrap(or: parser.Empty)
+    case typechecker.typecheck(model.grid, expr) {
+      Ok(typed_expr) ->
+        string.inspect(interpreter.interpret(model.grid, typed_expr))
+      Error(e) -> string.inspect(e)
+    }
   }
 
   html.div([], [

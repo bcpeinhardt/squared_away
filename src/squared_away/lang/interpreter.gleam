@@ -4,12 +4,10 @@ import gleam/float
 import gleam/int
 import gleam/result
 import gleam/string
+import squared_away/lang/environment
 import squared_away/lang/parser
 import squared_away/lang/scanner
-
-/// Our very basic starting environment
-pub type Environment =
-  dict.Dict(String, parser.Expr)
+import squared_away/lang/typechecker
 
 pub type Value {
   Empty
@@ -32,44 +30,45 @@ pub fn value_to_string(fv: Value) -> String {
 pub type InterpretError {
   ScanError(scanner.ScanError)
   ParseError(parser.ParseError)
+  TypeError(typechecker.TypeError)
   RuntimeError(String)
 }
 
 pub fn interpret(
-  environment: Environment,
-  expr: parser.Expr,
+  env: environment.Environment,
+  expr: typechecker.TypedExpr,
 ) -> Result(Value, InterpretError) {
   case expr {
-    parser.Empty -> Ok(Empty)
-    parser.Group(expr) -> interpret(environment, expr)
-    parser.StringLiteral(txt) -> Ok(Text(txt))
-    parser.BooleanLiteral(b) -> Ok(Boolean(b))
-    parser.IntegerLiteral(n) -> Ok(Integer(n))
-    parser.FloatLiteral(f) -> Ok(FloatingPointNumber(f))
-    parser.CellReference(cell_ref) -> {
+    typechecker.Empty(_) -> Ok(Empty)
+    typechecker.Group(_, expr) -> interpret(env, expr)
+    typechecker.StringLiteral(_, txt) -> Ok(Text(txt))
+    typechecker.BooleanLiteral(_, b) -> Ok(Boolean(b))
+    typechecker.IntegerLiteral(_, n) -> Ok(Integer(n))
+    typechecker.FloatLiteral(_, f) -> Ok(FloatingPointNumber(f))
+    typechecker.CellReference(_, cell_ref) -> {
       use cell_src <- result.try(
-        dict.get(environment, cell_ref)
+        dict.get(env, cell_ref)
         |> result.replace_error(RuntimeError("Referemced cell without data")),
       )
-      interpret(environment, cell_src)
+      use typed_expr <- result.try(
+        typechecker.typecheck(env, cell_src) |> result.map_error(TypeError),
+      )
+      interpret(env, typed_expr)
     }
-    parser.UnaryOp(op, expr) -> {
-      use value <- result.try(interpret(environment, expr))
+    typechecker.UnaryOp(_, op, expr) -> {
+      use value <- result.try(interpret(env, expr))
       case op, value {
         parser.Negate, Integer(n) -> Ok(Integer(-n))
+        parser.Negate, FloatingPointNumber(f) ->
+          Ok(FloatingPointNumber(float.negate(f)))
         parser.Not, Boolean(b) -> Ok(Boolean(!b))
         _, _ ->
-          Error(RuntimeError(
-            "Unexpected unary operation: "
-            <> string.inspect(op)
-            <> " not compatible with "
-            <> string.inspect(value),
-          ))
+          panic as "These should be the only options if the typecher is working"
       }
     }
-    parser.BinaryOp(lhs, op, rhs) -> {
-      use lhs <- result.try(interpret(environment, lhs))
-      use rhs <- result.try(interpret(environment, rhs))
+    typechecker.BinaryOp(_, lhs, op, rhs) -> {
+      use lhs <- result.try(interpret(env, lhs))
+      use rhs <- result.try(interpret(env, rhs))
       case lhs, op, rhs {
         // Integer operations
         Integer(a), parser.Add, Integer(b) -> Ok(Integer(a + b))
@@ -127,7 +126,8 @@ pub fn interpret(
         Boolean(a), parser.EqualCheck, Boolean(b) -> Ok(Boolean(a == b))
         Boolean(a), parser.NotEqualCheck, Boolean(b) -> Ok(Boolean(a != b))
 
-        _, _, _ -> Error(RuntimeError("Unexpected binary operation"))
+        _, _, _ ->
+          panic as "these should be the only options if the typechecker is working properly"
       }
     }
   }

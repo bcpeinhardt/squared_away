@@ -1,24 +1,10 @@
-# form
+# Squared Away
+### A statically typed spreadsheet with testing as a first class citizen
 
-[![Package Version](https://img.shields.io/hexpm/v/form)](https://hex.pm/packages/form)
-[![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/form/)
+This project is really really new. This repo contains a prototype
+spreadsheet in Gleam implemented as a Lustre app, which will allow 
+me to quickly iterate on the formula language and the spreadsheet UX.
 
-```sh
-gleam add form@1
-```
-```gleam
-import form
-
-pub fn main() {
-  // TODO: An example of the project in use
-}
-```
-
-Further documentation can be found at <https://hexdocs.pm/form>.
-
-## Development
-
-```sh
-gleam run   # Run the project
-gleam test  # Run the tests
-```
+The intention is to get a good idea of what I actually want an MVP
+to look like, then do a rewrite as a native app using a lower level 
+language.

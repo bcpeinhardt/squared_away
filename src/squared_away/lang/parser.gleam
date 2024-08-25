@@ -1,6 +1,6 @@
-import squared_away/lang/scanner
 import gleam/result
 import gleam/string
+import squared_away/lang/scanner
 
 pub type Expr {
   Empty
@@ -104,7 +104,12 @@ fn do_parse(
     [scanner.LParen, ..rest] -> {
       use #(body, rest) <- result.try(do_parse(rest))
       case rest {
-        [scanner.RParen, ..rest] -> Ok(#(Group(body), rest))
+        [scanner.RParen, ..rest] -> {
+          case try_parse_binary_ops(rest) {
+            Ok(#(op, rest)) -> Ok(#(op(Group(body)), rest))
+            Error(_) -> Ok(#(Group(body), rest))
+          }
+        }
         _ -> Error(ParseError("missing closing parentheses"))
       }
     }

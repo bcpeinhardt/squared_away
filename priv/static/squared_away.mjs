@@ -2485,7 +2485,7 @@ function on_input(msg) {
   );
 }
 
-// build/dev/javascript/form/form/lang/scanner.mjs
+// build/dev/javascript/squared_away/squared_away/lang/scanner.mjs
 var Plus = class extends CustomType {
 };
 var Minus = class extends CustomType {
@@ -2867,7 +2867,7 @@ function do_scan(loop$src, loop$acc) {
             if (!$2.isOk()) {
               throw makeError(
                 "assignment_no_match",
-                "form/lang/scanner",
+                "squared_away/lang/scanner",
                 97,
                 "do_scan",
                 "Assignment pattern did not match",
@@ -2914,7 +2914,7 @@ function scan(src) {
   }
 }
 
-// build/dev/javascript/form/form/lang/parser.mjs
+// build/dev/javascript/squared_away/squared_away/lang/parser.mjs
 var Empty2 = class extends CustomType {
 };
 var FloatLiteral2 = class extends CustomType {
@@ -3326,7 +3326,14 @@ function do_parse(tokens) {
         let rest$1 = _use0[1];
         if (rest$1.atLeastLength(1) && rest$1.head instanceof RParen) {
           let rest$2 = rest$1.tail;
-          return new Ok([new Group(body), rest$2]);
+          let $ = try_parse_binary_ops(rest$2);
+          if ($.isOk()) {
+            let op = $[0][0];
+            let rest$3 = $[0][1];
+            return new Ok([op(new Group(body)), rest$3]);
+          } else {
+            return new Ok([new Group(body), rest$2]);
+          }
         } else {
           return new Error(new ParseError("missing closing parentheses"));
         }
@@ -3354,7 +3361,7 @@ function parse3(tokens) {
   );
 }
 
-// build/dev/javascript/form/form/lang/interpreter.mjs
+// build/dev/javascript/squared_away/squared_away/lang/interpreter.mjs
 var Empty3 = class extends CustomType {
 };
 var Text2 = class extends CustomType {
@@ -3555,7 +3562,7 @@ function interpret(loop$environment, loop$expr) {
                 if (!$.isOk()) {
                   throw makeError(
                     "assignment_no_match",
-                    "form/lang/interpreter",
+                    "squared_away/lang/interpreter",
                     104,
                     "",
                     "Assignment pattern did not match",
@@ -3571,7 +3578,7 @@ function interpret(loop$environment, loop$expr) {
                 if (!$.isOk()) {
                   throw makeError(
                     "assignment_no_match",
-                    "form/lang/interpreter",
+                    "squared_away/lang/interpreter",
                     108,
                     "",
                     "Assignment pattern did not match",
@@ -3609,7 +3616,7 @@ function interpret(loop$environment, loop$expr) {
   }
 }
 
-// build/dev/javascript/form/form.mjs
+// build/dev/javascript/squared_away/squared_away.mjs
 var Model = class extends CustomType {
   constructor(active_cell, grid, error) {
     super();
@@ -3731,7 +3738,7 @@ function view(model) {
     if (!$.isOk()) {
       throw makeError(
         "assignment_no_match",
-        "form",
+        "squared_away",
         91,
         "view",
         "Assignment pattern did not match",
@@ -3758,7 +3765,7 @@ function main() {
   if (!$.isOk()) {
     throw makeError(
       "assignment_no_match",
-      "form",
+      "squared_away",
       18,
       "main",
       "Assignment pattern did not match",

@@ -1,6 +1,3 @@
-import squared_away/lang/interpreter
-import squared_away/lang/parser
-import squared_away/lang/scanner
 import gleam/dict.{type Dict}
 import gleam/int
 import gleam/list
@@ -12,6 +9,9 @@ import lustre/effect
 import lustre/element
 import lustre/element/html
 import lustre/event
+import squared_away/lang/interpreter
+import squared_away/lang/parser
+import squared_away/lang/scanner
 
 pub fn main() {
   let app = lustre.application(init, update, view)

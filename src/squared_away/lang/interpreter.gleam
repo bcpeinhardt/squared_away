@@ -3,7 +3,6 @@ import gleam/dict
 import gleam/float
 import gleam/int
 import gleam/result
-import gleam/string
 import squared_away/lang/environment
 import squared_away/lang/parser
 import squared_away/lang/scanner
@@ -63,7 +62,7 @@ pub fn interpret(
           Ok(FloatingPointNumber(float.negate(f)))
         parser.Not, Boolean(b) -> Ok(Boolean(!b))
         _, _ ->
-          panic as "These should be the only options if the typecher is working"
+          panic as "These should be the only options if the typechecker is working"
       }
     }
     typechecker.BinaryOp(_, lhs, op, rhs) -> {

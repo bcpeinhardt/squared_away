@@ -59,6 +59,7 @@ pub type ScanError {
 
 pub fn scan(src: String) -> Result(List(Token), ScanError) {
   case string.trim(src) {
+    "" -> Ok([])
     "=" <> rest -> do_scan(rest |> string.trim_left, [])
     _ -> Ok([StringLiteral(src)])
   }

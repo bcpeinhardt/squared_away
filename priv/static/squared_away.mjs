@@ -2879,7 +2879,7 @@ function do_scan(loop$src, loop$acc) {
               throw makeError(
                 "assignment_no_match",
                 "squared_away/lang/scanner",
-                97,
+                98,
                 "do_scan",
                 "Assignment pattern did not match",
                 { value: $2 }
@@ -2911,7 +2911,9 @@ function do_scan(loop$src, loop$acc) {
 }
 function scan(src) {
   let $ = trim2(src);
-  if ($.startsWith("=")) {
+  if ($ === "") {
+    return new Ok(toList([]));
+  } else if ($.startsWith("=")) {
     let rest = $.slice(1);
     return do_scan(
       (() => {
@@ -3712,9 +3714,9 @@ function interpret(loop$env, loop$expr) {
             throw makeError(
               "panic",
               "squared_away/lang/interpreter",
-              62,
+              65,
               "",
-              "These should be the only options if the typecher is working",
+              "These should be the only options if the typechecker is working",
               {}
             );
           }
@@ -3818,7 +3820,7 @@ function interpret(loop$env, loop$expr) {
                   throw makeError(
                     "assignment_no_match",
                     "squared_away/lang/interpreter",
-                    111,
+                    114,
                     "",
                     "Assignment pattern did not match",
                     { value: $ }
@@ -3834,7 +3836,7 @@ function interpret(loop$env, loop$expr) {
                   throw makeError(
                     "assignment_no_match",
                     "squared_away/lang/interpreter",
-                    115,
+                    118,
                     "",
                     "Assignment pattern did not match",
                     { value: $ }
@@ -3862,7 +3864,7 @@ function interpret(loop$env, loop$expr) {
                 throw makeError(
                   "panic",
                   "squared_away/lang/interpreter",
-                  125,
+                  129,
                   "",
                   "these should be the only options if the typechecker is working properly",
                   {}

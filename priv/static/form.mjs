@@ -284,12 +284,37 @@ var Eq = class extends CustomType {
 var Gt = class extends CustomType {
 };
 
-// build/dev/javascript/gleam_stdlib/gleam/int.mjs
+// build/dev/javascript/gleam_stdlib/gleam/float.mjs
 function parse(string3) {
+  return parse_float(string3);
+}
+function ceiling2(x) {
+  return ceiling(x);
+}
+function power2(base, exponent) {
+  let fractional = ceiling2(exponent) - exponent > 0;
+  let $ = base < 0 && fractional || base === 0 && exponent < 0;
+  if ($) {
+    return new Error(void 0);
+  } else {
+    return new Ok(power(base, exponent));
+  }
+}
+
+// build/dev/javascript/gleam_stdlib/gleam/int.mjs
+function parse2(string3) {
   return parse_int(string3);
 }
 function to_string2(x) {
   return to_string(x);
+}
+function to_float(x) {
+  return identity(x);
+}
+function power3(base, exponent) {
+  let _pipe = base;
+  let _pipe$1 = to_float(_pipe);
+  return power2(_pipe$1, exponent);
 }
 
 // build/dev/javascript/gleam_stdlib/gleam/list.mjs
@@ -1541,6 +1566,13 @@ function parse_int(value2) {
     return new Error(Nil);
   }
 }
+function parse_float(value2) {
+  if (/^[-+]?(\d+)\.(\d+)([eE][-+]?\d+)?$/.test(value2)) {
+    return new Ok(parseFloat(value2));
+  } else {
+    return new Error(Nil);
+  }
+}
 function to_string(term) {
   return term.toString();
 }
@@ -1597,6 +1629,12 @@ function trim_left(string3) {
 }
 function trim_right(string3) {
   return string3.replace(right_trim_regex, "");
+}
+function ceiling(float3) {
+  return Math.ceil(float3);
+}
+function power(base, exponent) {
+  return Math.pow(base, exponent);
 }
 function new_map() {
   return Dict.new();
@@ -2480,6 +2518,12 @@ var IntegerLiteral = class extends CustomType {
     this.n = n;
   }
 };
+var FloatLiteral = class extends CustomType {
+  constructor(f) {
+    super();
+    this.f = f;
+  }
+};
 var TrueToken = class extends CustomType {
 };
 var FalseToken = class extends CustomType {
@@ -2561,7 +2605,7 @@ function maybe_parse_integer(loop$src, loop$acc) {
       loop$src = rest;
       loop$acc = acc + x;
     } else {
-      let $ = parse(acc);
+      let $ = parse2(acc);
       if ($.isOk()) {
         let x = $[0];
         return new Some([x, src]);
@@ -2813,8 +2857,33 @@ function do_scan(loop$src, loop$acc) {
       if ($ instanceof Some) {
         let n = $[0][0];
         let rest = $[0][1];
-        loop$src = trim_left2(rest);
-        loop$acc = prepend(new IntegerLiteral(n), acc);
+        if (rest.startsWith(".")) {
+          let rest$1 = rest.slice(1);
+          let $1 = maybe_parse_integer(rest$1, "");
+          if ($1 instanceof Some) {
+            let m = $1[0][0];
+            let rest$2 = $1[0][1];
+            let $2 = parse(to_string2(n) + "." + to_string2(m));
+            if (!$2.isOk()) {
+              throw makeError(
+                "assignment_no_match",
+                "form/lang/scanner",
+                97,
+                "do_scan",
+                "Assignment pattern did not match",
+                { value: $2 }
+              );
+            }
+            let f = $2[0];
+            loop$src = trim_left2(rest$2);
+            loop$acc = prepend(new FloatLiteral(f), acc);
+          } else {
+            return new Error(new ScanError());
+          }
+        } else {
+          loop$src = trim_left2(rest);
+          loop$acc = prepend(new IntegerLiteral(n), acc);
+        }
       } else {
         let $1 = maybe_parse_cell_ref(src, "");
         if ($1 instanceof Some) {
@@ -2847,6 +2916,12 @@ function scan(src) {
 
 // build/dev/javascript/form/form/lang/parser.mjs
 var Empty2 = class extends CustomType {
+};
+var FloatLiteral2 = class extends CustomType {
+  constructor(f) {
+    super();
+    this.f = f;
+  }
 };
 var StringLiteral2 = class extends CustomType {
   constructor(txt) {
@@ -2929,72 +3004,11 @@ var ParseError = class extends CustomType {
     this.context = context;
   }
 };
-function lhs_parse(tokens) {
-  if (tokens.hasLength(0)) {
-    return new Ok([new Empty2(), toList([])]);
-  } else if (tokens.atLeastLength(1) && tokens.head instanceof StringLiteral) {
-    let str = tokens.head[0];
-    let rest = tokens.tail;
-    return new Ok([new StringLiteral2(str), rest]);
-  } else if (tokens.atLeastLength(1) && tokens.head instanceof IntegerLiteral) {
-    let n = tokens.head.n;
-    let rest = tokens.tail;
-    return new Ok([new IntegerLiteral2(n), rest]);
-  } else if (tokens.atLeastLength(1) && tokens.head instanceof CellReference) {
-    let key = tokens.head.key;
-    let rest = tokens.tail;
-    return new Ok([new CellReference2(key), rest]);
-  } else if (tokens.atLeastLength(1) && tokens.head instanceof TrueToken) {
-    let rest = tokens.tail;
-    return new Ok([new BooleanLiteral(true), rest]);
-  } else if (tokens.atLeastLength(1) && tokens.head instanceof FalseToken) {
-    let rest = tokens.tail;
-    return new Ok([new BooleanLiteral(false), rest]);
-  } else if (tokens.atLeastLength(1) && tokens.head instanceof Minus) {
-    let rest = tokens.tail;
-    return try$(
-      lhs_parse(rest),
-      (_use0) => {
-        let parsed_remainder = _use0[0];
-        let rest$1 = _use0[1];
-        return new Ok([new UnaryOp(new Negate(), parsed_remainder), rest$1]);
-      }
-    );
-  } else if (tokens.atLeastLength(1) && tokens.head instanceof Bang) {
-    let rest = tokens.tail;
-    return try$(
-      lhs_parse(rest),
-      (_use0) => {
-        let parsed_remainder = _use0[0];
-        let rest$1 = _use0[1];
-        return new Ok([new UnaryOp(new Not(), parsed_remainder), rest$1]);
-      }
-    );
-  } else if (tokens.atLeastLength(1) && tokens.head instanceof LParen) {
-    let rest = tokens.tail;
-    return try$(
-      lhs_parse(rest),
-      (_use0) => {
-        let body = _use0[0];
-        let rest$1 = _use0[1];
-        if (rest$1.atLeastLength(1) && rest$1.head instanceof RParen) {
-          let rest$2 = rest$1.tail;
-          return new Ok([new Group(body), rest$2]);
-        } else {
-          return new Error(new ParseError("missing closing parentheses"));
-        }
-      }
-    );
-  } else {
-    let x = tokens.head;
-    return new Error(new ParseError("Unexpected token: " + inspect2(x)));
-  }
-}
 function try_parse_binary_ops(tokens) {
   if (tokens.atLeastLength(1) && tokens.head instanceof Plus) {
     let rest = tokens.tail;
     return try$(
-      lhs_parse(rest),
+      do_parse(rest),
       (_use0) => {
         let rhs = _use0[0];
         let rest$1 = _use0[1];
@@ -3011,7 +3025,7 @@ function try_parse_binary_ops(tokens) {
   } else if (tokens.atLeastLength(1) && tokens.head instanceof Minus) {
     let rest = tokens.tail;
     return try$(
-      lhs_parse(rest),
+      do_parse(rest),
       (_use0) => {
         let rhs = _use0[0];
         let rest$1 = _use0[1];
@@ -3028,7 +3042,7 @@ function try_parse_binary_ops(tokens) {
   } else if (tokens.atLeastLength(1) && tokens.head instanceof Star) {
     let rest = tokens.tail;
     return try$(
-      lhs_parse(rest),
+      do_parse(rest),
       (_use0) => {
         let rhs = _use0[0];
         let rest$1 = _use0[1];
@@ -3045,7 +3059,7 @@ function try_parse_binary_ops(tokens) {
   } else if (tokens.atLeastLength(1) && tokens.head instanceof Div) {
     let rest = tokens.tail;
     return try$(
-      lhs_parse(rest),
+      do_parse(rest),
       (_use0) => {
         let rhs = _use0[0];
         let rest$1 = _use0[1];
@@ -3062,7 +3076,7 @@ function try_parse_binary_ops(tokens) {
   } else if (tokens.atLeastLength(1) && tokens.head instanceof StarStar) {
     let rest = tokens.tail;
     return try$(
-      lhs_parse(rest),
+      do_parse(rest),
       (_use0) => {
         let rhs = _use0[0];
         let rest$1 = _use0[1];
@@ -3079,7 +3093,7 @@ function try_parse_binary_ops(tokens) {
   } else if (tokens.atLeastLength(1) && tokens.head instanceof BangEqual) {
     let rest = tokens.tail;
     return try$(
-      lhs_parse(rest),
+      do_parse(rest),
       (_use0) => {
         let rhs = _use0[0];
         let rest$1 = _use0[1];
@@ -3096,7 +3110,7 @@ function try_parse_binary_ops(tokens) {
   } else if (tokens.atLeastLength(1) && tokens.head instanceof EqualEqual) {
     let rest = tokens.tail;
     return try$(
-      lhs_parse(rest),
+      do_parse(rest),
       (_use0) => {
         let rhs = _use0[0];
         let rest$1 = _use0[1];
@@ -3113,7 +3127,7 @@ function try_parse_binary_ops(tokens) {
   } else if (tokens.atLeastLength(1) && tokens.head instanceof LessEqual) {
     let rest = tokens.tail;
     return try$(
-      lhs_parse(rest),
+      do_parse(rest),
       (_use0) => {
         let rhs = _use0[0];
         let rest$1 = _use0[1];
@@ -3130,7 +3144,7 @@ function try_parse_binary_ops(tokens) {
   } else if (tokens.atLeastLength(1) && tokens.head instanceof Less) {
     let rest = tokens.tail;
     return try$(
-      lhs_parse(rest),
+      do_parse(rest),
       (_use0) => {
         let rhs = _use0[0];
         let rest$1 = _use0[1];
@@ -3147,7 +3161,7 @@ function try_parse_binary_ops(tokens) {
   } else if (tokens.atLeastLength(1) && tokens.head instanceof GreaterEqual) {
     let rest = tokens.tail;
     return try$(
-      lhs_parse(rest),
+      do_parse(rest),
       (_use0) => {
         let rhs = _use0[0];
         let rest$1 = _use0[1];
@@ -3164,7 +3178,7 @@ function try_parse_binary_ops(tokens) {
   } else if (tokens.atLeastLength(1) && tokens.head instanceof Greater) {
     let rest = tokens.tail;
     return try$(
-      lhs_parse(rest),
+      do_parse(rest),
       (_use0) => {
         let rhs = _use0[0];
         let rest$1 = _use0[1];
@@ -3181,7 +3195,7 @@ function try_parse_binary_ops(tokens) {
   } else if (tokens.atLeastLength(1) && tokens.head instanceof And) {
     let rest = tokens.tail;
     return try$(
-      lhs_parse(rest),
+      do_parse(rest),
       (_use0) => {
         let rhs = _use0[0];
         let rest$1 = _use0[1];
@@ -3198,7 +3212,7 @@ function try_parse_binary_ops(tokens) {
   } else if (tokens.atLeastLength(1) && tokens.head instanceof Or) {
     let rest = tokens.tail;
     return try$(
-      lhs_parse(rest),
+      do_parse(rest),
       (_use0) => {
         let rhs = _use0[0];
         let rest$1 = _use0[1];
@@ -3216,47 +3230,128 @@ function try_parse_binary_ops(tokens) {
     return new Error(new ParseError("Not a binary operation"));
   }
 }
-function try_deep_binary_ops(tokens) {
-  let $ = try_parse_binary_ops(tokens);
-  if (!$.isOk()) {
-    let e = $[0];
-    return new Error(e);
-  } else if ($.isOk() && $[0][1].hasLength(0)) {
-    let expr_maker = $[0][0];
-    return new Ok(expr_maker);
-  } else {
-    let expr_maker = $[0][0];
-    let rest = $[0][1];
-    let $1 = try_deep_binary_ops(rest);
-    if (!$1.isOk()) {
-      let e = $1[0];
-      return new Error(e);
+function do_parse(tokens) {
+  if (tokens.hasLength(0)) {
+    return new Ok([new Empty2(), toList([])]);
+  } else if (tokens.atLeastLength(1) && tokens.head instanceof StringLiteral) {
+    let str = tokens.head[0];
+    let rest = tokens.tail;
+    let $ = try_parse_binary_ops(rest);
+    if ($.isOk()) {
+      let op = $[0][0];
+      let rest$1 = $[0][1];
+      return new Ok([op(new StringLiteral2(str)), rest$1]);
     } else {
-      let op_maker = $1[0];
-      return new Ok((lhs) => {
-        return op_maker(expr_maker(lhs));
-      });
+      return new Ok([new StringLiteral2(str), rest]);
     }
-  }
-}
-function parse2(tokens) {
-  let $ = lhs_parse(tokens);
-  if (!$.isOk()) {
-    let e = $[0];
-    return new Error(e);
-  } else if ($.isOk() && $[0][1].hasLength(0)) {
-    let expr = $[0][0];
-    return new Ok(expr);
-  } else {
-    let expr = $[0][0];
-    let rest = $[0][1];
+  } else if (tokens.atLeastLength(1) && tokens.head instanceof IntegerLiteral) {
+    let n = tokens.head.n;
+    let rest = tokens.tail;
+    let $ = try_parse_binary_ops(rest);
+    if ($.isOk()) {
+      let op = $[0][0];
+      let rest$1 = $[0][1];
+      return new Ok([op(new IntegerLiteral2(n)), rest$1]);
+    } else {
+      return new Ok([new IntegerLiteral2(n), rest]);
+    }
+  } else if (tokens.atLeastLength(1) && tokens.head instanceof FloatLiteral) {
+    let f = tokens.head.f;
+    let rest = tokens.tail;
+    let $ = try_parse_binary_ops(rest);
+    if ($.isOk()) {
+      let op = $[0][0];
+      let rest$1 = $[0][1];
+      return new Ok([op(new FloatLiteral2(f)), rest$1]);
+    } else {
+      return new Ok([new FloatLiteral2(f), rest]);
+    }
+  } else if (tokens.atLeastLength(1) && tokens.head instanceof CellReference) {
+    let key = tokens.head.key;
+    let rest = tokens.tail;
+    let $ = try_parse_binary_ops(rest);
+    if ($.isOk()) {
+      let op = $[0][0];
+      let rest$1 = $[0][1];
+      return new Ok([op(new CellReference2(key)), rest$1]);
+    } else {
+      return new Ok([new CellReference2(key), rest]);
+    }
+  } else if (tokens.atLeastLength(1) && tokens.head instanceof TrueToken) {
+    let rest = tokens.tail;
+    let $ = try_parse_binary_ops(rest);
+    if ($.isOk()) {
+      let op = $[0][0];
+      let rest$1 = $[0][1];
+      return new Ok([op(new BooleanLiteral(true)), rest$1]);
+    } else {
+      return new Ok([new BooleanLiteral(true), rest]);
+    }
+  } else if (tokens.atLeastLength(1) && tokens.head instanceof FalseToken) {
+    let rest = tokens.tail;
+    let $ = try_parse_binary_ops(rest);
+    if ($.isOk()) {
+      let op = $[0][0];
+      let rest$1 = $[0][1];
+      return new Ok([op(new BooleanLiteral(false)), rest$1]);
+    } else {
+      return new Ok([new BooleanLiteral(false), rest]);
+    }
+  } else if (tokens.atLeastLength(1) && tokens.head instanceof Minus) {
+    let rest = tokens.tail;
     return try$(
-      try_deep_binary_ops(rest),
-      (op_maker) => {
-        return new Ok(op_maker(expr));
+      do_parse(rest),
+      (_use0) => {
+        let parsed_remainder = _use0[0];
+        let rest$1 = _use0[1];
+        return new Ok([new UnaryOp(new Negate(), parsed_remainder), rest$1]);
       }
     );
+  } else if (tokens.atLeastLength(1) && tokens.head instanceof Bang) {
+    let rest = tokens.tail;
+    return try$(
+      do_parse(rest),
+      (_use0) => {
+        let parsed_remainder = _use0[0];
+        let rest$1 = _use0[1];
+        return new Ok([new UnaryOp(new Not(), parsed_remainder), rest$1]);
+      }
+    );
+  } else if (tokens.atLeastLength(1) && tokens.head instanceof LParen) {
+    let rest = tokens.tail;
+    return try$(
+      do_parse(rest),
+      (_use0) => {
+        let body = _use0[0];
+        let rest$1 = _use0[1];
+        if (rest$1.atLeastLength(1) && rest$1.head instanceof RParen) {
+          let rest$2 = rest$1.tail;
+          return new Ok([new Group(body), rest$2]);
+        } else {
+          return new Error(new ParseError("missing closing parentheses"));
+        }
+      }
+    );
+  } else {
+    let x = tokens.head;
+    return new Error(new ParseError("Unexpected token: " + inspect2(x)));
   }
+}
+function parse3(tokens) {
+  return try$(
+    do_parse(tokens),
+    (_use0) => {
+      let expr = _use0[0];
+      let rest = _use0[1];
+      if (rest.hasLength(0)) {
+        return new Ok(expr);
+      } else {
+        return new Error(
+          new ParseError("After parsing there were leftover tokens")
+        );
+      }
+    }
+  );
 }
 
 // build/dev/javascript/form/form/lang/interpreter.mjs
@@ -3272,6 +3367,12 @@ var Integer = class extends CustomType {
   constructor(n) {
     super();
     this.n = n;
+  }
+};
+var FloatingPointNumber = class extends CustomType {
+  constructor(f) {
+    super();
+    this.f = f;
   }
 };
 var Boolean = class extends CustomType {
@@ -3317,6 +3418,9 @@ function interpret(loop$environment, loop$expr) {
     } else if (expr instanceof IntegerLiteral2) {
       let n = expr.n;
       return new Ok(new Integer(n));
+    } else if (expr instanceof FloatLiteral2) {
+      let f = expr.f;
+      return new Ok(new FloatingPointNumber(f));
     } else if (expr instanceof CellReference2) {
       let cell_ref = expr.key;
       return try$(
@@ -3404,6 +3508,78 @@ function interpret(loop$environment, loop$expr) {
                 let a = lhs2.n;
                 let b = rhs2.n;
                 return new Ok(new Boolean(a <= b));
+              } else if (lhs2 instanceof FloatingPointNumber && op instanceof Add && rhs2 instanceof FloatingPointNumber) {
+                let a = lhs2.f;
+                let b = rhs2.f;
+                return new Ok(new FloatingPointNumber(a + b));
+              } else if (lhs2 instanceof FloatingPointNumber && op instanceof Subtract && rhs2 instanceof FloatingPointNumber) {
+                let a = lhs2.f;
+                let b = rhs2.f;
+                return new Ok(new FloatingPointNumber(a - b));
+              } else if (lhs2 instanceof FloatingPointNumber && op instanceof Multiply && rhs2 instanceof FloatingPointNumber) {
+                let a = lhs2.f;
+                let b = rhs2.f;
+                return new Ok(new FloatingPointNumber(a * b));
+              } else if (lhs2 instanceof FloatingPointNumber && op instanceof Divide && rhs2 instanceof FloatingPointNumber) {
+                let a = lhs2.f;
+                let b = rhs2.f;
+                return new Ok(new FloatingPointNumber(divideFloat(a, b)));
+              } else if (lhs2 instanceof FloatingPointNumber && op instanceof EqualCheck && rhs2 instanceof FloatingPointNumber) {
+                let a = lhs2.f;
+                let b = rhs2.f;
+                return new Ok(new Boolean(a === b));
+              } else if (lhs2 instanceof FloatingPointNumber && op instanceof NotEqualCheck && rhs2 instanceof FloatingPointNumber) {
+                let a = lhs2.f;
+                let b = rhs2.f;
+                return new Ok(new Boolean(a !== b));
+              } else if (lhs2 instanceof FloatingPointNumber && op instanceof GreaterThanCheck && rhs2 instanceof FloatingPointNumber) {
+                let a = lhs2.f;
+                let b = rhs2.f;
+                return new Ok(new Boolean(a > b));
+              } else if (lhs2 instanceof FloatingPointNumber && op instanceof GreaterThanOrEqualCheck && rhs2 instanceof FloatingPointNumber) {
+                let a = lhs2.f;
+                let b = rhs2.f;
+                return new Ok(new Boolean(a >= b));
+              } else if (lhs2 instanceof FloatingPointNumber && op instanceof LessThanCheck && rhs2 instanceof FloatingPointNumber) {
+                let a = lhs2.f;
+                let b = rhs2.f;
+                return new Ok(new Boolean(a < b));
+              } else if (lhs2 instanceof FloatingPointNumber && op instanceof LessThanOrEqualCheck && rhs2 instanceof FloatingPointNumber) {
+                let a = lhs2.f;
+                let b = rhs2.f;
+                return new Ok(new Boolean(a <= b));
+              } else if (lhs2 instanceof Integer && op instanceof Power && rhs2 instanceof FloatingPointNumber) {
+                let a = lhs2.n;
+                let b = rhs2.f;
+                let $ = power3(a, b);
+                if (!$.isOk()) {
+                  throw makeError(
+                    "assignment_no_match",
+                    "form/lang/interpreter",
+                    104,
+                    "",
+                    "Assignment pattern did not match",
+                    { value: $ }
+                  );
+                }
+                let p2 = $[0];
+                return new Ok(new FloatingPointNumber(p2));
+              } else if (lhs2 instanceof FloatingPointNumber && op instanceof Power && rhs2 instanceof FloatingPointNumber) {
+                let a = lhs2.f;
+                let b = rhs2.f;
+                let $ = power2(a, b);
+                if (!$.isOk()) {
+                  throw makeError(
+                    "assignment_no_match",
+                    "form/lang/interpreter",
+                    108,
+                    "",
+                    "Assignment pattern did not match",
+                    { value: $ }
+                  );
+                }
+                let p2 = $[0];
+                return new Ok(new FloatingPointNumber(p2));
               } else if (lhs2 instanceof Boolean && op instanceof And2 && rhs2 instanceof Boolean) {
                 let a = lhs2.b;
                 let b = rhs2.b;
@@ -3496,7 +3672,7 @@ function update(model, msg) {
       (tokens) => {
         return try$(
           (() => {
-            let _pipe = parse2(tokens);
+            let _pipe = parse3(tokens);
             return map_error(
               _pipe,
               (var0) => {
@@ -3556,7 +3732,7 @@ function view(model) {
       throw makeError(
         "assignment_no_match",
         "form",
-        83,
+        91,
         "view",
         "Assignment pattern did not match",
         { value: $ }

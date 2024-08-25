@@ -1,28 +1,31 @@
+import gleam/float
+import squared_away/lang/parser
+import squared_away/lang/scanner
 import gleam/bool
-import gleam/int
-import form/lang/parser
-import form/lang/scanner
 import gleam/dict
+import gleam/int
 import gleam/result
 import gleam/string
 
 /// Our very basic starting environment
 pub type Environment =
-  dict.Dict(String, parser.FormExpr)
+  dict.Dict(String, parser.Expr)
 
-pub type FormValue {
+pub type Value {
   Empty
   Text(inner: String)
   Integer(n: Int)
+  FloatingPointNumber(f: Float)
   Boolean(b: Bool)
 }
 
-pub fn form_value_to_string(fv: FormValue) -> String {
+pub fn value_to_string(fv: Value) -> String {
   case fv {
     Empty -> ""
-    Text(t) -> t 
+    Text(t) -> t
     Integer(n) -> int.to_string(n)
     Boolean(b) -> bool.to_string(b)
+    FloatingPointNumber(f) -> float.to_string(f)
   }
 }
 
@@ -34,14 +37,15 @@ pub type InterpretError {
 
 pub fn interpret(
   environment: Environment,
-  expr: parser.FormExpr,
-) -> Result(FormValue, InterpretError) {
+  expr: parser.Expr,
+) -> Result(Value, InterpretError) {
   case expr {
     parser.Empty -> Ok(Empty)
     parser.Group(expr) -> interpret(environment, expr)
     parser.StringLiteral(txt) -> Ok(Text(txt))
     parser.BooleanLiteral(b) -> Ok(Boolean(b))
     parser.IntegerLiteral(n) -> Ok(Integer(n))
+    parser.FloatLiteral(f) -> Ok(FloatingPointNumber(f))
     parser.CellReference(cell_ref) -> {
       use cell_src <- result.try(
         dict.get(environment, cell_ref)
@@ -80,6 +84,30 @@ pub fn interpret(
         Integer(a), parser.LessThanCheck, Integer(b) -> Ok(Boolean(a < b))
         Integer(a), parser.LessThanOrEqualCheck, Integer(b) ->
           Ok(Boolean(a <= b))
+          
+        // Float operations
+        FloatingPointNumber(a), parser.Add, FloatingPointNumber(b) -> Ok(FloatingPointNumber(a +. b))
+        FloatingPointNumber(a), parser.Subtract, FloatingPointNumber(b) -> Ok(FloatingPointNumber(a -. b))
+        FloatingPointNumber(a), parser.Multiply, FloatingPointNumber(b) -> Ok(FloatingPointNumber(a *. b))
+        FloatingPointNumber(a), parser.Divide, FloatingPointNumber(b) -> Ok(FloatingPointNumber(a /. b))
+        FloatingPointNumber(a), parser.EqualCheck, FloatingPointNumber(b) -> Ok(Boolean(a == b))
+        FloatingPointNumber(a), parser.NotEqualCheck, FloatingPointNumber(b) -> Ok(Boolean(a != b))
+        FloatingPointNumber(a), parser.GreaterThanCheck, FloatingPointNumber(b) -> Ok(Boolean(a >. b))
+        FloatingPointNumber(a), parser.GreaterThanOrEqualCheck, FloatingPointNumber(b) ->
+          Ok(Boolean(a >=. b))
+        FloatingPointNumber(a), parser.LessThanCheck, FloatingPointNumber(b) -> Ok(Boolean(a <. b))
+        FloatingPointNumber(a), parser.LessThanOrEqualCheck, FloatingPointNumber(b) ->
+          Ok(Boolean(a <=. b))
+          
+        // Exponents
+        Integer(a), parser.Power, FloatingPointNumber(b) -> {
+          let assert Ok(p) = int.power(a, b)
+          Ok(FloatingPointNumber(p))
+        }
+        FloatingPointNumber(a), parser.Power, FloatingPointNumber(b) -> {
+          let assert Ok(p) = float.power(a, b)
+          Ok(FloatingPointNumber(p))
+        }
 
         // Boolean operations
         Boolean(a), parser.And, Boolean(b) -> Ok(Boolean(a && b))

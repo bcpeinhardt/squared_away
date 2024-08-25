@@ -1,7 +1,7 @@
-import form/lang
-import form/lang/interpreter
-import form/lang/parser
-import form/lang/scanner
+import squared_away/lang
+import squared_away/lang/interpreter
+import squared_away/lang/parser
+import squared_away/lang/scanner
 import gleam/dict
 import gleam/list
 import gleeunit
@@ -59,13 +59,13 @@ pub fn parser_test() {
         scanner.IntegerLiteral(9),
       ],
       parser.BinaryOp(
+        parser.IntegerLiteral(7),
+        parser.Add,
         parser.BinaryOp(
-          parser.IntegerLiteral(7),
-          parser.Add,
           parser.IntegerLiteral(8),
+          parser.Subtract,
+          parser.IntegerLiteral(9),
         ),
-        parser.Subtract,
-        parser.IntegerLiteral(9),
       ),
     ),
     #(
@@ -83,25 +83,25 @@ pub fn parser_test() {
         scanner.IntegerLiteral(6),
       ],
       parser.BinaryOp(
-        parser.BinaryOp(
-          parser.BinaryOp(
-            parser.BinaryOp(
-              parser.BinaryOp(
-                parser.IntegerLiteral(1),
-                parser.Add,
-                parser.IntegerLiteral(2),
-              ),
-              parser.Add,
-              parser.IntegerLiteral(3),
-            ),
-            parser.Add,
-            parser.IntegerLiteral(4),
-          ),
-          parser.Add,
-          parser.IntegerLiteral(5),
-        ),
+        parser.IntegerLiteral(1),
         parser.Add,
-        parser.IntegerLiteral(6),
+        parser.BinaryOp(
+          parser.IntegerLiteral(2),
+          parser.Add,
+          parser.BinaryOp(
+            parser.IntegerLiteral(3),
+            parser.Add,
+            parser.BinaryOp(
+              parser.IntegerLiteral(4),
+              parser.Add,
+              parser.BinaryOp(
+                parser.IntegerLiteral(5),
+                parser.Add,
+                parser.IntegerLiteral(6),
+              ),
+            ),
+          ),
+        ),
       ),
     ),
   ]
@@ -114,8 +114,7 @@ pub fn integration_lang_test() {
   let test_cases = [
     #("=27+4-10", interpreter.Integer(21)),
     #("=TRUE && FALSE", interpreter.Boolean(False)),
-    // TODO: Fix this parser issue
-  // #("=2+(5*8)", interpreter.Integer(42))
+    #("=2+(5*8)", interpreter.Integer(42)),
   ]
 
   use tc <- list.each(test_cases)

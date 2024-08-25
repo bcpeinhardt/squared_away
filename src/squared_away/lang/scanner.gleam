@@ -2,6 +2,7 @@ import gleam/int
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/string
+import gleam/float
 
 pub type Token {
   /// +, addition op for integers
@@ -32,6 +33,8 @@ pub type Token {
   GreaterEqual
   /// 6, 73
   IntegerLiteral(n: Int)
+  /// 1.0, 6.87
+  FloatLiteral(f: Float)
   /// True
   TrueToken
   /// False
@@ -85,8 +88,23 @@ fn do_scan(src: String, acc: List(Token)) -> Result(List(Token), ScanError) {
     ")" <> rest -> do_scan(string.trim_left(rest), [RParen, ..acc])
     _ -> {
       case maybe_parse_integer(src, "") {
-        Some(#(n, rest)) ->
-          do_scan(string.trim_left(rest), [IntegerLiteral(n), ..acc])
+        Some(#(n, rest)) -> {
+          // Might be a float
+          case rest {
+            "." <> rest -> {
+              case maybe_parse_integer(rest, "") {
+                Some(#(m, rest)) -> {
+                  let assert Ok(f) = float.parse(int.to_string(n) <> "." <> int.to_string(m))
+                  do_scan(string.trim_left(rest), [FloatLiteral(f), ..acc])
+                }
+                None -> Error(ScanError)
+              }
+            }
+            _ -> do_scan(string.trim_left(rest), [IntegerLiteral(n), ..acc])
+          }
+          
+          }
+          
         None ->
           case maybe_parse_cell_ref(src, "") {
             Some(#(cell_ref, rest)) ->

@@ -1,7 +1,7 @@
 import gleam/float
 import gleam/int
 import gleam/list
-import gleam/option.{type Option, None, Some}
+import gleam/result
 import gleam/string
 
 pub type Token {
@@ -88,36 +88,34 @@ fn do_scan(src: String, acc: List(Token)) -> Result(List(Token), ScanError) {
     "(" <> rest -> do_scan(string.trim_left(rest), [LParen, ..acc])
     ")" <> rest -> do_scan(string.trim_left(rest), [RParen, ..acc])
     _ -> {
-      case maybe_parse_integer(src, "") {
-        Some(#(n, rest)) -> {
+      case parse_integer(src, "") {
+        Ok(#(n, rest)) -> {
           // Might be a float
           case rest {
             "." <> rest -> {
-              case maybe_parse_integer(rest, "") {
-                Some(#(m, rest)) -> {
-                  let assert Ok(f) =
-                    float.parse(int.to_string(n) <> "." <> int.to_string(m))
-                  do_scan(string.trim_left(rest), [FloatLiteral(f), ..acc])
-                }
-                None -> Error(ScanError)
-              }
+              use #(m, rest) <- result.try(
+                parse_integer(rest, "") |> result.replace_error(ScanError),
+              )
+              let assert Ok(f) =
+                float.parse(int.to_string(n) <> "." <> int.to_string(m))
+              do_scan(string.trim_left(rest), [FloatLiteral(f), ..acc])
             }
             _ -> do_scan(string.trim_left(rest), [IntegerLiteral(n), ..acc])
           }
         }
 
-        None ->
-          case maybe_parse_cell_ref(src, "") {
-            Some(#(cell_ref, rest)) ->
-              do_scan(string.trim_left(rest), [CellReference(cell_ref), ..acc])
-            None -> Error(ScanError)
-          }
+        Error(_) -> {
+          use #(cell_ref, rest) <- result.try(
+            parse_cell_ref(src, "") |> result.replace_error(ScanError),
+          )
+          do_scan(string.trim_left(rest), [CellReference(cell_ref), ..acc])
+        }
       }
     }
   }
 }
 
-fn maybe_parse_cell_ref(src: String, acc: String) -> Option(#(String, String)) {
+fn parse_cell_ref(src: String, acc: String) -> Result(#(String, String), Nil) {
   // A cell reference is a string of characters followed by a string of numbers (aka an int),
   // so we can reuse the integer parsing at a slight runtime cost for now
   case src {
@@ -146,23 +144,21 @@ fn maybe_parse_cell_ref(src: String, acc: String) -> Option(#(String, String)) {
     | "W" as l <> rest
     | "X" as l <> rest
     | "Y" as l <> rest
-    | "Z" as l <> rest -> maybe_parse_cell_ref(rest, acc <> l)
+    | "Z" as l <> rest -> parse_cell_ref(rest, acc <> l)
     _ -> {
       case acc {
         // Meaning we called this on something that didnt start with a capital letter
-        "" -> None
+        "" -> Error(Nil)
         _ -> {
-          case maybe_parse_integer(src, "") {
-            Some(#(n, rest)) -> Some(#(acc <> int.to_string(n), rest))
-            None -> None
-          }
+          use #(n, rest) <- result.try(parse_integer(src, ""))
+          Ok(#(acc <> int.to_string(n), rest))
         }
       }
     }
   }
 }
 
-fn maybe_parse_integer(src: String, acc: String) -> Option(#(Int, String)) {
+fn parse_integer(src: String, acc: String) -> Result(#(Int, String), Nil) {
   case src {
     "1" as x <> rest
     | "2" as x <> rest
@@ -173,12 +169,7 @@ fn maybe_parse_integer(src: String, acc: String) -> Option(#(Int, String)) {
     | "7" as x <> rest
     | "8" as x <> rest
     | "9" as x <> rest
-    | "0" as x <> rest -> maybe_parse_integer(rest, acc <> x)
-    _ -> {
-      case int.parse(acc) {
-        Ok(x) -> Some(#(x, src))
-        _ -> None
-      }
-    }
+    | "0" as x <> rest -> parse_integer(rest, acc <> x)
+    _ -> int.parse(acc) |> result.map(fn(n) { #(n, src) })
   }
 }

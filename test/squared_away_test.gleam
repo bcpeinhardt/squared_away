@@ -2,7 +2,6 @@ import gleam/dict
 import gleam/list
 import gleeunit
 import gleeunit/should
-import squared_away/lang
 import squared_away/lang/interpreter
 import squared_away/lang/parser
 import squared_away/lang/scanner

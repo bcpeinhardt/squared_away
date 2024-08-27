@@ -2561,7 +2561,7 @@ var StringLiteral = class extends CustomType {
 };
 var ScanError = class extends CustomType {
 };
-function maybe_parse_integer(loop$src, loop$acc) {
+function parse_integer(loop$src, loop$acc) {
   while (true) {
     let src = loop$src;
     let acc = loop$acc;
@@ -2616,17 +2616,14 @@ function maybe_parse_integer(loop$src, loop$acc) {
       loop$src = rest;
       loop$acc = acc + x;
     } else {
-      let $ = parse2(acc);
-      if ($.isOk()) {
-        let x = $[0];
-        return new Some([x, src]);
-      } else {
-        return new None();
-      }
+      let _pipe = parse2(acc);
+      return map2(_pipe, (n) => {
+        return [n, src];
+      });
     }
   }
 }
-function maybe_parse_cell_ref(loop$src, loop$acc) {
+function parse_cell_ref(loop$src, loop$acc) {
   while (true) {
     let src = loop$src;
     let acc = loop$acc;
@@ -2762,16 +2759,16 @@ function maybe_parse_cell_ref(loop$src, loop$acc) {
       loop$acc = acc + l;
     } else {
       if (acc === "") {
-        return new None();
+        return new Error(void 0);
       } else {
-        let $ = maybe_parse_integer(src, "");
-        if ($ instanceof Some) {
-          let n = $[0][0];
-          let rest = $[0][1];
-          return new Some([acc + to_string2(n), rest]);
-        } else {
-          return new None();
-        }
+        return try$(
+          parse_integer(src, ""),
+          (_use0) => {
+            let n = _use0[0];
+            let rest = _use0[1];
+            return new Ok([acc + to_string2(n), rest]);
+          }
+        );
       }
     }
   }
@@ -2864,47 +2861,59 @@ function do_scan(loop$src, loop$acc) {
       loop$src = trim_left2(rest);
       loop$acc = prepend(new RParen(), acc);
     } else {
-      let $ = maybe_parse_integer(src, "");
-      if ($ instanceof Some) {
+      let $ = parse_integer(src, "");
+      if ($.isOk()) {
         let n = $[0][0];
         let rest = $[0][1];
         if (rest.startsWith(".")) {
           let rest$1 = rest.slice(1);
-          let $1 = maybe_parse_integer(rest$1, "");
-          if ($1 instanceof Some) {
-            let m = $1[0][0];
-            let rest$2 = $1[0][1];
-            let $2 = parse(to_string2(n) + "." + to_string2(m));
-            if (!$2.isOk()) {
-              throw makeError(
-                "assignment_no_match",
-                "squared_away/lang/scanner",
-                98,
-                "do_scan",
-                "Assignment pattern did not match",
-                { value: $2 }
+          return try$(
+            (() => {
+              let _pipe = parse_integer(rest$1, "");
+              return replace_error(_pipe, new ScanError());
+            })(),
+            (_use0) => {
+              let m = _use0[0];
+              let rest$2 = _use0[1];
+              let $1 = parse(
+                to_string2(n) + "." + to_string2(m)
+              );
+              if (!$1.isOk()) {
+                throw makeError(
+                  "assignment_no_match",
+                  "squared_away/lang/scanner",
+                  99,
+                  "",
+                  "Assignment pattern did not match",
+                  { value: $1 }
+                );
+              }
+              let f = $1[0];
+              return do_scan(
+                trim_left2(rest$2),
+                prepend(new FloatLiteral(f), acc)
               );
             }
-            let f = $2[0];
-            loop$src = trim_left2(rest$2);
-            loop$acc = prepend(new FloatLiteral(f), acc);
-          } else {
-            return new Error(new ScanError());
-          }
+          );
         } else {
           loop$src = trim_left2(rest);
           loop$acc = prepend(new IntegerLiteral(n), acc);
         }
       } else {
-        let $1 = maybe_parse_cell_ref(src, "");
-        if ($1 instanceof Some) {
-          let cell_ref = $1[0][0];
-          let rest = $1[0][1];
-          loop$src = trim_left2(rest);
-          loop$acc = prepend(new CellReference(cell_ref), acc);
-        } else {
-          return new Error(new ScanError());
-        }
+        return try$(
+          (() => {
+            let _pipe = parse_cell_ref(src, "");
+            return replace_error(_pipe, new ScanError());
+          })(),
+          (_use0) => {
+            let cell_ref = _use0[0];
+            let rest = _use0[1];
+            return do_scan(
+              trim_left2(rest),
+              prepend(new CellReference(cell_ref), acc)
+            );
+          }
+        );
       }
     }
   }

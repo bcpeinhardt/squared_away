@@ -1,7 +1,6 @@
 import gleam/dict
 import gleam/result
 import gleam/string
-import squared_away/lang/environment
 import squared_away/lang/parser
 
 pub type TypedExpr {
@@ -29,7 +28,7 @@ pub type TypeError {
 }
 
 pub fn typecheck(
-  env: environment.Environment,
+  env: dict.Dict(String, Result(parser.Expr, Nil)),
   expr: parser.Expr,
 ) -> Result(TypedExpr, TypeError) {
   case expr {
@@ -43,9 +42,14 @@ pub fn typecheck(
       Ok(Group(type_: expr.type_, expr:))
     }
     parser.CellReference(key) -> {
-      let ref_expr = dict.get(env, key) |> result.unwrap(or: parser.Empty)
-      use expr <- result.try(typecheck(env, ref_expr))
-      Ok(CellReference(type_: expr.type_, key:))
+      let ref_expr = dict.get(env, key) |> result.flatten
+      case ref_expr {
+        Error(Nil) -> Error(TypeError("Do not have type for referenced cell: " <> string.inspect(key)))
+        Ok(expr) -> {
+            use expr <- result.try(typecheck(env, expr))
+            Ok(CellReference(type_: expr.type_, key:))
+        }
+      }
     }
     parser.UnaryOp(op, expr) -> {
       use expr <- result.try(typecheck(env, expr))

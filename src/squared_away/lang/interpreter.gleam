@@ -3,7 +3,6 @@ import gleam/dict
 import gleam/float
 import gleam/int
 import gleam/result
-import squared_away/lang/environment
 import squared_away/lang/parser
 import squared_away/lang/scanner
 import squared_away/lang/typechecker
@@ -33,8 +32,59 @@ pub type InterpretError {
   RuntimeError(String)
 }
 
+fn convert_grid(input: dict.Dict(String, Result(a, b))) -> dict.Dict(String, Result(a, Nil)) {
+  use acc, key, val <- dict.fold(input, dict.new())
+  dict.insert(acc, key, val |> result.nil_error)
+}
+
+pub fn interpret_grid(input: dict.Dict(String, Result(typechecker.TypedExpr, InterpretError))) -> dict.Dict(String, Result(Value, InterpretError)) {
+  use acc, key, typed_expr <- dict.fold(input, dict.new())
+  case typed_expr {
+    Error(e) -> dict.insert(acc, key, Error(e))
+    Ok(typed_expr) -> {
+      let maybe_value = interpret(input, typed_expr)
+      dict.insert(acc, key, maybe_value)
+    }
+  }
+} 
+
+pub fn typecheck_grid(
+  input: dict.Dict(String, Result(parser.Expr, InterpretError)),
+) -> dict.Dict(String, Result(typechecker.TypedExpr, InterpretError)) {
+  use acc, key, expr <- dict.fold(input, dict.new())
+  case expr {
+    Error(e) -> dict.insert(acc, key, Error(e))
+    Ok(expr) -> {
+let maybe_typed_expr = typechecker.typecheck(convert_grid(input), expr) |> result.map_error(TypeError)
+  dict.insert(acc, key, maybe_typed_expr)
+    }
+  }
+  
+}
+
+pub fn parse_grid(
+  input: dict.Dict(String, Result(List(scanner.Token), InterpretError)),
+) -> dict.Dict(String, Result(parser.Expr, InterpretError)) {
+  use acc, key, toks <- dict.fold(input, dict.new())
+  case toks {
+    Error(e) -> dict.insert(acc, key, Error(e))
+    Ok(toks) -> {
+      let expr = parser.parse(toks) |> result.map_error(ParseError)
+      dict.insert(acc, key, expr)
+    }
+  }
+}
+
+pub fn scan_grid(
+  input: dict.Dict(String, String),
+) -> dict.Dict(String, Result(List(scanner.Token), InterpretError)) {
+  use acc, key, src <- dict.fold(input, dict.new())
+  let maybe_scanned = scanner.scan(src) |> result.map_error(ScanError)
+  dict.insert(acc, key, maybe_scanned)
+}
+
 pub fn interpret(
-  env: environment.Environment,
+  env: dict.Dict(String, Result(typechecker.TypedExpr, InterpretError)),
   expr: typechecker.TypedExpr,
 ) -> Result(Value, InterpretError) {
   case expr {
@@ -45,14 +95,11 @@ pub fn interpret(
     typechecker.IntegerLiteral(_, n) -> Ok(Integer(n))
     typechecker.FloatLiteral(_, f) -> Ok(FloatingPointNumber(f))
     typechecker.CellReference(_, cell_ref) -> {
-      use cell_src <- result.try(
-        dict.get(env, cell_ref)
-        |> result.replace_error(RuntimeError("Referemced cell without data")),
-      )
-      use typed_expr <- result.try(
-        typechecker.typecheck(env, cell_src) |> result.map_error(TypeError),
-      )
-      interpret(env, typed_expr)
+      case dict.get(env, cell_ref) {
+        Ok(Error(e)) -> Error(e)
+        Error(Nil) -> Error(RuntimeError("Uhhhh nil cell reference? I need to work out the semantics around Nil/Empty"))
+        Ok(Ok(expr)) -> interpret(env, expr)
+      }
     }
     typechecker.UnaryOp(_, op, expr) -> {
       use value <- result.try(interpret(env, expr))

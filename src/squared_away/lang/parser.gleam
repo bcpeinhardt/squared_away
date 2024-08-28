@@ -1,3 +1,4 @@
+import gleam/dict
 import gleam/result
 import gleam/string
 import squared_away/lang/scanner

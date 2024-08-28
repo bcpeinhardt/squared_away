@@ -25,8 +25,7 @@ pub fn main() {
 type Model {
   Model(
     active_cell: String,
-    grid: Dict(String, parser.Expr),
-    error: Option(interpreter.InterpretError),
+    grid: Dict(String, Result(interpreter.Value, interpreter.InterpretError))
   )
 }
 
@@ -38,12 +37,12 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
     list.fold(cols, dict.new(), fn(grid, c) {
       list.fold(rows, dict.new(), fn(partial_grid, r) {
         let key = c <> int.to_string(r)
-        partial_grid |> dict.insert(key, parser.Empty)
+        partial_grid |> dict.insert(key, Ok(interpreter.Empty))
       })
       |> dict.merge(grid)
     })
 
-  #(Model(active_cell: "A1", grid:, error: None), effect.none())
+  #(Model(active_cell: "A1", grid:), effect.none())
 }
 
 type Msg {

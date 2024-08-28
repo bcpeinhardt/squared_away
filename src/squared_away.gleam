@@ -1,18 +1,15 @@
 import gleam/dict.{type Dict}
 import gleam/int
 import gleam/list
-import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string
 import lustre
+import lustre/attribute
 import lustre/effect
 import lustre/element
 import lustre/element/html
 import lustre/event
 import squared_away/lang/interpreter
-import squared_away/lang/parser
-import squared_away/lang/scanner
-import squared_away/lang/typechecker
 
 pub fn main() {
   let app = lustre.application(init, update, view)
@@ -47,7 +44,7 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
     })
 
   // We could presume that our value_grid starts with all empty,
-  // but instead I think we should scan, parser, typecheck, and 
+  // but instead I think we should scan, parse, typecheck, and 
   // interpret the grid on init, as later we'll pass in saved files
 
   let model = Model(active_cell: "A1", src_grid:, value_grid: dict.new())
@@ -82,22 +79,50 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
 }
 
 fn view(model: Model) -> element.Element(Msg) {
-  let cells =
-    dict.keys(model.src_grid)
-    |> list.sort(string.compare)
-    |> list.map(fn(c) {
-      html.input([
-        event.on_input(UserSetCellValue(key: c, val: _)),
-        event.on_click(UserClickedCell(c)),
-      ])
+  let alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+  let columns = [
+    html.th([attribute.class("sticky-header")], [html.text("")]),
+    ..list.map(string.to_graphemes(alphabet), fn(l) {
+      html.th([attribute.class("sticky-header")], [html.text(l)])
     })
+  ]
+
+  let grid =
+    html.div([attribute.class("table-container")], [
+      html.table([], [
+        html.thead([], [html.tr([], columns)]),
+        html.tbody(
+          [],
+          list.repeat(Nil, 100)
+            |> list.index_map(fn(_, i) {
+              html.tr([], [
+                html.th([attribute.class("sticky-column")], [
+                  html.text(int.to_string(i + 1)),
+                ]),
+                ..list.map(string.to_graphemes(alphabet), fn(l) {
+                  html.td([], [
+                    html.input([
+                      event.on_input(UserSetCellValue(
+                        key: l <> int.to_string(i + 1),
+                        val: _,
+                      )),
+                      event.on_click(UserClickedCell(l <> int.to_string(i + 1))),
+                    ]),
+                  ])
+                })
+              ])
+            }),
+        ),
+      ]),
+    ])
 
   let active_cell_value =
     dict.get(model.value_grid, model.active_cell)
     |> result.unwrap(or: Ok(interpreter.Empty))
 
   html.div([], [
-    html.div([], cells),
+    html.div([], [grid]),
     html.p([], [
       html.text(model.active_cell <> ": " <> string.inspect(active_cell_value)),
     ]),

@@ -1,0 +1,84 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+h2 {
+    text-align: center;
+}
+
+.table-container {
+    width: 100%;
+    max-height: 70vh; /* Limit height to 70% of the viewport */
+    overflow-y: auto; /* Enable vertical scrolling */
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    border: 1px solid #ccc;
+    text-align: right;
+}
+
+th {
+    background-color: #f2f2f2;
+    text-align: center;
+}
+
+input[type="text"] {
+    width: 5ch; /* Start with a reasonable size */
+    min-width: 5ch;
+    max-width: 100%;
+    border: none;
+    text-align: right;
+    box-sizing: border-box;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+}
+
+input[type="text"]:focus {
+    outline: none;
+    background-color: #e6f7ff;
+}
+
+input[type="text"] {
+    width: min-content;
+}
+
+/* Sticky positioning */
+.sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.sticky-column {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background-color: #f2f2f2;
+}
+
+.table-container::-webkit-scrollbar {
+    width: 10px;
+}
+
+.table-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}

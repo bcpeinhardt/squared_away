@@ -44,10 +44,13 @@ pub fn typecheck(
     parser.CellReference(key) -> {
       let ref_expr = dict.get(env, key) |> result.flatten
       case ref_expr {
-        Error(Nil) -> Error(TypeError("Do not have type for referenced cell: " <> string.inspect(key)))
+        Error(Nil) ->
+          Error(TypeError(
+            "Do not have type for referenced cell: " <> string.inspect(key),
+          ))
         Ok(expr) -> {
-            use expr <- result.try(typecheck(env, expr))
-            Ok(CellReference(type_: expr.type_, key:))
+          use expr <- result.try(typecheck(env, expr))
+          Ok(CellReference(type_: expr.type_, key:))
         }
       }
     }

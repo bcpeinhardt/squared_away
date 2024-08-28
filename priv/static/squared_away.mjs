@@ -720,6 +720,15 @@ function map_error(result, fun) {
     return new Error(fun(error));
   }
 }
+function flatten(result) {
+  if (result.isOk()) {
+    let x = result[0];
+    return x;
+  } else {
+    let error = result[0];
+    return new Error(error);
+  }
+}
 function try$(result, fun) {
   if (result.isOk()) {
     let x = result[0];
@@ -736,6 +745,11 @@ function unwrap(result, default$) {
   } else {
     return default$;
   }
+}
+function nil_error(result) {
+  return map_error(result, (_) => {
+    return void 0;
+  });
 }
 function replace_error(result, error) {
   if (result.isOk()) {
@@ -1907,6 +1921,28 @@ function do_merge(dict, new_entries) {
 function merge(dict, new_entries) {
   return do_merge(dict, new_entries);
 }
+function do_fold(loop$list, loop$initial, loop$fun) {
+  while (true) {
+    let list = loop$list;
+    let initial = loop$initial;
+    let fun = loop$fun;
+    if (list.hasLength(0)) {
+      return initial;
+    } else {
+      let k = list.head[0];
+      let v = list.head[1];
+      let rest = list.tail;
+      loop$list = rest;
+      loop$initial = fun(initial, k, v);
+      loop$fun = fun;
+    }
+  }
+}
+function fold2(dict, initial, fun) {
+  let _pipe = dict;
+  let _pipe$1 = map_to_list(_pipe);
+  return do_fold(_pipe$1, initial, fun);
+}
 
 // build/dev/javascript/gleam_stdlib/gleam/bool.mjs
 function guard(requirement, consequence, alternative) {
@@ -2882,7 +2918,7 @@ function do_scan(loop$src, loop$acc) {
                 throw makeError(
                   "assignment_no_match",
                   "squared_away/lang/scanner",
-                  99,
+                  100,
                   "",
                   "Assignment pattern did not match",
                   { value: $1 }
@@ -3492,14 +3528,23 @@ function typecheck(env, expr) {
     let key = expr.key;
     let ref_expr = (() => {
       let _pipe = get(env, key);
-      return unwrap(_pipe, new Empty2());
+      return flatten(_pipe);
     })();
-    return try$(
-      typecheck(env, ref_expr),
-      (expr2) => {
-        return new Ok(new CellReference3(expr2.type_, key));
-      }
-    );
+    if (!ref_expr.isOk() && !ref_expr[0]) {
+      return new Error(
+        new TypeError(
+          "Do not have type for referenced cell: " + inspect2(key)
+        )
+      );
+    } else {
+      let expr$1 = ref_expr[0];
+      return try$(
+        typecheck(env, expr$1),
+        (expr2) => {
+          return new Ok(new CellReference3(expr2.type_, key));
+        }
+      );
+    }
   } else if (expr instanceof UnaryOp) {
     let op = expr.op;
     let expr$1 = expr.expr;
@@ -3655,6 +3700,88 @@ var RuntimeError = class extends CustomType {
     this[0] = x0;
   }
 };
+function convert_grid(input2) {
+  return fold2(
+    input2,
+    new$(),
+    (acc, key, val) => {
+      return insert(
+        acc,
+        key,
+        (() => {
+          let _pipe = val;
+          return nil_error(_pipe);
+        })()
+      );
+    }
+  );
+}
+function typecheck_grid(input2) {
+  return fold2(
+    input2,
+    new$(),
+    (acc, key, expr) => {
+      if (!expr.isOk()) {
+        let e = expr[0];
+        return insert(acc, key, new Error(e));
+      } else {
+        let expr$1 = expr[0];
+        let maybe_typed_expr = (() => {
+          let _pipe = typecheck(convert_grid(input2), expr$1);
+          return map_error(
+            _pipe,
+            (var0) => {
+              return new TypeError2(var0);
+            }
+          );
+        })();
+        return insert(acc, key, maybe_typed_expr);
+      }
+    }
+  );
+}
+function parse_grid(input2) {
+  return fold2(
+    input2,
+    new$(),
+    (acc, key, toks) => {
+      if (!toks.isOk()) {
+        let e = toks[0];
+        return insert(acc, key, new Error(e));
+      } else {
+        let toks$1 = toks[0];
+        let expr = (() => {
+          let _pipe = parse3(toks$1);
+          return map_error(
+            _pipe,
+            (var0) => {
+              return new ParseError2(var0);
+            }
+          );
+        })();
+        return insert(acc, key, expr);
+      }
+    }
+  );
+}
+function scan_grid(input2) {
+  return fold2(
+    input2,
+    new$(),
+    (acc, key, src) => {
+      let maybe_scanned = (() => {
+        let _pipe = scan(src);
+        return map_error(
+          _pipe,
+          (var0) => {
+            return new ScanError2(var0);
+          }
+        );
+      })();
+      return insert(acc, key, maybe_scanned);
+    }
+  );
+}
 function interpret(loop$env, loop$expr) {
   while (true) {
     let env = loop$env;
@@ -3679,31 +3806,21 @@ function interpret(loop$env, loop$expr) {
       return new Ok(new FloatingPointNumber(f));
     } else if (expr instanceof CellReference3) {
       let cell_ref = expr.key;
-      return try$(
-        (() => {
-          let _pipe = get(env, cell_ref);
-          return replace_error(
-            _pipe,
-            new RuntimeError("Referemced cell without data")
-          );
-        })(),
-        (cell_src) => {
-          return try$(
-            (() => {
-              let _pipe = typecheck(env, cell_src);
-              return map_error(
-                _pipe,
-                (var0) => {
-                  return new TypeError2(var0);
-                }
-              );
-            })(),
-            (typed_expr) => {
-              return interpret(env, typed_expr);
-            }
-          );
-        }
-      );
+      let $ = get(env, cell_ref);
+      if ($.isOk() && !$[0].isOk()) {
+        let e = $[0][0];
+        return new Error(e);
+      } else if (!$.isOk() && !$[0]) {
+        return new Error(
+          new RuntimeError(
+            "Uhhhh nil cell reference? I need to work out the semantics around Nil/Empty"
+          )
+        );
+      } else {
+        let expr$1 = $[0][0];
+        loop$env = env;
+        loop$expr = expr$1;
+      }
     } else if (expr instanceof UnaryOp2) {
       let op = expr.op;
       let expr$1 = expr.expr;
@@ -3723,7 +3840,7 @@ function interpret(loop$env, loop$expr) {
             throw makeError(
               "panic",
               "squared_away/lang/interpreter",
-              65,
+              112,
               "",
               "These should be the only options if the typechecker is working",
               {}
@@ -3829,7 +3946,7 @@ function interpret(loop$env, loop$expr) {
                   throw makeError(
                     "assignment_no_match",
                     "squared_away/lang/interpreter",
-                    114,
+                    161,
                     "",
                     "Assignment pattern did not match",
                     { value: $ }
@@ -3845,7 +3962,7 @@ function interpret(loop$env, loop$expr) {
                   throw makeError(
                     "assignment_no_match",
                     "squared_away/lang/interpreter",
-                    118,
+                    165,
                     "",
                     "Assignment pattern did not match",
                     { value: $ }
@@ -3873,7 +3990,7 @@ function interpret(loop$env, loop$expr) {
                 throw makeError(
                   "panic",
                   "squared_away/lang/interpreter",
-                  129,
+                  176,
                   "",
                   "these should be the only options if the typechecker is working properly",
                   {}
@@ -3886,14 +4003,30 @@ function interpret(loop$env, loop$expr) {
     }
   }
 }
+function interpret_grid(input2) {
+  return fold2(
+    input2,
+    new$(),
+    (acc, key, typed_expr) => {
+      if (!typed_expr.isOk()) {
+        let e = typed_expr[0];
+        return insert(acc, key, new Error(e));
+      } else {
+        let typed_expr$1 = typed_expr[0];
+        let maybe_value = interpret(input2, typed_expr$1);
+        return insert(acc, key, maybe_value);
+      }
+    }
+  );
+}
 
 // build/dev/javascript/squared_away/squared_away.mjs
 var Model = class extends CustomType {
-  constructor(active_cell, grid, error) {
+  constructor(active_cell, src_grid, value_grid) {
     super();
     this.active_cell = active_cell;
-    this.grid = grid;
-    this.error = error;
+    this.src_grid = src_grid;
+    this.value_grid = value_grid;
   }
 };
 var UserClickedCell = class extends CustomType {
@@ -3909,76 +4042,47 @@ var UserSetCellValue = class extends CustomType {
     this.val = val;
   }
 };
+function update_grid(model) {
+  let scanned = scan_grid(model.src_grid);
+  let parsed = parse_grid(scanned);
+  let typechecked = typecheck_grid(parsed);
+  let value_grid = interpret_grid(typechecked);
+  return model.withFields({ value_grid });
+}
 function init2(_) {
   let cols = (() => {
     let _pipe = "ABCDE";
     return graphemes(_pipe);
   })();
   let rows = toList([1, 2, 3, 4, 5]);
-  let grid = fold(
+  let src_grid = fold(
     cols,
     new$(),
-    (grid2, c) => {
+    (grid, c) => {
       let _pipe = fold(
         rows,
         new$(),
         (partial_grid, r) => {
           let key = c + to_string2(r);
           let _pipe2 = partial_grid;
-          return insert(_pipe2, key, new Empty2());
+          return insert(_pipe2, key, "");
         }
       );
-      return merge(_pipe, grid2);
+      return merge(_pipe, grid);
     }
   );
-  return [new Model("A1", grid, new None()), none()];
+  let model = new Model("A1", src_grid, new$());
+  let model$1 = update_grid(model);
+  return [model$1, none()];
 }
 function update(model, msg) {
   if (msg instanceof UserSetCellValue) {
     let key = msg.key;
     let val = msg.val;
-    let res = try$(
-      (() => {
-        let _pipe = scan(val);
-        return map_error(
-          _pipe,
-          (var0) => {
-            return new ScanError2(var0);
-          }
-        );
-      })(),
-      (tokens) => {
-        return try$(
-          (() => {
-            let _pipe = parse3(tokens);
-            return map_error(
-              _pipe,
-              (var0) => {
-                return new ParseError2(var0);
-              }
-            );
-          })(),
-          (expr) => {
-            return new Ok(expr);
-          }
-        );
-      }
-    );
-    if (res.isOk()) {
-      let val$1 = res[0];
-      return [
-        model.withFields({
-          grid: (() => {
-            let _pipe = model.grid;
-            return insert(_pipe, key, val$1);
-          })()
-        }),
-        none()
-      ];
-    } else {
-      let e = res[0];
-      return [model.withFields({ error: new Some(e) }), none()];
-    }
+    let model$1 = model.withFields({
+      src_grid: insert(model.src_grid, key, val)
+    });
+    return [update_grid(model$1), none()];
   } else {
     let key = msg.key;
     return [model.withFields({ active_cell: key }), none()];
@@ -3986,7 +4090,7 @@ function update(model, msg) {
 }
 function view(model) {
   let cells = (() => {
-    let _pipe = keys(model.grid);
+    let _pipe = keys(model.src_grid);
     let _pipe$1 = sort(_pipe, compare3);
     return map(
       _pipe$1,
@@ -4005,18 +4109,8 @@ function view(model) {
     );
   })();
   let active_cell_value = (() => {
-    let expr = (() => {
-      let _pipe = get(model.grid, model.active_cell);
-      return unwrap(_pipe, new Empty2());
-    })();
-    let $ = typecheck(model.grid, expr);
-    if ($.isOk()) {
-      let typed_expr = $[0];
-      return inspect2(interpret(model.grid, typed_expr));
-    } else {
-      let e = $[0];
-      return inspect2(e);
-    }
+    let _pipe = get(model.value_grid, model.active_cell);
+    return unwrap(_pipe, new Ok(new Empty4()));
   })();
   return div(
     toList([]),
@@ -4024,7 +4118,11 @@ function view(model) {
       div(toList([]), cells),
       p(
         toList([]),
-        toList([text2(model.active_cell + ": " + active_cell_value)])
+        toList([
+          text2(
+            model.active_cell + ": " + inspect2(active_cell_value)
+          )
+        ])
       )
     ])
   );

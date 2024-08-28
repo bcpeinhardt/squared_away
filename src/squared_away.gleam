@@ -25,7 +25,11 @@ pub fn main() {
 type Model {
   Model(
     active_cell: String,
-    grid: Dict(String, Result(interpreter.Value, interpreter.InterpretError))
+    src_grid: Dict(String, String),
+    value_grid: Dict(
+      String,
+      Result(interpreter.Value, interpreter.InterpretError),
+    ),
   )
 }
 
@@ -33,16 +37,22 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
   let cols = "ABCDE" |> string.to_graphemes
   let rows = [1, 2, 3, 4, 5]
 
-  let grid =
+  let src_grid =
     list.fold(cols, dict.new(), fn(grid, c) {
       list.fold(rows, dict.new(), fn(partial_grid, r) {
         let key = c <> int.to_string(r)
-        partial_grid |> dict.insert(key, Ok(interpreter.Empty))
+        partial_grid |> dict.insert(key, "")
       })
       |> dict.merge(grid)
     })
 
-  #(Model(active_cell: "A1", grid:), effect.none())
+  // We could presume that our value_grid starts with all empty,
+  // but instead I think we should scan, parser, typecheck, and 
+  // interpret the grid on init, as later we'll pass in saved files
+
+  let model = Model(active_cell: "A1", src_grid:, value_grid: dict.new())
+  let model = update_grid(model)
+  #(model, effect.none())
 }
 
 type Msg {
@@ -50,25 +60,20 @@ type Msg {
   UserSetCellValue(key: String, val: String)
 }
 
+fn update_grid(model: Model) -> Model {
+  let scanned = interpreter.scan_grid(model.src_grid)
+  let parsed = interpreter.parse_grid(scanned)
+  let typechecked = interpreter.typecheck_grid(parsed)
+  let value_grid = interpreter.interpret_grid(typechecked)
+  Model(..model, value_grid:)
+}
+
 fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
   case msg {
     UserSetCellValue(key, val) -> {
-      let res = {
-        use tokens <- result.try(
-          scanner.scan(val) |> result.map_error(interpreter.ScanError),
-        )
-        use expr <- result.try(
-          parser.parse(tokens) |> result.map_error(interpreter.ParseError),
-        )
-        Ok(expr)
-      }
-      case res {
-        Ok(val) -> #(
-          Model(..model, grid: model.grid |> dict.insert(key, val)),
-          effect.none(),
-        )
-        Error(e) -> #(Model(..model, error: Some(e)), effect.none())
-      }
+      let model =
+        Model(..model, src_grid: dict.insert(model.src_grid, key, val))
+      #(update_grid(model), effect.none())
     }
     UserClickedCell(key) -> {
       #(Model(..model, active_cell: key), effect.none())
@@ -78,7 +83,7 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
 
 fn view(model: Model) -> element.Element(Msg) {
   let cells =
-    dict.keys(model.grid)
+    dict.keys(model.src_grid)
     |> list.sort(string.compare)
     |> list.map(fn(c) {
       html.input([
@@ -87,18 +92,14 @@ fn view(model: Model) -> element.Element(Msg) {
       ])
     })
 
-  let active_cell_value = {
-    let expr =
-      dict.get(model.grid, model.active_cell) |> result.unwrap(or: parser.Empty)
-    case typechecker.typecheck(model.grid, expr) {
-      Ok(typed_expr) ->
-        string.inspect(interpreter.interpret(model.grid, typed_expr))
-      Error(e) -> string.inspect(e)
-    }
-  }
+  let active_cell_value =
+    dict.get(model.value_grid, model.active_cell)
+    |> result.unwrap(or: Ok(interpreter.Empty))
 
   html.div([], [
     html.div([], cells),
-    html.p([], [html.text(model.active_cell <> ": " <> active_cell_value)]),
+    html.p([], [
+      html.text(model.active_cell <> ": " <> string.inspect(active_cell_value)),
+    ]),
   ])
 }

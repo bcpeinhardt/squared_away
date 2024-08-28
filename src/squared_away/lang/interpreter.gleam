@@ -32,12 +32,16 @@ pub type InterpretError {
   RuntimeError(String)
 }
 
-fn convert_grid(input: dict.Dict(String, Result(a, b))) -> dict.Dict(String, Result(a, Nil)) {
+fn convert_grid(
+  input: dict.Dict(String, Result(a, b)),
+) -> dict.Dict(String, Result(a, Nil)) {
   use acc, key, val <- dict.fold(input, dict.new())
   dict.insert(acc, key, val |> result.nil_error)
 }
 
-pub fn interpret_grid(input: dict.Dict(String, Result(typechecker.TypedExpr, InterpretError))) -> dict.Dict(String, Result(Value, InterpretError)) {
+pub fn interpret_grid(
+  input: dict.Dict(String, Result(typechecker.TypedExpr, InterpretError)),
+) -> dict.Dict(String, Result(Value, InterpretError)) {
   use acc, key, typed_expr <- dict.fold(input, dict.new())
   case typed_expr {
     Error(e) -> dict.insert(acc, key, Error(e))
@@ -46,7 +50,7 @@ pub fn interpret_grid(input: dict.Dict(String, Result(typechecker.TypedExpr, Int
       dict.insert(acc, key, maybe_value)
     }
   }
-} 
+}
 
 pub fn typecheck_grid(
   input: dict.Dict(String, Result(parser.Expr, InterpretError)),
@@ -55,11 +59,12 @@ pub fn typecheck_grid(
   case expr {
     Error(e) -> dict.insert(acc, key, Error(e))
     Ok(expr) -> {
-let maybe_typed_expr = typechecker.typecheck(convert_grid(input), expr) |> result.map_error(TypeError)
-  dict.insert(acc, key, maybe_typed_expr)
+      let maybe_typed_expr =
+        typechecker.typecheck(convert_grid(input), expr)
+        |> result.map_error(TypeError)
+      dict.insert(acc, key, maybe_typed_expr)
     }
   }
-  
 }
 
 pub fn parse_grid(
@@ -97,7 +102,10 @@ pub fn interpret(
     typechecker.CellReference(_, cell_ref) -> {
       case dict.get(env, cell_ref) {
         Ok(Error(e)) -> Error(e)
-        Error(Nil) -> Error(RuntimeError("Uhhhh nil cell reference? I need to work out the semantics around Nil/Empty"))
+        Error(Nil) ->
+          Error(RuntimeError(
+            "Uhhhh nil cell reference? I need to work out the semantics around Nil/Empty",
+          ))
         Ok(Ok(expr)) -> interpret(env, expr)
       }
     }

@@ -3,8 +3,11 @@ import gleam/list
 import gleeunit
 import gleeunit/should
 import squared_away/lang/interpreter
+import squared_away/lang/interpreter/value
 import squared_away/lang/parser
+import squared_away/lang/parser/expr
 import squared_away/lang/scanner
+import squared_away/lang/scanner/token
 import squared_away/lang/typechecker
 
 pub fn main() {
@@ -13,35 +16,35 @@ pub fn main() {
 
 pub fn scanner_test() {
   let test_cases = [
-    #("=-+*/", [scanner.Minus, scanner.Plus, scanner.Star, scanner.Div]),
+    #("=-+*/", [token.Minus, token.Plus, token.Star, token.Div]),
     #("=   - >= + * / ** = ! && || != ( <= ) == <> TRUE FALSE", [
-      scanner.Minus,
-      scanner.GreaterEqual,
-      scanner.Plus,
-      scanner.Star,
-      scanner.Div,
-      scanner.StarStar,
-      scanner.Equal,
-      scanner.Bang,
-      scanner.And,
-      scanner.Or,
-      scanner.BangEqual,
-      scanner.LParen,
-      scanner.LessEqual,
-      scanner.RParen,
-      scanner.EqualEqual,
-      scanner.Less,
-      scanner.Greater,
-      scanner.TrueToken,
-      scanner.FalseToken,
+      token.Minus,
+      token.GreaterEqual,
+      token.Plus,
+      token.Star,
+      token.Div,
+      token.StarStar,
+      token.Equal,
+      token.Bang,
+      token.And,
+      token.Or,
+      token.BangEqual,
+      token.LParen,
+      token.LessEqual,
+      token.RParen,
+      token.EqualEqual,
+      token.Less,
+      token.Greater,
+      token.TrueToken,
+      token.FalseToken,
     ]),
     #("=   - AS45 + 786", [
-      scanner.Minus,
-      scanner.CellReference("AS45"),
-      scanner.Plus,
-      scanner.IntegerLiteral(786),
+      token.Minus,
+      token.CellReference("AS45"),
+      token.Plus,
+      token.IntegerLiteral(786),
     ]),
-    #("+-*/=", [scanner.StringLiteral("+-*/=")]),
+    #("+-*/=", [token.StringLiteral("+-*/=")]),
   ]
 
   use tc <- list.each(test_cases)
@@ -52,52 +55,52 @@ pub fn parser_test() {
   let test_cases = [
     #(
       [
-        scanner.IntegerLiteral(7),
-        scanner.Plus,
-        scanner.IntegerLiteral(8),
-        scanner.Minus,
-        scanner.IntegerLiteral(9),
+        token.IntegerLiteral(7),
+        token.Plus,
+        token.IntegerLiteral(8),
+        token.Minus,
+        token.IntegerLiteral(9),
       ],
-      parser.BinaryOp(
-        parser.IntegerLiteral(7),
-        parser.Add,
-        parser.BinaryOp(
-          parser.IntegerLiteral(8),
-          parser.Subtract,
-          parser.IntegerLiteral(9),
+      expr.BinaryOp(
+        expr.IntegerLiteral(7),
+        expr.Add,
+        expr.BinaryOp(
+          expr.IntegerLiteral(8),
+          expr.Subtract,
+          expr.IntegerLiteral(9),
         ),
       ),
     ),
     #(
       [
-        scanner.IntegerLiteral(1),
-        scanner.Plus,
-        scanner.IntegerLiteral(2),
-        scanner.Plus,
-        scanner.IntegerLiteral(3),
-        scanner.Plus,
-        scanner.IntegerLiteral(4),
-        scanner.Plus,
-        scanner.IntegerLiteral(5),
-        scanner.Plus,
-        scanner.IntegerLiteral(6),
+        token.IntegerLiteral(1),
+        token.Plus,
+        token.IntegerLiteral(2),
+        token.Plus,
+        token.IntegerLiteral(3),
+        token.Plus,
+        token.IntegerLiteral(4),
+        token.Plus,
+        token.IntegerLiteral(5),
+        token.Plus,
+        token.IntegerLiteral(6),
       ],
-      parser.BinaryOp(
-        parser.IntegerLiteral(1),
-        parser.Add,
-        parser.BinaryOp(
-          parser.IntegerLiteral(2),
-          parser.Add,
-          parser.BinaryOp(
-            parser.IntegerLiteral(3),
-            parser.Add,
-            parser.BinaryOp(
-              parser.IntegerLiteral(4),
-              parser.Add,
-              parser.BinaryOp(
-                parser.IntegerLiteral(5),
-                parser.Add,
-                parser.IntegerLiteral(6),
+      expr.BinaryOp(
+        expr.IntegerLiteral(1),
+        expr.Add,
+        expr.BinaryOp(
+          expr.IntegerLiteral(2),
+          expr.Add,
+          expr.BinaryOp(
+            expr.IntegerLiteral(3),
+            expr.Add,
+            expr.BinaryOp(
+              expr.IntegerLiteral(4),
+              expr.Add,
+              expr.BinaryOp(
+                expr.IntegerLiteral(5),
+                expr.Add,
+                expr.IntegerLiteral(6),
               ),
             ),
           ),
@@ -112,9 +115,9 @@ pub fn parser_test() {
 
 pub fn integration_lang_test() {
   let test_cases = [
-    #("=27+4-10", interpreter.Integer(21)),
-    #("=TRUE && FALSE", interpreter.Boolean(False)),
-    #("=2+(5*8)", interpreter.Integer(42)),
+    #("=27+4-10", value.Integer(21)),
+    #("=TRUE && FALSE", value.Boolean(False)),
+    #("=2+(5*8)", value.Integer(42)),
   ]
 
   use tc <- list.each(test_cases)

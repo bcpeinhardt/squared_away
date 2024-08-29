@@ -1,93 +1,46 @@
-import gleam/dict
 import gleam/float
 import gleam/int
 import gleam/list
 import gleam/result
 import gleam/string
 
-pub type Token {
-  /// +, addition op for integers
-  Plus
-  /// -, subtraction op for integers
-  Minus
-  /// *
-  Star
-  /// /
-  Div
-  /// **
-  StarStar
-  /// =
-  Equal
-  /// ==
-  EqualEqual
-  /// !=
-  BangEqual
-  /// !
-  Bang
-  /// <
-  Less
-  /// <=
-  LessEqual
-  /// >
-  Greater
-  /// >=
-  GreaterEqual
-  /// 6, 73
-  IntegerLiteral(n: Int)
-  /// 1.0, 6.87
-  FloatLiteral(f: Float)
-  /// True
-  TrueToken
-  /// False
-  FalseToken
-  /// &&
-  And
-  /// ||
-  Or
-  /// (
-  LParen
-  /// ) 
-  RParen
-  /// Cell Reference A3, XX532
-  CellReference(key: String)
-  /// Anything not starting with an = in a cell is a string literal
-  StringLiteral(String)
-}
+import squared_away/lang/scanner/scan_error
+import squared_away/lang/scanner/token
 
-pub type ScanError {
-  ScanError
-}
-
-pub fn scan(src: String) -> Result(List(Token), ScanError) {
+pub fn scan(src: String) -> Result(List(token.Token), scan_error.ScanError) {
   case string.trim(src) {
     "" -> Ok([])
     "=" <> rest -> do_scan(rest |> string.trim_left, [])
-    _ -> Ok([StringLiteral(src)])
+    _ -> Ok([token.StringLiteral(src)])
   }
 }
 
-fn do_scan(src: String, acc: List(Token)) -> Result(List(Token), ScanError) {
+fn do_scan(
+  src: String,
+  acc: List(token.Token),
+) -> Result(List(token.Token), scan_error.ScanError) {
   case src {
     "" -> Ok(acc |> list.reverse)
-    "TRUE" <> rest -> do_scan(string.trim_left(rest), [TrueToken, ..acc])
-    "FALSE" <> rest -> do_scan(string.trim_left(rest), [FalseToken, ..acc])
-    "&&" <> rest -> do_scan(string.trim_left(rest), [And, ..acc])
-    "||" <> rest -> do_scan(string.trim_left(rest), [Or, ..acc])
-    "**" <> rest -> do_scan(string.trim_left(rest), [StarStar, ..acc])
-    "==" <> rest -> do_scan(string.trim_left(rest), [EqualEqual, ..acc])
-    "!=" <> rest -> do_scan(string.trim_left(rest), [BangEqual, ..acc])
-    "<=" <> rest -> do_scan(string.trim_left(rest), [LessEqual, ..acc])
-    ">=" <> rest -> do_scan(string.trim_left(rest), [GreaterEqual, ..acc])
-    "+" <> rest -> do_scan(string.trim_left(rest), [Plus, ..acc])
-    "-" <> rest -> do_scan(string.trim_left(rest), [Minus, ..acc])
-    "*" <> rest -> do_scan(string.trim_left(rest), [Star, ..acc])
-    "/" <> rest -> do_scan(string.trim_left(rest), [Div, ..acc])
-    "=" <> rest -> do_scan(string.trim_left(rest), [Equal, ..acc])
-    "!" <> rest -> do_scan(string.trim_left(rest), [Bang, ..acc])
-    "<" <> rest -> do_scan(string.trim_left(rest), [Less, ..acc])
-    ">" <> rest -> do_scan(string.trim_left(rest), [Greater, ..acc])
-    "(" <> rest -> do_scan(string.trim_left(rest), [LParen, ..acc])
-    ")" <> rest -> do_scan(string.trim_left(rest), [RParen, ..acc])
+    "TRUE" <> rest -> do_scan(string.trim_left(rest), [token.TrueToken, ..acc])
+    "FALSE" <> rest ->
+      do_scan(string.trim_left(rest), [token.FalseToken, ..acc])
+    "&&" <> rest -> do_scan(string.trim_left(rest), [token.And, ..acc])
+    "||" <> rest -> do_scan(string.trim_left(rest), [token.Or, ..acc])
+    "**" <> rest -> do_scan(string.trim_left(rest), [token.StarStar, ..acc])
+    "==" <> rest -> do_scan(string.trim_left(rest), [token.EqualEqual, ..acc])
+    "!=" <> rest -> do_scan(string.trim_left(rest), [token.BangEqual, ..acc])
+    "<=" <> rest -> do_scan(string.trim_left(rest), [token.LessEqual, ..acc])
+    ">=" <> rest -> do_scan(string.trim_left(rest), [token.GreaterEqual, ..acc])
+    "+" <> rest -> do_scan(string.trim_left(rest), [token.Plus, ..acc])
+    "-" <> rest -> do_scan(string.trim_left(rest), [token.Minus, ..acc])
+    "*" <> rest -> do_scan(string.trim_left(rest), [token.Star, ..acc])
+    "/" <> rest -> do_scan(string.trim_left(rest), [token.Div, ..acc])
+    "=" <> rest -> do_scan(string.trim_left(rest), [token.Equal, ..acc])
+    "!" <> rest -> do_scan(string.trim_left(rest), [token.Bang, ..acc])
+    "<" <> rest -> do_scan(string.trim_left(rest), [token.Less, ..acc])
+    ">" <> rest -> do_scan(string.trim_left(rest), [token.Greater, ..acc])
+    "(" <> rest -> do_scan(string.trim_left(rest), [token.LParen, ..acc])
+    ")" <> rest -> do_scan(string.trim_left(rest), [token.RParen, ..acc])
     _ -> {
       case parse_integer(src, "") {
         Ok(#(n, rest)) -> {
@@ -95,21 +48,24 @@ fn do_scan(src: String, acc: List(Token)) -> Result(List(Token), ScanError) {
           case rest {
             "." <> rest -> {
               use #(m, rest) <- result.try(
-                parse_integer(rest, "") |> result.replace_error(ScanError),
+                parse_integer(rest, "")
+                |> result.replace_error(scan_error.ScanError),
               )
               let assert Ok(f) =
                 float.parse(int.to_string(n) <> "." <> int.to_string(m))
-              do_scan(string.trim_left(rest), [FloatLiteral(f), ..acc])
+              do_scan(string.trim_left(rest), [token.FloatLiteral(f), ..acc])
             }
-            _ -> do_scan(string.trim_left(rest), [IntegerLiteral(n), ..acc])
+            _ ->
+              do_scan(string.trim_left(rest), [token.IntegerLiteral(n), ..acc])
           }
         }
 
         Error(_) -> {
           use #(cell_ref, rest) <- result.try(
-            parse_cell_ref(src, "") |> result.replace_error(ScanError),
+            parse_cell_ref(src, "")
+            |> result.replace_error(scan_error.ScanError),
           )
-          do_scan(string.trim_left(rest), [CellReference(cell_ref), ..acc])
+          do_scan(string.trim_left(rest), [token.CellReference(cell_ref), ..acc])
         }
       }
     }

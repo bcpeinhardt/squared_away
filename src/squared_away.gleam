@@ -1,7 +1,6 @@
 import gleam/dict.{type Dict}
 import gleam/int
 import gleam/list
-import gleam/result
 import gleam/string
 import lustre
 import lustre/attribute
@@ -9,7 +8,9 @@ import lustre/effect
 import lustre/element
 import lustre/element/html
 import lustre/event
-import squared_away/lang/interpreter
+import squared_away/lang
+import squared_away/lang/error
+import squared_away/lang/interpreter/value
 
 pub fn main() {
   let app = lustre.application(init, update, view)
@@ -23,10 +24,7 @@ type Model {
   Model(
     active_cell: String,
     src_grid: Dict(String, String),
-    value_grid: Dict(
-      String,
-      Result(interpreter.Value, interpreter.InterpretError),
-    ),
+    value_grid: Dict(String, Result(value.Value, error.CompileError)),
   )
 }
 
@@ -58,10 +56,10 @@ type Msg {
 }
 
 fn update_grid(model: Model) -> Model {
-  let scanned = interpreter.scan_grid(model.src_grid)
-  let parsed = interpreter.parse_grid(scanned)
-  let typechecked = interpreter.typecheck_grid(parsed)
-  let value_grid = interpreter.interpret_grid(typechecked)
+  let scanned = lang.scan_grid(model.src_grid)
+  let parsed = lang.parse_grid(scanned)
+  let typechecked = lang.typecheck_grid(parsed)
+  let value_grid = lang.interpret_grid(typechecked)
   Model(..model, value_grid:)
 }
 
@@ -117,9 +115,10 @@ fn view(model: Model) -> element.Element(Msg) {
       ]),
     ])
 
-  let active_cell_value =
+  // We filled the grid ourself so this shouldn't ever panic, if it does it's a 
+  // bug and I'd rather find it sooner.
+  let assert Ok(active_cell_value) =
     dict.get(model.value_grid, model.active_cell)
-    |> result.unwrap(or: Ok(interpreter.Empty))
 
   html.div([], [
     html.div([], [grid]),

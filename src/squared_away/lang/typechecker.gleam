@@ -109,7 +109,7 @@ pub fn typecheck(
             typ.TNil ->
               Error(
                 error.TypeError(type_error.TypeError(
-                  "Tried to do a boolean and operation (b1 && b2) but the right hand side of the operation has type \"Empty\". Could you be referencing an empty cell?",
+                  "Tried to do a boolean and operation \"&&\" but the right hand side of the operation has type \"Empty\". Could you be referencing an empty cell?",
                 )),
               )
             _ ->

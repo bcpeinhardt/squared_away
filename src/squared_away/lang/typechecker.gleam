@@ -1,4 +1,5 @@
 import gleam/dict
+import gleam/list
 import gleam/result
 import gleam/string
 import squared_away/lang/error
@@ -6,6 +7,7 @@ import squared_away/lang/parser/expr
 import squared_away/lang/typechecker/typ
 import squared_away/lang/typechecker/type_error
 import squared_away/lang/typechecker/typed_expr
+import squared_away/util
 
 pub fn typecheck(
   env: dict.Dict(String, Result(expr.Expr, error.CompileError)),
@@ -13,8 +15,10 @@ pub fn typecheck(
 ) -> Result(typed_expr.TypedExpr, error.CompileError) {
   case expr {
     expr.Empty -> Ok(typed_expr.Empty(type_: typ.TNil))
-    expr.StringLiteral(txt) ->
-      Ok(typed_expr.StringLiteral(type_: typ.TString, txt:))
+
+    // We will typecheck the label when we typecheck the grid as a whole. For now it's a 
+    // "Nil" type
+    expr.Label(txt) -> Ok(typed_expr.Label(type_: typ.TNil, txt:))
     expr.BooleanLiteral(b) ->
       Ok(typed_expr.BooleanLiteral(type_: typ.TBool, b:))
     expr.FloatLiteral(f) -> Ok(typed_expr.FloatLiteral(type_: typ.TFloat, f:))

@@ -1,7 +1,7 @@
 pub type Expr {
   Empty
   FloatLiteral(f: Float)
-  StringLiteral(txt: String)
+  Label(txt: String)
   IntegerLiteral(n: Int)
   CellReference(key: String)
   BooleanLiteral(val: Bool)

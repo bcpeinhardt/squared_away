@@ -2273,7 +2273,7 @@ var FloatLiteral = class extends CustomType {
     this.f = f;
   }
 };
-var StringLiteral = class extends CustomType {
+var Label = class extends CustomType {
   constructor(txt) {
     super();
     this.txt = txt;
@@ -2375,7 +2375,7 @@ var FloatLiteral2 = class extends CustomType {
     this.f = f;
   }
 };
-var StringLiteral2 = class extends CustomType {
+var Label2 = class extends CustomType {
   constructor(type_, txt) {
     super();
     this.type_ = type_;
@@ -2439,7 +2439,7 @@ function interpret(loop$env, loop$expr) {
       let expr$1 = expr.expr;
       loop$env = env;
       loop$expr = expr$1;
-    } else if (expr instanceof StringLiteral2) {
+    } else if (expr instanceof Label2) {
       let txt = expr.txt;
       return new Ok(new Text2(txt));
     } else if (expr instanceof BooleanLiteral2) {
@@ -2713,7 +2713,7 @@ var CellReference3 = class extends CustomType {
     this.key = key;
   }
 };
-var StringLiteral3 = class extends CustomType {
+var Label3 = class extends CustomType {
   constructor(x0) {
     super();
     this[0] = x0;
@@ -2970,16 +2970,16 @@ function try_parse_binary_ops(tokens) {
 function do_parse(tokens) {
   if (tokens.hasLength(0)) {
     return new Ok([new Empty3(), toList([])]);
-  } else if (tokens.atLeastLength(1) && tokens.head instanceof StringLiteral3) {
+  } else if (tokens.atLeastLength(1) && tokens.head instanceof Label3) {
     let str = tokens.head[0];
     let rest = tokens.tail;
     let $ = try_parse_binary_ops(rest);
     if ($.isOk()) {
       let op = $[0][0];
       let rest$1 = $[0][1];
-      return new Ok([op(new StringLiteral(str)), rest$1]);
+      return new Ok([op(new Label(str)), rest$1]);
     } else {
-      return new Ok([new StringLiteral(str), rest]);
+      return new Ok([new Label(str), rest]);
     }
   } else if (tokens.atLeastLength(1) && tokens.head instanceof IntegerLiteral3) {
     let n = tokens.head.n;
@@ -3480,7 +3480,89 @@ function scan(src) {
       toList([])
     );
   } else {
-    return new Ok(toList([new StringLiteral3(src)]));
+    return new Ok(toList([new Label3(src)]));
+  }
+}
+
+// build/dev/javascript/squared_away/squared_away/util.mjs
+function cell_to_the_right(input2) {
+  if (input2.startsWith("A")) {
+    let rest = input2.slice(1);
+    return new Some("B" + rest);
+  } else if (input2.startsWith("B")) {
+    let rest = input2.slice(1);
+    return new Some("C" + rest);
+  } else if (input2.startsWith("C")) {
+    let rest = input2.slice(1);
+    return new Some("D" + rest);
+  } else if (input2.startsWith("D")) {
+    let rest = input2.slice(1);
+    return new Some("E" + rest);
+  } else if (input2.startsWith("E")) {
+    let rest = input2.slice(1);
+    return new Some("F" + rest);
+  } else if (input2.startsWith("F")) {
+    let rest = input2.slice(1);
+    return new Some("G" + rest);
+  } else if (input2.startsWith("G")) {
+    let rest = input2.slice(1);
+    return new Some("H" + rest);
+  } else if (input2.startsWith("H")) {
+    let rest = input2.slice(1);
+    return new Some("I" + rest);
+  } else if (input2.startsWith("I")) {
+    let rest = input2.slice(1);
+    return new Some("J" + rest);
+  } else if (input2.startsWith("J")) {
+    let rest = input2.slice(1);
+    return new Some("K" + rest);
+  } else if (input2.startsWith("K")) {
+    let rest = input2.slice(1);
+    return new Some("L" + rest);
+  } else if (input2.startsWith("L")) {
+    let rest = input2.slice(1);
+    return new Some("M" + rest);
+  } else if (input2.startsWith("M")) {
+    let rest = input2.slice(1);
+    return new Some("N" + rest);
+  } else if (input2.startsWith("N")) {
+    let rest = input2.slice(1);
+    return new Some("O" + rest);
+  } else if (input2.startsWith("O")) {
+    let rest = input2.slice(1);
+    return new Some("P" + rest);
+  } else if (input2.startsWith("P")) {
+    let rest = input2.slice(1);
+    return new Some("Q" + rest);
+  } else if (input2.startsWith("Q")) {
+    let rest = input2.slice(1);
+    return new Some("R" + rest);
+  } else if (input2.startsWith("R")) {
+    let rest = input2.slice(1);
+    return new Some("S" + rest);
+  } else if (input2.startsWith("S")) {
+    let rest = input2.slice(1);
+    return new Some("T" + rest);
+  } else if (input2.startsWith("T")) {
+    let rest = input2.slice(1);
+    return new Some("U" + rest);
+  } else if (input2.startsWith("U")) {
+    let rest = input2.slice(1);
+    return new Some("V" + rest);
+  } else if (input2.startsWith("V")) {
+    let rest = input2.slice(1);
+    return new Some("W" + rest);
+  } else if (input2.startsWith("W")) {
+    let rest = input2.slice(1);
+    return new Some("X" + rest);
+  } else if (input2.startsWith("X")) {
+    let rest = input2.slice(1);
+    return new Some("Y" + rest);
+  } else if (input2.startsWith("Y")) {
+    let rest = input2.slice(1);
+    return new Some("Z" + rest);
+  } else {
+    return new None();
   }
 }
 
@@ -3488,9 +3570,9 @@ function scan(src) {
 function typecheck(env, expr) {
   if (expr instanceof Empty3) {
     return new Ok(new Empty4(new TNil()));
-  } else if (expr instanceof StringLiteral) {
+  } else if (expr instanceof Label) {
     let txt = expr.txt;
-    return new Ok(new StringLiteral2(new TString(), txt));
+    return new Ok(new Label2(new TNil(), txt));
   } else if (expr instanceof BooleanLiteral) {
     let b = expr.val;
     return new Ok(new BooleanLiteral2(new TBool(), b));
@@ -3515,7 +3597,7 @@ function typecheck(env, expr) {
       throw makeError(
         "assignment_no_match",
         "squared_away/lang/typechecker",
-        27,
+        31,
         "typecheck",
         "Assignment pattern did not match",
         { value: $ }
@@ -3684,7 +3766,7 @@ function typecheck(env, expr) {
                 return new Error(
                   new TypeError2(
                     new TypeError(
-                      'Tried to do a boolean and operation (b1 && b2) but the right hand side of the operation has type "Empty". Could you be referencing an empty cell?'
+                      'Tried to do a boolean and operation "&&" but the right hand side of the operation has type "Empty". Could you be referencing an empty cell?'
                     )
                   )
                 );
@@ -3742,6 +3824,48 @@ function typecheck_grid(input2) {
       if (!expr.isOk()) {
         let e = expr[0];
         return insert(acc, key, new Error(e));
+      } else if (expr.isOk() && expr[0] instanceof Label) {
+        let txt = expr[0].txt;
+        let $ = cell_to_the_right(key);
+        if ($ instanceof None) {
+          return insert(
+            acc,
+            key,
+            new Ok(new Label2(new TNil(), txt))
+          );
+        } else {
+          let new_key = $[0];
+          let $1 = get(input2, new_key);
+          if (!$1.isOk()) {
+            throw makeError(
+              "assignment_no_match",
+              "squared_away/lang",
+              43,
+              "",
+              "Assignment pattern did not match",
+              { value: $1 }
+            );
+          }
+          let val = $1[0];
+          if (!val.isOk()) {
+            let e = val[0];
+            return insert(acc, key, new Error(e));
+          } else {
+            let val$1 = val[0];
+            let $2 = typecheck(input2, val$1);
+            if (!$2.isOk()) {
+              let e = $2[0];
+              return insert(acc, key, new Error(e));
+            } else {
+              let typed_val = $2[0];
+              return insert(
+                acc,
+                key,
+                new Ok(new Label2(typed_val.type_, txt))
+              );
+            }
+          }
+        }
       } else {
         let expr$1 = expr[0];
         let maybe_typed_expr = typecheck(input2, expr$1);

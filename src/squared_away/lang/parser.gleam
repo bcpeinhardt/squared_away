@@ -21,10 +21,10 @@ fn do_parse(
   case tokens {
     [] -> Ok(#(expr.Empty, []))
     // Let's do the single token patterns first
-    [token.StringLiteral(str), ..rest] -> {
+    [token.Label(str), ..rest] -> {
       case try_parse_binary_ops(rest) {
-        Ok(#(op, rest)) -> Ok(#(op(expr.StringLiteral(str)), rest))
-        Error(_) -> Ok(#(expr.StringLiteral(str), rest))
+        Ok(#(op, rest)) -> Ok(#(op(expr.Label(str)), rest))
+        Error(_) -> Ok(#(expr.Label(str), rest))
       }
     }
     [token.IntegerLiteral(n), ..rest] -> {

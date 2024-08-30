@@ -4,7 +4,7 @@ import squared_away/lang/typechecker/typ
 pub type TypedExpr {
   Empty(type_: typ.Typ)
   FloatLiteral(type_: typ.Typ, f: Float)
-  StringLiteral(type_: typ.Typ, txt: String)
+  Label(type_: typ.Typ, txt: String)
   IntegerLiteral(type_: typ.Typ, n: Int)
   CellReference(type_: typ.Typ, key: String)
   BooleanLiteral(type_: typ.Typ, b: Bool)

@@ -14,7 +14,7 @@ pub fn interpret(
   case expr {
     typed_expr.Empty(_) -> Ok(value.Empty)
     typed_expr.Group(_, expr) -> interpret(env, expr)
-    typed_expr.StringLiteral(_, txt) -> Ok(value.Text(txt))
+    typed_expr.Label(_, txt) -> Ok(value.Text(txt))
     typed_expr.BooleanLiteral(_, b) -> Ok(value.Boolean(b))
     typed_expr.IntegerLiteral(_, n) -> Ok(value.Integer(n))
     typed_expr.FloatLiteral(_, f) -> Ok(value.FloatingPointNumber(f))

@@ -16,7 +16,7 @@ pub fn interpret(
 ) -> Result(value.Value, error.CompileError) {
   case expr {
     typed_expr.Empty(_) -> Ok(value.Empty)
-    typed_expr.LabelDef(_, _, _) -> Ok(value.Empty)
+    typed_expr.LabelDef(_, txt, _) -> Ok(value.Text(txt))
     typed_expr.Group(_, expr) -> interpret(env, expr)
     typed_expr.Label(_, txt) -> {
       let key =

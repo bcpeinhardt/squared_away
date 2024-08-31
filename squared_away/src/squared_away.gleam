@@ -22,6 +22,7 @@ pub fn main() {
 /// To start, our model will be a 5x5 grid of Strings
 type Model {
   Model(
+    formula_mode: Bool,
     active_cell: String,
     src_grid: Dict(String, String),
     value_grid: Dict(String, Result(value.Value, error.CompileError)),
@@ -45,13 +46,20 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
   // but instead I think we should scan, parse, typecheck, and 
   // interpret the grid on init, as later we'll pass in saved files
 
-  let model = Model(active_cell: "A1", src_grid:, value_grid: dict.new())
+  let model =
+    Model(
+      formula_mode: False,
+      active_cell: "A1",
+      src_grid:,
+      value_grid: dict.new(),
+    )
   let model = update_grid(model)
   #(model, effect.none())
 }
 
 type Msg {
   UserClickedCell(key: String)
+  UserToggledFormulaMode(to: Bool)
   UserSetCellValue(key: String, val: String)
 }
 
@@ -73,6 +81,10 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
     UserClickedCell(key) -> {
       #(Model(..model, active_cell: key), effect.none())
     }
+    UserToggledFormulaMode(formula_mode) -> #(
+      Model(..model, formula_mode:),
+      effect.none(),
+    )
   }
 }
 
@@ -99,15 +111,33 @@ fn view(model: Model) -> element.Element(Msg) {
                   html.text(int.to_string(i + 1)),
                 ]),
                 ..list.map(string.to_graphemes(alphabet), fn(l) {
-                  html.td([], [
-                    html.input([
-                      event.on_input(UserSetCellValue(
-                        key: l <> int.to_string(i + 1),
-                        val: _,
-                      )),
-                      event.on_click(UserClickedCell(l <> int.to_string(i + 1))),
-                    ]),
-                  ])
+                  html.td([], {
+                    let key = l <> int.to_string(i + 1)
+
+                    [
+                      html.input([
+                        event.on_input(UserSetCellValue(key:, val: _)),
+                        event.on_click(UserClickedCell(
+                          l <> int.to_string(i + 1),
+                        )),
+                        attribute.value({
+                          case model.active_cell == key || model.formula_mode {
+                            True -> {
+                              let assert Ok(v) = dict.get(model.src_grid, key)
+                              v
+                            }
+                            False -> {
+                              let assert Ok(v) = dict.get(model.value_grid, key)
+                              case v {
+                                Error(e) -> string.inspect(e)
+                                Ok(v) -> value.value_to_string(v)
+                              }
+                            }
+                          }
+                        }),
+                      ]),
+                    ]
+                  })
                 })
               ])
             }),
@@ -124,6 +154,14 @@ fn view(model: Model) -> element.Element(Msg) {
     html.div([], [grid]),
     html.p([], [
       html.text(model.active_cell <> ": " <> string.inspect(active_cell_value)),
+    ]),
+    html.input([
+      attribute.type_("checkbox"),
+      attribute.id("formula_mode"),
+      event.on_check(UserToggledFormulaMode),
+    ]),
+    html.label([attribute.for("formula_mode")], [
+      html.text("toggle formula mode"),
     ]),
   ])
 }

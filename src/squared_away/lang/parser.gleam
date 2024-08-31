@@ -20,6 +20,7 @@ fn do_parse(
 ) -> Result(#(expr.Expr, List(token.Token)), parse_error.ParseError) {
   case tokens {
     [] -> Ok(#(expr.Empty, []))
+    [token.LabelDef(str, key), ..rest] -> Ok(#(expr.LabelDef(str, key), rest))
     // Let's do the single token patterns first
     [token.Label(str), ..rest] -> {
       case try_parse_binary_ops(rest) {

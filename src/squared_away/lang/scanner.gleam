@@ -11,7 +11,7 @@ pub fn scan(src: String) -> Result(List(token.Token), scan_error.ScanError) {
   case string.trim(src) {
     "" -> Ok([])
     "=" <> rest -> do_scan(rest |> string.trim_left, [])
-    _ -> Ok([token.Label(src)])
+    _ -> Ok([token.LabelDef(src, "")])
   }
 }
 
@@ -61,11 +61,60 @@ fn do_scan(
         }
 
         Error(_) -> {
-          use #(cell_ref, rest) <- result.try(
-            parse_cell_ref(src, "")
-            |> result.replace_error(scan_error.ScanError),
-          )
-          do_scan(string.trim_left(rest), [token.CellReference(cell_ref), ..acc])
+          case parse_cell_ref(src, "") {
+            Ok(#(cell_ref, rest)) ->
+              do_scan(string.trim_left(rest), [
+                token.CellReference(cell_ref),
+                ..acc
+              ])
+            _ -> {
+              case parse_identifier(src, "") {
+                Error(Nil) -> Error(scan_error.ScanError)
+                Ok(#(ident, rest)) ->
+                  do_scan(string.trim_left(rest), [token.Label(ident), ..acc])
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+fn parse_identifier(src: String, acc: String) -> Result(#(String, String), Nil) {
+  case src {
+    "A" as l <> rest
+    | "B" as l <> rest
+    | "C" as l <> rest
+    | "D" as l <> rest
+    | "E" as l <> rest
+    | "F" as l <> rest
+    | "G" as l <> rest
+    | "H" as l <> rest
+    | "I" as l <> rest
+    | "J" as l <> rest
+    | "K" as l <> rest
+    | "L" as l <> rest
+    | "M" as l <> rest
+    | "N" as l <> rest
+    | "O" as l <> rest
+    | "P" as l <> rest
+    | "Q" as l <> rest
+    | "R" as l <> rest
+    | "S" as l <> rest
+    | "T" as l <> rest
+    | "U" as l <> rest
+    | "V" as l <> rest
+    | "W" as l <> rest
+    | "X" as l <> rest
+    | "Y" as l <> rest
+    | "Z" as l <> rest -> parse_identifier(rest, acc <> l)
+    _ -> {
+      case acc {
+        // Meaning we called this on something that didnt start with a capital letter
+        "" -> Error(Nil)
+        _ -> {
+          Ok(#(acc, src))
         }
       }
     }

@@ -80,6 +80,18 @@ pub fn scan_grid(
   input: dict.Dict(String, String),
 ) -> dict.Dict(String, Result(List(token.Token), error.CompileError)) {
   use acc, key, src <- dict.fold(input, dict.new())
-  let maybe_scanned = scanner.scan(src) |> result.map_error(error.ScanError)
+  let maybe_scanned =
+    scanner.scan(src)
+    |> result.map_error(error.ScanError)
+    |> result.map(list.map(_, fn(t) {
+      case t {
+        token.LabelDef(txt, "") ->
+          token.LabelDef(
+            txt,
+            key |> util.cell_to_the_right |> option.unwrap(or: ""),
+          )
+        _ -> t
+      }
+    }))
   dict.insert(acc, key, maybe_scanned)
 }

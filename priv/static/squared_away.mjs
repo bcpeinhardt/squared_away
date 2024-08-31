@@ -275,6 +275,14 @@ function to_result(option, e) {
     return new Error(e);
   }
 }
+function unwrap(option, default$) {
+  if (option instanceof Some) {
+    let x = option[0];
+    return x;
+  } else {
+    return default$;
+  }
+}
 
 // build/dev/javascript/gleam_stdlib/gleam/float.mjs
 function parse(string3) {
@@ -313,6 +321,18 @@ function power3(base, exponent) {
 }
 
 // build/dev/javascript/gleam_stdlib/gleam/list.mjs
+var Continue = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
+var Stop = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
 function do_reverse(loop$remaining, loop$accumulator) {
   while (true) {
     let remaining = loop$remaining;
@@ -384,6 +404,29 @@ function fold(loop$list, loop$initial, loop$fun) {
       loop$list = rest$1;
       loop$initial = fun(initial, x);
       loop$fun = fun;
+    }
+  }
+}
+function fold_until(loop$collection, loop$accumulator, loop$fun) {
+  while (true) {
+    let collection = loop$collection;
+    let accumulator = loop$accumulator;
+    let fun = loop$fun;
+    if (collection.hasLength(0)) {
+      return accumulator;
+    } else {
+      let first$1 = collection.head;
+      let rest$1 = collection.tail;
+      let $ = fun(accumulator, first$1);
+      if ($ instanceof Continue) {
+        let next_accumulator = $[0];
+        loop$collection = rest$1;
+        loop$accumulator = next_accumulator;
+        loop$fun = fun;
+      } else {
+        let b = $[0];
+        return b;
+      }
     }
   }
 }
@@ -2196,6 +2239,14 @@ function on_input(msg) {
   );
 }
 
+// build/dev/javascript/squared_away/squared_away/lang/interpreter/runtime_error.mjs
+var RuntimeError = class extends CustomType {
+  constructor(context) {
+    super();
+    this.context = context;
+  }
+};
+
 // build/dev/javascript/squared_away/squared_away/lang/parser/parse_error.mjs
 var ParseError = class extends CustomType {
   constructor(context) {
@@ -2235,15 +2286,15 @@ var TypeError2 = class extends CustomType {
     this[0] = x0;
   }
 };
+var RuntimeError2 = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
 
 // build/dev/javascript/squared_away/squared_away/lang/interpreter/value.mjs
 var Empty2 = class extends CustomType {
-};
-var Text2 = class extends CustomType {
-  constructor(inner) {
-    super();
-    this.inner = inner;
-  }
 };
 var Integer = class extends CustomType {
   constructor(n) {
@@ -2271,6 +2322,13 @@ var FloatLiteral = class extends CustomType {
   constructor(f) {
     super();
     this.f = f;
+  }
+};
+var LabelDef = class extends CustomType {
+  constructor(txt, cell_ref) {
+    super();
+    this.txt = txt;
+    this.cell_ref = cell_ref;
   }
 };
 var Label = class extends CustomType {
@@ -2382,6 +2440,14 @@ var Label2 = class extends CustomType {
     this.txt = txt;
   }
 };
+var LabelDef2 = class extends CustomType {
+  constructor(type_, txt, key) {
+    super();
+    this.type_ = type_;
+    this.txt = txt;
+    this.key = key;
+  }
+};
 var IntegerLiteral2 = class extends CustomType {
   constructor(type_, n) {
     super();
@@ -2435,13 +2501,56 @@ function interpret(loop$env, loop$expr) {
     let expr = loop$expr;
     if (expr instanceof Empty4) {
       return new Ok(new Empty2());
+    } else if (expr instanceof LabelDef2) {
+      return new Ok(new Empty2());
     } else if (expr instanceof Group2) {
       let expr$1 = expr.expr;
       loop$env = env;
       loop$expr = expr$1;
     } else if (expr instanceof Label2) {
       let txt = expr.txt;
-      return new Ok(new Text2(txt));
+      let key = (() => {
+        let _pipe = env;
+        let _pipe$1 = map_to_list(_pipe);
+        return fold_until(
+          _pipe$1,
+          new None(),
+          (acc, i) => {
+            if (i[1].isOk() && i[1][0] instanceof LabelDef2 && i[1][0].txt === txt) {
+              let ty = i[1][0].type_;
+              let label_txt = i[1][0].txt;
+              let cell_ref = i[1][0].key;
+              return new Stop(new Some(cell_ref));
+            } else {
+              return new Continue(new None());
+            }
+          }
+        );
+      })();
+      if (key instanceof None) {
+        return new Error(
+          new RuntimeError2(
+            new RuntimeError("Label doesn't point to anything")
+          )
+        );
+      } else {
+        let key$1 = key[0];
+        let $ = get(env, key$1);
+        if (!$.isOk() && !$[0]) {
+          return new Error(
+            new RuntimeError2(
+              new RuntimeError("Label doesn't point to anything")
+            )
+          );
+        } else if ($.isOk() && !$[0].isOk()) {
+          let e = $[0][0];
+          return new Error(e);
+        } else {
+          let te = $[0][0];
+          loop$env = env;
+          loop$expr = te;
+        }
+      }
     } else if (expr instanceof BooleanLiteral2) {
       let b = expr.b;
       return new Ok(new Boolean(b));
@@ -2458,7 +2567,7 @@ function interpret(loop$env, loop$expr) {
         throw makeError(
           "assignment_no_match",
           "squared_away/lang/interpreter",
-          22,
+          48,
           "interpret",
           "Assignment pattern did not match",
           { value: $ }
@@ -2492,7 +2601,7 @@ function interpret(loop$env, loop$expr) {
             throw makeError(
               "panic",
               "squared_away/lang/interpreter",
-              36,
+              62,
               "",
               "These should be the only options if the typechecker is working",
               {}
@@ -2598,7 +2707,7 @@ function interpret(loop$env, loop$expr) {
                   throw makeError(
                     "assignment_no_match",
                     "squared_away/lang/interpreter",
-                    104,
+                    130,
                     "",
                     "Assignment pattern did not match",
                     { value: $ }
@@ -2614,7 +2723,7 @@ function interpret(loop$env, loop$expr) {
                   throw makeError(
                     "assignment_no_match",
                     "squared_away/lang/interpreter",
-                    108,
+                    134,
                     "",
                     "Assignment pattern did not match",
                     { value: $ }
@@ -2642,7 +2751,7 @@ function interpret(loop$env, loop$expr) {
                 throw makeError(
                   "panic",
                   "squared_away/lang/interpreter",
-                  122,
+                  148,
                   "",
                   "these should be the only options if the typechecker is working properly",
                   {}
@@ -2717,6 +2826,13 @@ var Label3 = class extends CustomType {
   constructor(x0) {
     super();
     this[0] = x0;
+  }
+};
+var LabelDef3 = class extends CustomType {
+  constructor(txt, cell_ref) {
+    super();
+    this.txt = txt;
+    this.cell_ref = cell_ref;
   }
 };
 
@@ -2970,6 +3086,11 @@ function try_parse_binary_ops(tokens) {
 function do_parse(tokens) {
   if (tokens.hasLength(0)) {
     return new Ok([new Empty3(), toList([])]);
+  } else if (tokens.atLeastLength(1) && tokens.head instanceof LabelDef3) {
+    let str = tokens.head.txt;
+    let key = tokens.head.cell_ref;
+    let rest = tokens.tail;
+    return new Ok([new LabelDef(str, key), rest]);
   } else if (tokens.atLeastLength(1) && tokens.head instanceof Label3) {
     let str = tokens.head[0];
     let rest = tokens.tail;
@@ -3109,6 +3230,149 @@ function parse3(tokens) {
 }
 
 // build/dev/javascript/squared_away/squared_away/lang/scanner.mjs
+function parse_identifier(loop$src, loop$acc) {
+  while (true) {
+    let src = loop$src;
+    let acc = loop$acc;
+    if (src.startsWith("A")) {
+      let rest = src.slice(1);
+      let l = "A";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else if (src.startsWith("B")) {
+      let rest = src.slice(1);
+      let l = "B";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else if (src.startsWith("C")) {
+      let rest = src.slice(1);
+      let l = "C";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else if (src.startsWith("D")) {
+      let rest = src.slice(1);
+      let l = "D";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else if (src.startsWith("E")) {
+      let rest = src.slice(1);
+      let l = "E";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else if (src.startsWith("F")) {
+      let rest = src.slice(1);
+      let l = "F";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else if (src.startsWith("G")) {
+      let rest = src.slice(1);
+      let l = "G";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else if (src.startsWith("H")) {
+      let rest = src.slice(1);
+      let l = "H";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else if (src.startsWith("I")) {
+      let rest = src.slice(1);
+      let l = "I";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else if (src.startsWith("J")) {
+      let rest = src.slice(1);
+      let l = "J";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else if (src.startsWith("K")) {
+      let rest = src.slice(1);
+      let l = "K";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else if (src.startsWith("L")) {
+      let rest = src.slice(1);
+      let l = "L";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else if (src.startsWith("M")) {
+      let rest = src.slice(1);
+      let l = "M";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else if (src.startsWith("N")) {
+      let rest = src.slice(1);
+      let l = "N";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else if (src.startsWith("O")) {
+      let rest = src.slice(1);
+      let l = "O";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else if (src.startsWith("P")) {
+      let rest = src.slice(1);
+      let l = "P";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else if (src.startsWith("Q")) {
+      let rest = src.slice(1);
+      let l = "Q";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else if (src.startsWith("R")) {
+      let rest = src.slice(1);
+      let l = "R";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else if (src.startsWith("S")) {
+      let rest = src.slice(1);
+      let l = "S";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else if (src.startsWith("T")) {
+      let rest = src.slice(1);
+      let l = "T";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else if (src.startsWith("U")) {
+      let rest = src.slice(1);
+      let l = "U";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else if (src.startsWith("V")) {
+      let rest = src.slice(1);
+      let l = "V";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else if (src.startsWith("W")) {
+      let rest = src.slice(1);
+      let l = "W";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else if (src.startsWith("X")) {
+      let rest = src.slice(1);
+      let l = "X";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else if (src.startsWith("Y")) {
+      let rest = src.slice(1);
+      let l = "Y";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else if (src.startsWith("Z")) {
+      let rest = src.slice(1);
+      let l = "Z";
+      loop$src = rest;
+      loop$acc = acc + l;
+    } else {
+      if (acc === "") {
+        return new Error(void 0);
+      } else {
+        return new Ok([acc, src]);
+      }
+    }
+  }
+}
 function parse_integer(loop$src, loop$acc) {
   while (true) {
     let src = loop$src;
@@ -3448,20 +3712,23 @@ function do_scan(loop$src, loop$acc) {
           loop$acc = prepend(new IntegerLiteral3(n), acc);
         }
       } else {
-        return try$(
-          (() => {
-            let _pipe = parse_cell_ref(src, "");
-            return replace_error(_pipe, new ScanError());
-          })(),
-          (_use0) => {
-            let cell_ref = _use0[0];
-            let rest = _use0[1];
-            return do_scan(
-              trim_left2(rest),
-              prepend(new CellReference3(cell_ref), acc)
-            );
+        let $1 = parse_cell_ref(src, "");
+        if ($1.isOk()) {
+          let cell_ref = $1[0][0];
+          let rest = $1[0][1];
+          loop$src = trim_left2(rest);
+          loop$acc = prepend(new CellReference3(cell_ref), acc);
+        } else {
+          let $2 = parse_identifier(src, "");
+          if (!$2.isOk() && !$2[0]) {
+            return new Error(new ScanError());
+          } else {
+            let ident = $2[0][0];
+            let rest = $2[0][1];
+            loop$src = trim_left2(rest);
+            loop$acc = prepend(new Label3(ident), acc);
           }
-        );
+        }
       }
     }
   }
@@ -3480,7 +3747,7 @@ function scan(src) {
       toList([])
     );
   } else {
-    return new Ok(toList([new Label3(src)]));
+    return new Ok(toList([new LabelDef3(src, "")]));
   }
 }
 
@@ -3567,235 +3834,284 @@ function cell_to_the_right(input2) {
 }
 
 // build/dev/javascript/squared_away/squared_away/lang/typechecker.mjs
-function typecheck(env, expr) {
-  if (expr instanceof Empty3) {
-    return new Ok(new Empty4(new TNil()));
-  } else if (expr instanceof Label) {
-    let txt = expr.txt;
-    return new Ok(new Label2(new TNil(), txt));
-  } else if (expr instanceof BooleanLiteral) {
-    let b = expr.val;
-    return new Ok(new BooleanLiteral2(new TBool(), b));
-  } else if (expr instanceof FloatLiteral) {
-    let f = expr.f;
-    return new Ok(new FloatLiteral2(new TFloat(), f));
-  } else if (expr instanceof IntegerLiteral) {
-    let n = expr.n;
-    return new Ok(new IntegerLiteral2(new TInt(), n));
-  } else if (expr instanceof Group) {
-    let inner = expr.inner;
-    return try$(
-      typecheck(env, inner),
-      (expr2) => {
-        return new Ok(new Group2(expr2.type_, expr2));
+function typecheck(loop$env, loop$expr) {
+  while (true) {
+    let env = loop$env;
+    let expr = loop$expr;
+    if (expr instanceof Empty3) {
+      return new Ok(new Empty4(new TNil()));
+    } else if (expr instanceof LabelDef) {
+      let txt = expr.txt;
+      let key = expr.cell_ref;
+      return new Ok(new LabelDef2(new TNil(), txt, key));
+    } else if (expr instanceof Label) {
+      let txt = expr.txt;
+      let key = (() => {
+        let _pipe = env;
+        let _pipe$1 = map_to_list(_pipe);
+        return fold_until(
+          _pipe$1,
+          new None(),
+          (acc, i) => {
+            if (i[1].isOk() && i[1][0] instanceof LabelDef && i[1][0].txt === txt) {
+              let label_txt = i[1][0].txt;
+              let cell_ref = i[1][0].cell_ref;
+              return new Stop(new Some(cell_ref));
+            } else {
+              return new Continue(new None());
+            }
+          }
+        );
+      })();
+      if (key instanceof None) {
+        return new Ok(new Label2(new TNil(), txt));
+      } else {
+        let key$1 = key[0];
+        let $ = get(env, key$1);
+        if (!$.isOk()) {
+          throw makeError(
+            "assignment_no_match",
+            "squared_away/lang/typechecker",
+            36,
+            "typecheck",
+            "Assignment pattern did not match",
+            { value: $ }
+          );
+        }
+        let x = $[0];
+        if (!x.isOk()) {
+          let e = x[0];
+          return new Error(e);
+        } else {
+          let expr$1 = x[0];
+          loop$env = env;
+          loop$expr = expr$1;
+        }
       }
-    );
-  } else if (expr instanceof CellReference) {
-    let key = expr.key;
-    let $ = get(env, key);
-    if (!$.isOk()) {
-      throw makeError(
-        "assignment_no_match",
-        "squared_away/lang/typechecker",
-        31,
-        "typecheck",
-        "Assignment pattern did not match",
-        { value: $ }
+    } else if (expr instanceof BooleanLiteral) {
+      let b = expr.val;
+      return new Ok(new BooleanLiteral2(new TBool(), b));
+    } else if (expr instanceof FloatLiteral) {
+      let f = expr.f;
+      return new Ok(new FloatLiteral2(new TFloat(), f));
+    } else if (expr instanceof IntegerLiteral) {
+      let n = expr.n;
+      return new Ok(new IntegerLiteral2(new TInt(), n));
+    } else if (expr instanceof Group) {
+      let inner = expr.inner;
+      return try$(
+        typecheck(env, inner),
+        (expr2) => {
+          return new Ok(new Group2(expr2.type_, expr2));
+        }
       );
-    }
-    let ref_expr = $[0];
-    if (ref_expr.isOk()) {
-      let expr$1 = ref_expr[0];
+    } else if (expr instanceof CellReference) {
+      let key = expr.key;
+      let $ = get(env, key);
+      if (!$.isOk()) {
+        throw makeError(
+          "assignment_no_match",
+          "squared_away/lang/typechecker",
+          53,
+          "typecheck",
+          "Assignment pattern did not match",
+          { value: $ }
+        );
+      }
+      let ref_expr = $[0];
+      if (ref_expr.isOk()) {
+        let expr$1 = ref_expr[0];
+        return try$(
+          typecheck(env, expr$1),
+          (expr2) => {
+            return new Ok(new CellReference2(expr2.type_, key));
+          }
+        );
+      } else {
+        let e = ref_expr[0];
+        return new Error(e);
+      }
+    } else if (expr instanceof UnaryOp) {
+      let op = expr.op;
+      let expr$1 = expr.expr;
       return try$(
         typecheck(env, expr$1),
         (expr2) => {
-          return new Ok(new CellReference2(expr2.type_, key));
+          let $ = expr2.type_;
+          if (op instanceof Negate && $ instanceof TInt) {
+            return new Ok(new UnaryOp2(expr2.type_, op, expr2));
+          } else if (op instanceof Negate && $ instanceof TFloat) {
+            return new Ok(new UnaryOp2(expr2.type_, op, expr2));
+          } else if (op instanceof Not && $ instanceof TBool) {
+            return new Ok(new UnaryOp2(expr2.type_, op, expr2));
+          } else {
+            return new Error(
+              new TypeError2(
+                new TypeError(
+                  "Unexpected type and operator combination"
+                )
+              )
+            );
+          }
         }
       );
     } else {
-      let e = ref_expr[0];
-      return new Error(e);
-    }
-  } else if (expr instanceof UnaryOp) {
-    let op = expr.op;
-    let expr$1 = expr.expr;
-    return try$(
-      typecheck(env, expr$1),
-      (expr2) => {
-        let $ = expr2.type_;
-        if (op instanceof Negate && $ instanceof TInt) {
-          return new Ok(new UnaryOp2(expr2.type_, op, expr2));
-        } else if (op instanceof Negate && $ instanceof TFloat) {
-          return new Ok(new UnaryOp2(expr2.type_, op, expr2));
-        } else if (op instanceof Not && $ instanceof TBool) {
-          return new Ok(new UnaryOp2(expr2.type_, op, expr2));
-        } else {
-          return new Error(
-            new TypeError2(
-              new TypeError(
-                "Unexpected type and operator combination"
-              )
-            )
-          );
-        }
-      }
-    );
-  } else {
-    let lhs = expr.lhs;
-    let op = expr.op;
-    let rhs = expr.rhs;
-    return try$(
-      typecheck(env, lhs),
-      (lhs2) => {
-        return try$(
-          typecheck(env, rhs),
-          (rhs2) => {
-            let $ = lhs2.type_;
-            let $1 = rhs2.type_;
-            if ($ instanceof TFloat && op instanceof Add && $1 instanceof TFloat) {
-              return new Ok(
-                new BinaryOp2(new TFloat(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TInt && op instanceof Add && $1 instanceof TInt) {
-              return new Ok(
-                new BinaryOp2(new TInt(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TFloat && op instanceof Subtract && $1 instanceof TFloat) {
-              return new Ok(
-                new BinaryOp2(new TFloat(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TInt && op instanceof Subtract && $1 instanceof TInt) {
-              return new Ok(
-                new BinaryOp2(new TInt(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TFloat && op instanceof Multiply && $1 instanceof TFloat) {
-              return new Ok(
-                new BinaryOp2(new TFloat(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TInt && op instanceof Multiply && $1 instanceof TInt) {
-              return new Ok(
-                new BinaryOp2(new TInt(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TFloat && op instanceof Divide && $1 instanceof TFloat) {
-              return new Ok(
-                new BinaryOp2(new TFloat(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TInt && op instanceof Divide && $1 instanceof TInt) {
-              return new Ok(
-                new BinaryOp2(new TInt(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TFloat && op instanceof Power && $1 instanceof TFloat) {
-              return new Ok(
-                new BinaryOp2(new TFloat(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TInt && op instanceof Power && $1 instanceof TFloat) {
-              return new Ok(
-                new BinaryOp2(new TFloat(), lhs2, op, rhs2)
-              );
-            } else if (op instanceof EqualCheck && isEqual($, $1)) {
-              let t1 = $;
-              let t2 = $1;
-              return new Ok(
-                new BinaryOp2(new TBool(), lhs2, op, rhs2)
-              );
-            } else if (op instanceof NotEqualCheck && isEqual($, $1)) {
-              let t1 = $;
-              let t2 = $1;
-              return new Ok(
-                new BinaryOp2(new TBool(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TFloat && op instanceof LessThanCheck && $1 instanceof TFloat) {
-              return new Ok(
-                new BinaryOp2(new TBool(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TFloat && op instanceof LessThanOrEqualCheck && $1 instanceof TFloat) {
-              return new Ok(
-                new BinaryOp2(new TBool(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TFloat && op instanceof GreaterThanOrEqualCheck && $1 instanceof TFloat) {
-              return new Ok(
-                new BinaryOp2(new TBool(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TFloat && op instanceof GreaterThanCheck && $1 instanceof TFloat) {
-              return new Ok(
-                new BinaryOp2(new TBool(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TInt && op instanceof LessThanCheck && $1 instanceof TInt) {
-              return new Ok(
-                new BinaryOp2(new TBool(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TInt && op instanceof LessThanOrEqualCheck && $1 instanceof TInt) {
-              return new Ok(
-                new BinaryOp2(new TBool(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TInt && op instanceof GreaterThanOrEqualCheck && $1 instanceof TInt) {
-              return new Ok(
-                new BinaryOp2(new TBool(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TInt && op instanceof GreaterThanCheck && $1 instanceof TInt) {
-              return new Ok(
-                new BinaryOp2(new TBool(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TString && op instanceof LessThanCheck && $1 instanceof TString) {
-              return new Ok(
-                new BinaryOp2(new TBool(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TString && op instanceof LessThanOrEqualCheck && $1 instanceof TString) {
-              return new Ok(
-                new BinaryOp2(new TBool(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TString && op instanceof GreaterThanOrEqualCheck && $1 instanceof TString) {
-              return new Ok(
-                new BinaryOp2(new TBool(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TString && op instanceof GreaterThanCheck && $1 instanceof TString) {
-              return new Ok(
-                new BinaryOp2(new TBool(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TBool && op instanceof And && $1 instanceof TBool) {
-              return new Ok(
-                new BinaryOp2(new TBool(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TBool && op instanceof Or && $1 instanceof TBool) {
-              return new Ok(
-                new BinaryOp2(new TBool(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TBool && op instanceof And) {
-              let t = $1;
-              if (t instanceof TNil) {
-                return new Error(
-                  new TypeError2(
-                    new TypeError(
-                      'Tried to do a boolean and operation "&&" but the right hand side of the operation has type "Empty". Could you be referencing an empty cell?'
-                    )
-                  )
+      let lhs = expr.lhs;
+      let op = expr.op;
+      let rhs = expr.rhs;
+      return try$(
+        typecheck(env, lhs),
+        (lhs2) => {
+          return try$(
+            typecheck(env, rhs),
+            (rhs2) => {
+              let $ = lhs2.type_;
+              let $1 = rhs2.type_;
+              if ($ instanceof TFloat && op instanceof Add && $1 instanceof TFloat) {
+                return new Ok(
+                  new BinaryOp2(new TFloat(), lhs2, op, rhs2)
                 );
+              } else if ($ instanceof TInt && op instanceof Add && $1 instanceof TInt) {
+                return new Ok(
+                  new BinaryOp2(new TInt(), lhs2, op, rhs2)
+                );
+              } else if ($ instanceof TFloat && op instanceof Subtract && $1 instanceof TFloat) {
+                return new Ok(
+                  new BinaryOp2(new TFloat(), lhs2, op, rhs2)
+                );
+              } else if ($ instanceof TInt && op instanceof Subtract && $1 instanceof TInt) {
+                return new Ok(
+                  new BinaryOp2(new TInt(), lhs2, op, rhs2)
+                );
+              } else if ($ instanceof TFloat && op instanceof Multiply && $1 instanceof TFloat) {
+                return new Ok(
+                  new BinaryOp2(new TFloat(), lhs2, op, rhs2)
+                );
+              } else if ($ instanceof TInt && op instanceof Multiply && $1 instanceof TInt) {
+                return new Ok(
+                  new BinaryOp2(new TInt(), lhs2, op, rhs2)
+                );
+              } else if ($ instanceof TFloat && op instanceof Divide && $1 instanceof TFloat) {
+                return new Ok(
+                  new BinaryOp2(new TFloat(), lhs2, op, rhs2)
+                );
+              } else if ($ instanceof TInt && op instanceof Divide && $1 instanceof TInt) {
+                return new Ok(
+                  new BinaryOp2(new TInt(), lhs2, op, rhs2)
+                );
+              } else if ($ instanceof TFloat && op instanceof Power && $1 instanceof TFloat) {
+                return new Ok(
+                  new BinaryOp2(new TFloat(), lhs2, op, rhs2)
+                );
+              } else if ($ instanceof TInt && op instanceof Power && $1 instanceof TFloat) {
+                return new Ok(
+                  new BinaryOp2(new TFloat(), lhs2, op, rhs2)
+                );
+              } else if (op instanceof EqualCheck && isEqual($, $1)) {
+                let t1 = $;
+                let t2 = $1;
+                return new Ok(
+                  new BinaryOp2(new TBool(), lhs2, op, rhs2)
+                );
+              } else if (op instanceof NotEqualCheck && isEqual($, $1)) {
+                let t1 = $;
+                let t2 = $1;
+                return new Ok(
+                  new BinaryOp2(new TBool(), lhs2, op, rhs2)
+                );
+              } else if ($ instanceof TFloat && op instanceof LessThanCheck && $1 instanceof TFloat) {
+                return new Ok(
+                  new BinaryOp2(new TBool(), lhs2, op, rhs2)
+                );
+              } else if ($ instanceof TFloat && op instanceof LessThanOrEqualCheck && $1 instanceof TFloat) {
+                return new Ok(
+                  new BinaryOp2(new TBool(), lhs2, op, rhs2)
+                );
+              } else if ($ instanceof TFloat && op instanceof GreaterThanOrEqualCheck && $1 instanceof TFloat) {
+                return new Ok(
+                  new BinaryOp2(new TBool(), lhs2, op, rhs2)
+                );
+              } else if ($ instanceof TFloat && op instanceof GreaterThanCheck && $1 instanceof TFloat) {
+                return new Ok(
+                  new BinaryOp2(new TBool(), lhs2, op, rhs2)
+                );
+              } else if ($ instanceof TInt && op instanceof LessThanCheck && $1 instanceof TInt) {
+                return new Ok(
+                  new BinaryOp2(new TBool(), lhs2, op, rhs2)
+                );
+              } else if ($ instanceof TInt && op instanceof LessThanOrEqualCheck && $1 instanceof TInt) {
+                return new Ok(
+                  new BinaryOp2(new TBool(), lhs2, op, rhs2)
+                );
+              } else if ($ instanceof TInt && op instanceof GreaterThanOrEqualCheck && $1 instanceof TInt) {
+                return new Ok(
+                  new BinaryOp2(new TBool(), lhs2, op, rhs2)
+                );
+              } else if ($ instanceof TInt && op instanceof GreaterThanCheck && $1 instanceof TInt) {
+                return new Ok(
+                  new BinaryOp2(new TBool(), lhs2, op, rhs2)
+                );
+              } else if ($ instanceof TString && op instanceof LessThanCheck && $1 instanceof TString) {
+                return new Ok(
+                  new BinaryOp2(new TBool(), lhs2, op, rhs2)
+                );
+              } else if ($ instanceof TString && op instanceof LessThanOrEqualCheck && $1 instanceof TString) {
+                return new Ok(
+                  new BinaryOp2(new TBool(), lhs2, op, rhs2)
+                );
+              } else if ($ instanceof TString && op instanceof GreaterThanOrEqualCheck && $1 instanceof TString) {
+                return new Ok(
+                  new BinaryOp2(new TBool(), lhs2, op, rhs2)
+                );
+              } else if ($ instanceof TString && op instanceof GreaterThanCheck && $1 instanceof TString) {
+                return new Ok(
+                  new BinaryOp2(new TBool(), lhs2, op, rhs2)
+                );
+              } else if ($ instanceof TBool && op instanceof And && $1 instanceof TBool) {
+                return new Ok(
+                  new BinaryOp2(new TBool(), lhs2, op, rhs2)
+                );
+              } else if ($ instanceof TBool && op instanceof Or && $1 instanceof TBool) {
+                return new Ok(
+                  new BinaryOp2(new TBool(), lhs2, op, rhs2)
+                );
+              } else if ($ instanceof TBool && op instanceof And) {
+                let t = $1;
+                if (t instanceof TNil) {
+                  return new Error(
+                    new TypeError2(
+                      new TypeError(
+                        'Tried to do a boolean and operation "&&" but the right hand side of the operation has type "Empty". Could you be referencing an empty cell?'
+                      )
+                    )
+                  );
+                } else {
+                  return new Error(
+                    new TypeError2(
+                      new TypeError(
+                        "Tried to do a boolean and operation (b1 && b2) but the right hand side has type " + inspect2(
+                          t
+                        )
+                      )
+                    )
+                  );
+                }
               } else {
                 return new Error(
                   new TypeError2(
                     new TypeError(
-                      "Tried to do a boolean and operation (b1 && b2) but the right hand side has type " + inspect2(
-                        t
+                      "Unexpected arguments to binary operation: " + inspect2(
+                        op
                       )
                     )
                   )
                 );
               }
-            } else {
-              return new Error(
-                new TypeError2(
-                  new TypeError(
-                    "Unexpected arguments to binary operation: " + inspect2(
-                      op
-                    )
-                  )
-                )
-              );
             }
-          }
-        );
-      }
-    );
+          );
+        }
+      );
+    }
   }
 }
 
@@ -3840,7 +4156,7 @@ function typecheck_grid(input2) {
             throw makeError(
               "assignment_no_match",
               "squared_away/lang",
-              43,
+              41,
               "",
               "Assignment pattern did not match",
               { value: $1 }
@@ -3909,10 +4225,33 @@ function scan_grid(input2) {
     (acc, key, src) => {
       let maybe_scanned = (() => {
         let _pipe = scan(src);
-        return map_error(
+        let _pipe$1 = map_error(
           _pipe,
           (var0) => {
             return new ScanError2(var0);
+          }
+        );
+        return map2(
+          _pipe$1,
+          (_capture) => {
+            return map(
+              _capture,
+              (t) => {
+                if (t instanceof LabelDef3 && t.cell_ref === "") {
+                  let txt = t.txt;
+                  return new LabelDef3(
+                    txt,
+                    (() => {
+                      let _pipe$2 = key;
+                      let _pipe$3 = cell_to_the_right(_pipe$2);
+                      return unwrap(_pipe$3, "");
+                    })()
+                  );
+                } else {
+                  return t;
+                }
+              }
+            );
           }
         );
       })();

@@ -5,6 +5,7 @@ pub type TypedExpr {
   Empty(type_: typ.Typ)
   FloatLiteral(type_: typ.Typ, f: Float)
   Label(type_: typ.Typ, txt: String)
+  LabelDef(type_: typ.Typ, txt: String, key: String)
   IntegerLiteral(type_: typ.Typ, n: Int)
   CellReference(type_: typ.Typ, key: String)
   BooleanLiteral(type_: typ.Typ, b: Bool)

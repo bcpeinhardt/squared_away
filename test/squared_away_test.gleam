@@ -44,7 +44,7 @@ pub fn scanner_test() {
       token.Plus,
       token.IntegerLiteral(786),
     ]),
-    #("+-*/=", [token.Label("+-*/=")]),
+    #("+-*/=", [token.LabelDef("+-*/=", "")]),
   ]
 
   use tc <- list.each(test_cases)

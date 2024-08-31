@@ -1,8 +1,11 @@
 import gleam/dict
 import gleam/float
 import gleam/int
+import gleam/list.{Continue, Stop}
+import gleam/option.{None, Some}
 import gleam/result
 import squared_away/lang/error
+import squared_away/lang/interpreter/runtime_error
 import squared_away/lang/interpreter/value
 import squared_away/lang/parser/expr
 import squared_away/lang/typechecker/typed_expr
@@ -13,8 +16,46 @@ pub fn interpret(
 ) -> Result(value.Value, error.CompileError) {
   case expr {
     typed_expr.Empty(_) -> Ok(value.Empty)
+    typed_expr.LabelDef(_, _, _) -> Ok(value.Empty)
     typed_expr.Group(_, expr) -> interpret(env, expr)
-    typed_expr.Label(_, txt) -> Ok(value.Text(txt))
+    typed_expr.Label(_, txt) -> {
+      let key =
+        env
+        |> dict.to_list
+        |> list.fold_until(None, fn(acc, i) {
+          case i {
+            #(_, Ok(typed_expr.LabelDef(ty, label_txt, cell_ref)))
+              if label_txt == txt
+            -> {
+              Stop(Some(cell_ref))
+            }
+            _ -> Continue(None)
+          }
+        })
+
+      case key {
+        None ->
+          Error(
+            error.RuntimeError(runtime_error.RuntimeError(
+              "Label doesn't point to anything",
+            )),
+          )
+        Some(key) -> {
+          case dict.get(env, key) {
+            Error(Nil) ->
+              Error(
+                error.RuntimeError(runtime_error.RuntimeError(
+                  "Label doesn't point to anything",
+                )),
+              )
+            Ok(Error(e)) -> Error(e)
+            Ok(Ok(te)) -> {
+              interpret(env, te)
+            }
+          }
+        }
+      }
+    }
     typed_expr.BooleanLiteral(_, b) -> Ok(value.Boolean(b))
     typed_expr.IntegerLiteral(_, n) -> Ok(value.Integer(n))
     typed_expr.FloatLiteral(_, f) -> Ok(value.FloatingPointNumber(f))

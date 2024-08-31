@@ -1,5 +1,6 @@
 import gleam/dict
-import gleam/list
+import gleam/list.{Continue, Stop}
+import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string
 import squared_away/lang/error
@@ -15,10 +16,35 @@ pub fn typecheck(
 ) -> Result(typed_expr.TypedExpr, error.CompileError) {
   case expr {
     expr.Empty -> Ok(typed_expr.Empty(type_: typ.TNil))
+    expr.LabelDef(txt, key) ->
+      Ok(typed_expr.LabelDef(type_: typ.TNil, txt:, key:))
 
     // We will typecheck the label when we typecheck the grid as a whole. For now it's a 
     // "Nil" type
-    expr.Label(txt) -> Ok(typed_expr.Label(type_: typ.TNil, txt:))
+    expr.Label(txt) -> {
+      let key =
+        env
+        |> dict.to_list
+        |> list.fold_until(None, fn(acc, i) {
+          case i {
+            #(_, Ok(expr.LabelDef(label_txt, cell_ref))) if label_txt == txt -> {
+              Stop(Some(cell_ref))
+            }
+            _ -> Continue(None)
+          }
+        })
+
+      case key {
+        None -> Ok(typed_expr.Label(typ.TNil, txt))
+        Some(key) -> {
+          let assert Ok(x) = dict.get(env, key)
+          case x {
+            Error(e) -> Error(e)
+            Ok(expr) -> typecheck(env, expr)
+          }
+        }
+      }
+    }
     expr.BooleanLiteral(b) ->
       Ok(typed_expr.BooleanLiteral(type_: typ.TBool, b:))
     expr.FloatLiteral(f) -> Ok(typed_expr.FloatLiteral(type_: typ.TFloat, f:))

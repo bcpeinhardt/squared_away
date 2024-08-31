@@ -2,43 +2,8 @@
 version: 1.2.1
 title: Basic Label Usage
 file: ./test/squared_away_lang_test.gleam
-test_name: hello_world_test
+test_name: basic_label_usage_test
 ---
-dict.from_list([
-  #("A1", Ok(Empty)),
-  #("A2", Ok(Integer(4))),
-  #("A3", Ok(Empty)),
-  #("A4", Ok(Empty)),
-  #("A5", Ok(Empty)),
-  #("A6", Ok(Empty)),
-  #("B1", Ok(Empty)),
-  #("B2", Ok(Empty)),
-  #("B3", Ok(Empty)),
-  #("B4", Ok(Empty)),
-  #("B5", Ok(Empty)),
-  #("B6", Ok(Empty)),
-  #("C1", Ok(Empty)),
-  #("C2", Ok(Empty)),
-  #("C3", Ok(Empty)),
-  #("C4", Ok(Empty)),
-  #("C5", Ok(Empty)),
-  #("C6", Ok(Empty)),
-  #("D1", Ok(Empty)),
-  #("D2", Ok(Empty)),
-  #("D3", Ok(Empty)),
-  #("D4", Ok(Empty)),
-  #("D5", Ok(Empty)),
-  #("D6", Ok(Empty)),
-  #("E1", Ok(Empty)),
-  #("E2", Ok(Empty)),
-  #("E3", Ok(Empty)),
-  #("E4", Ok(Empty)),
-  #("E5", Ok(Empty)),
-  #("E6", Ok(Empty)),
-  #("F1", Ok(Empty)),
-  #("F2", Ok(Empty)),
-  #("F3", Ok(Empty)),
-  #("F4", Ok(Empty)),
-  #("F5", Ok(Empty)),
-  #("F6", Ok(Empty)),
-])
+A1: 
+B1: 4
+B2: 4

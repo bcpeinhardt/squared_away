@@ -6,6 +6,8 @@ import gleam/string
 import gleeunit
 import pprint
 import squared_away_lang as lang
+import squared_away_lang/error
+import squared_away_lang/interpreter/value
 
 pub fn main() {
   gleeunit.main()
@@ -24,12 +26,27 @@ fn empty_grid() -> dict.Dict(String, String) {
   })
 }
 
+fn print_grid_values(
+  grid: dict.Dict(String, Result(value.Value, error.CompileError)),
+  keys: List(String),
+) -> String {
+  use acc, key, val <- dict.fold(grid, "")
+  case list.contains(keys, key) {
+    False -> acc
+    True ->
+      case val {
+        Ok(v) -> acc <> key <> ": " <> value.value_to_string(v) <> "\n"
+        Error(e) -> acc <> key <> ": " <> string.inspect(e)
+      }
+  }
+}
+
 // gleeunit test functions end in `_test`
-pub fn hello_world_test() {
+pub fn basic_label_usage_test() {
   let grid =
     empty_grid()
     |> dict.insert("A1", "X")
-    |> dict.insert("A2", "=4")
+    |> dict.insert("B1", "=4")
     |> dict.insert("B2", "=X")
 
   let res = {
@@ -39,5 +56,6 @@ pub fn hello_world_test() {
     lang.interpret_grid(typechecked)
   }
 
-  pprint.format(res) |> birdie.snap(title: "Basic Label Usage")
+  print_grid_values(res, ["A1", "B1", "B2"])
+  |> birdie.snap(title: "Basic Label Usage")
 }

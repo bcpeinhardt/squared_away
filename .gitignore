@@ -1,4 +1,5 @@
 *.beam
 *.ez
 */build
+/squared_away/priv/static/squared_away.mjs
 erl_crash.dump

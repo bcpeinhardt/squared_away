@@ -1,8 +1,8 @@
 import gleam/result
 import gleam/string
-import squared_away/lang/parser/expr
-import squared_away/lang/parser/parse_error
-import squared_away/lang/scanner/token
+import squared_away_lang/parser/expr
+import squared_away_lang/parser/parse_error
+import squared_away_lang/scanner/token
 
 pub fn parse(
   tokens: List(token.Token),

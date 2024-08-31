@@ -8,9 +8,9 @@ import lustre/effect
 import lustre/element
 import lustre/element/html
 import lustre/event
-import squared_away/lang
-import squared_away/lang/error
-import squared_away/lang/interpreter/value
+import squared_away_lang as lang
+import squared_away_lang/error
+import squared_away_lang/interpreter/value
 
 pub fn main() {
   let app = lustre.application(init, update, view)
@@ -29,8 +29,8 @@ type Model {
 }
 
 fn init(_flags) -> #(Model, effect.Effect(Msg)) {
-  let cols = "ABCDE" |> string.to_graphemes
-  let rows = [1, 2, 3, 4, 5]
+  let cols = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" |> string.to_graphemes
+  let rows = list.range(1, 100)
 
   let src_grid =
     list.fold(cols, dict.new(), fn(grid, c) {

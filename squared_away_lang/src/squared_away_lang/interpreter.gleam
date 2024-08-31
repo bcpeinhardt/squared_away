@@ -4,11 +4,11 @@ import gleam/int
 import gleam/list.{Continue, Stop}
 import gleam/option.{None, Some}
 import gleam/result
-import squared_away/lang/error
-import squared_away/lang/interpreter/runtime_error
-import squared_away/lang/interpreter/value
-import squared_away/lang/parser/expr
-import squared_away/lang/typechecker/typed_expr
+import squared_away_lang/error
+import squared_away_lang/interpreter/runtime_error
+import squared_away_lang/interpreter/value
+import squared_away_lang/parser/expr
+import squared_away_lang/typechecker/typed_expr
 
 pub fn interpret(
   env: dict.Dict(String, Result(typed_expr.TypedExpr, error.CompileError)),
@@ -22,9 +22,9 @@ pub fn interpret(
       let key =
         env
         |> dict.to_list
-        |> list.fold_until(None, fn(acc, i) {
+        |> list.fold_until(None, fn(_, i) {
           case i {
-            #(_, Ok(typed_expr.LabelDef(ty, label_txt, cell_ref)))
+            #(_, Ok(typed_expr.LabelDef(_, label_txt, cell_ref)))
               if label_txt == txt
             -> {
               Stop(Some(cell_ref))

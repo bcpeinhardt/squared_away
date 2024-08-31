@@ -4,8 +4,8 @@ import gleam/list
 import gleam/result
 import gleam/string
 
-import squared_away/lang/scanner/scan_error
-import squared_away/lang/scanner/token
+import squared_away_lang/scanner/scan_error
+import squared_away_lang/scanner/token
 
 pub fn scan(src: String) -> Result(List(token.Token), scan_error.ScanError) {
   case string.trim(src) {

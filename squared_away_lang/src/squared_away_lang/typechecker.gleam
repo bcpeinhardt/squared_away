@@ -1,14 +1,13 @@
 import gleam/dict
 import gleam/list.{Continue, Stop}
-import gleam/option.{type Option, None, Some}
+import gleam/option.{None, Some}
 import gleam/result
 import gleam/string
-import squared_away/lang/error
-import squared_away/lang/parser/expr
-import squared_away/lang/typechecker/typ
-import squared_away/lang/typechecker/type_error
-import squared_away/lang/typechecker/typed_expr
-import squared_away/util
+import squared_away_lang/error
+import squared_away_lang/parser/expr
+import squared_away_lang/typechecker/typ
+import squared_away_lang/typechecker/type_error
+import squared_away_lang/typechecker/typed_expr
 
 pub fn typecheck(
   env: dict.Dict(String, Result(expr.Expr, error.CompileError)),
@@ -25,7 +24,7 @@ pub fn typecheck(
       let key =
         env
         |> dict.to_list
-        |> list.fold_until(None, fn(acc, i) {
+        |> list.fold_until(None, fn(_, i) {
           case i {
             #(_, Ok(expr.LabelDef(label_txt, cell_ref))) if label_txt == txt -> {
               Stop(Some(cell_ref))

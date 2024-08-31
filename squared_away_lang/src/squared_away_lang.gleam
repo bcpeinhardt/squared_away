@@ -1,18 +1,18 @@
 import gleam/dict
 import gleam/list
-import gleam/option.{type Option, None, Some}
+import gleam/option.{None, Some}
 import gleam/result
-import squared_away/lang/error
-import squared_away/lang/interpreter
-import squared_away/lang/interpreter/value
-import squared_away/lang/parser
-import squared_away/lang/parser/expr
-import squared_away/lang/scanner
-import squared_away/lang/scanner/token
-import squared_away/lang/typechecker
-import squared_away/lang/typechecker/typ
-import squared_away/lang/typechecker/typed_expr
-import squared_away/util
+import squared_away_lang/error
+import squared_away_lang/interpreter
+import squared_away_lang/interpreter/value
+import squared_away_lang/parser
+import squared_away_lang/parser/expr
+import squared_away_lang/scanner
+import squared_away_lang/scanner/token
+import squared_away_lang/typechecker
+import squared_away_lang/typechecker/typ
+import squared_away_lang/typechecker/typed_expr
+import squared_away_lang/util
 
 pub fn interpret_grid(
   input: dict.Dict(String, Result(typed_expr.TypedExpr, error.CompileError)),

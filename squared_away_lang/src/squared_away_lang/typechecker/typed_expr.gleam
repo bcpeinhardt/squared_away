@@ -1,5 +1,5 @@
-import squared_away/lang/parser/expr
-import squared_away/lang/typechecker/typ
+import squared_away_lang/parser/expr
+import squared_away_lang/typechecker/typ
 
 pub type TypedExpr {
   Empty(type_: typ.Typ)

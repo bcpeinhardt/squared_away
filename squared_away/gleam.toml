@@ -16,6 +16,7 @@ target = "javascript"
 [dependencies]
 gleam_stdlib = "0.39.0"
 lustre = "4.3.5"
+squared_away_lang = { path = "../squared_away_lang" }
 
 [dev-dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"

@@ -3,7 +3,7 @@ import gleam/int
 import gleam/list
 import gleam/string
 import lustre
-import lustre/attribute
+import lustre/attribute.{class}
 import lustre/effect
 import lustre/element
 import lustre/element/html
@@ -53,7 +53,8 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
       src_grid:,
       value_grid: dict.new(),
     )
-  let model = update_grid(model)
+    |> update_grid
+
   #(model, effect.none())
 }
 
@@ -89,79 +90,69 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
 }
 
 fn view(model: Model) -> element.Element(Msg) {
-  let alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  let alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" |> string.to_graphemes
 
   let columns = [
-    html.th([attribute.class("sticky-header")], [html.text("")]),
-    ..list.map(string.to_graphemes(alphabet), fn(l) {
-      html.th([attribute.class("sticky-header")], [html.text(l)])
+    html.th([class("sticky-header")], [html.text("")]),
+    ..list.map(alphabet, fn(l) {
+      html.th([class("sticky-header")], [html.text(l)])
     })
   ]
 
+  let rows =
+    list.range(1, 100)
+    |> list.map(int.to_string)
+    |> list.map(fn(row) {
+      let cells =
+        list.map(alphabet, fn(col) {
+          let key = col <> row
+          let on_input = event.on_input(UserSetCellValue(key:, val: _))
+          let on_click = event.on_click(UserClickedCell(key))
+          let show_formula = model.active_cell == key || model.formula_mode
+          let value =
+            case show_formula {
+              True -> assert_get(model.src_grid, key)
+              False ->
+                case assert_get(model.value_grid, key) {
+                  Error(e) -> string.inspect(e)
+                  Ok(v) -> value.value_to_string(v)
+                }
+            }
+            |> attribute.value
+
+          html.td([], { [html.input([on_input, on_click, value])] })
+        })
+
+      html.tr([], [html.th([class("sticky-column")], t(row)), ..cells])
+    })
+
   let grid =
-    html.div([attribute.class("table-container")], [
+    html.div([class("table-container")], [
       html.table([], [
         html.thead([], [html.tr([], columns)]),
-        html.tbody(
-          [],
-          list.repeat(Nil, 100)
-            |> list.index_map(fn(_, i) {
-              html.tr([], [
-                html.th([attribute.class("sticky-column")], [
-                  html.text(int.to_string(i + 1)),
-                ]),
-                ..list.map(string.to_graphemes(alphabet), fn(l) {
-                  html.td([], {
-                    let key = l <> int.to_string(i + 1)
-
-                    [
-                      html.input([
-                        event.on_input(UserSetCellValue(key:, val: _)),
-                        event.on_click(UserClickedCell(
-                          l <> int.to_string(i + 1),
-                        )),
-                        attribute.value({
-                          case model.active_cell == key || model.formula_mode {
-                            True -> {
-                              let assert Ok(v) = dict.get(model.src_grid, key)
-                              v
-                            }
-                            False -> {
-                              let assert Ok(v) = dict.get(model.value_grid, key)
-                              case v {
-                                Error(e) -> string.inspect(e)
-                                Ok(v) -> value.value_to_string(v)
-                              }
-                            }
-                          }
-                        }),
-                      ]),
-                    ]
-                  })
-                })
-              ])
-            }),
-        ),
+        html.tbody([], rows),
       ]),
     ])
 
-  // We filled the grid ourself so this shouldn't ever panic, if it does it's a 
-  // bug and I'd rather find it sooner.
-  let assert Ok(active_cell_value) =
-    dict.get(model.value_grid, model.active_cell)
-
-  html.div([], [
-    html.div([], [grid]),
-    html.p([], [
-      html.text(model.active_cell <> ": " <> string.inspect(active_cell_value)),
-    ]),
+  let formula_mode_toggle =
     html.input([
       attribute.type_("checkbox"),
       attribute.id("formula_mode"),
       event.on_check(UserToggledFormulaMode),
-    ]),
-    html.label([attribute.for("formula_mode")], [
-      html.text("toggle formula mode"),
-    ]),
-  ])
+    ])
+
+  let formula_mode_toggle_label =
+    html.label([attribute.for("formula_mode")], t("toggle formula mode"))
+  html.div([], [grid, formula_mode_toggle, formula_mode_toggle_label])
+}
+
+// We operate on a dict which we prefill with cell values on init,
+// so we know the dict has value's for key's we're fetching
+fn assert_get(d: dict.Dict(a, b), key: a) -> b {
+  let assert Ok(v) = dict.get(d, key)
+  v
+}
+
+fn t(input: String) {
+  [html.text(input)]
 }

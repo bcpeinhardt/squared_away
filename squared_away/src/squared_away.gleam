@@ -1,6 +1,7 @@
 import gleam/dict.{type Dict}
 import gleam/int
 import gleam/list
+import gleam/option.{type Option, None, Some}
 import gleam/string
 import lustre
 import lustre/attribute.{class}
@@ -23,7 +24,7 @@ pub fn main() {
 type Model {
   Model(
     formula_mode: Bool,
-    active_cell: String,
+    active_cell: Option(String),
     src_grid: Dict(String, String),
     value_grid: Dict(String, Result(value.Value, error.CompileError)),
   )
@@ -49,7 +50,7 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
   let model =
     Model(
       formula_mode: False,
-      active_cell: "A1",
+      active_cell: None,
       src_grid:,
       value_grid: dict.new(),
     )
@@ -59,9 +60,10 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
 }
 
 type Msg {
-  UserClickedCell(key: String)
   UserToggledFormulaMode(to: Bool)
   UserSetCellValue(key: String, val: String)
+  UserFocusedOnCell(key: String)
+  UserFocusedOffCell
 }
 
 fn update_grid(model: Model) -> Model {
@@ -79,13 +81,16 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
         Model(..model, src_grid: dict.insert(model.src_grid, key, val))
       #(update_grid(model), effect.none())
     }
-    UserClickedCell(key) -> {
-      #(Model(..model, active_cell: key), effect.none())
-    }
     UserToggledFormulaMode(formula_mode) -> #(
       Model(..model, formula_mode:),
       effect.none(),
     )
+    UserFocusedOnCell(key) -> {
+      #(Model(..model, active_cell: Some(key)), effect.none())
+    }
+    UserFocusedOffCell -> {
+      #(Model(..model, active_cell: None), effect.none())
+    }
   }
 }
 
@@ -107,8 +112,10 @@ fn view(model: Model) -> element.Element(Msg) {
         list.map(alphabet, fn(col) {
           let key = col <> row
           let on_input = event.on_input(UserSetCellValue(key:, val: _))
-          let on_click = event.on_click(UserClickedCell(key))
-          let show_formula = model.active_cell == key || model.formula_mode
+          let out_of_focus = event.on_blur(UserFocusedOffCell)
+          let on_focus = event.on_focus(UserFocusedOnCell(key))
+          let show_formula =
+            model.active_cell == Some(key) || model.formula_mode
           let value =
             case show_formula {
               True -> assert_get(model.src_grid, key)
@@ -120,7 +127,9 @@ fn view(model: Model) -> element.Element(Msg) {
             }
             |> attribute.value
 
-          html.td([], { [html.input([on_input, on_click, value])] })
+          html.td([], {
+            [html.input([on_input, on_focus, out_of_focus, value])]
+          })
         })
 
       html.tr([], [html.th([class("sticky-column")], t(row)), ..cells])

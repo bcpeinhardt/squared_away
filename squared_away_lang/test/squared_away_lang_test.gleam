@@ -58,3 +58,22 @@ pub fn basic_label_usage_test() {
   print_grid_values(res, ["A1", "B1", "B2"])
   |> birdie.snap(title: "Basic Label Usage")
 }
+
+pub fn parse_cross_ref_test() {
+  let grid =
+    empty_grid()
+    |> dict.insert("A2", "Ben")
+    |> dict.insert("B1", "Height")
+    |> dict.insert("B2", "=4")
+    |> dict.insert("C2", "=Ben_Height")
+
+  let res = {
+    let scanned = lang.scan_grid(grid)
+    let parsed = lang.parse_grid(scanned)
+    let typechecked = lang.typecheck_grid(parsed)
+    lang.interpret_grid(typechecked)
+  }
+
+  print_grid_values(res, ["A2", "B1", "B2", "C2"])
+  |> birdie.snap(title: "Parse Cross Reference")
+}

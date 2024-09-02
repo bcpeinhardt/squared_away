@@ -85,11 +85,7 @@ pub fn scan_grid(
     |> result.map_error(error.ScanError)
     |> result.map(list.map(_, fn(t) {
       case t {
-        token.LabelDef(txt, "") ->
-          token.LabelDef(
-            txt,
-            key |> util.cell_to_the_right |> option.unwrap(or: ""),
-          )
+        token.LabelDef(txt) -> token.LabelDef(txt)
         _ -> t
       }
     }))

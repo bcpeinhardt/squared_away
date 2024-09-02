@@ -33,9 +33,7 @@ th {
 }
 
 input[type="text"] {
-    width: 5ch; /* Start with a reasonable size */
-    min-width: 5ch;
-    max-width: 100%;
+    width: 30ch;
     border: none;
     text-align: right;
     box-sizing: border-box;

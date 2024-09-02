@@ -45,5 +45,6 @@ pub type Token {
   CellReference(key: String)
   /// Anything not starting with an = in a cell is a string literal
   Label(String)
-  LabelDef(txt: String, cell_ref: String)
+  LabelDef(txt: String)
+  Underscore
 }

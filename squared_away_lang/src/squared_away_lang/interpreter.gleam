@@ -9,6 +9,7 @@ import squared_away_lang/interpreter/runtime_error
 import squared_away_lang/interpreter/value
 import squared_away_lang/parser/expr
 import squared_away_lang/typechecker/typed_expr
+import squared_away_lang/util
 
 pub fn interpret(
   env: dict.Dict(String, Result(typed_expr.TypedExpr, error.CompileError)),
@@ -16,15 +17,22 @@ pub fn interpret(
 ) -> Result(value.Value, error.CompileError) {
   case expr {
     typed_expr.Empty(_) -> Ok(value.Empty)
-    typed_expr.LabelDef(_, txt, _) -> Ok(value.Text(txt))
+    typed_expr.LabelDef(_, txt) -> Ok(value.Text(txt))
     typed_expr.Group(_, expr) -> interpret(env, expr)
+    typed_expr.CrossLabel(_, key) -> {
+      let assert Ok(expr) = dict.get(env, key)
+      case expr {
+        Error(e) -> Error(e)
+        Ok(expr) -> interpret(env, expr)
+      }
+    }
     typed_expr.Label(_, txt) -> {
       let key =
         env
         |> dict.to_list
         |> list.fold_until(None, fn(_, i) {
           case i {
-            #(_, Ok(typed_expr.LabelDef(_, label_txt, cell_ref)))
+            #(cell_ref, Ok(typed_expr.LabelDef(_, label_txt)))
               if label_txt == txt
             -> {
               Stop(Some(cell_ref))
@@ -32,6 +40,8 @@ pub fn interpret(
             _ -> Continue(None)
           }
         })
+        |> option.map(util.cell_to_the_right)
+        |> option.flatten
 
       case key {
         None ->

@@ -11,7 +11,7 @@ pub fn scan(src: String) -> Result(List(token.Token), scan_error.ScanError) {
   case string.trim(src) {
     "" -> Ok([])
     "=" <> rest -> do_scan(rest |> string.trim_left, [])
-    _ -> Ok([token.LabelDef(src, "")])
+    _ -> Ok([token.LabelDef(src)])
   }
 }
 
@@ -41,6 +41,7 @@ fn do_scan(
     ">" <> rest -> do_scan(string.trim_left(rest), [token.Greater, ..acc])
     "(" <> rest -> do_scan(string.trim_left(rest), [token.LParen, ..acc])
     ")" <> rest -> do_scan(string.trim_left(rest), [token.RParen, ..acc])
+    "_" <> rest -> do_scan(string.trim_left(rest), [token.Underscore, ..acc])
     _ -> {
       case parse_integer(src, "") {
         Ok(#(n, rest)) -> {
@@ -108,7 +109,33 @@ fn parse_identifier(src: String, acc: String) -> Result(#(String, String), Nil) 
     | "W" as l <> rest
     | "X" as l <> rest
     | "Y" as l <> rest
-    | "Z" as l <> rest -> parse_identifier(rest, acc <> l)
+    | "Z" as l <> rest
+    | "a" as l <> rest
+    | "b" as l <> rest
+    | "c" as l <> rest
+    | "d" as l <> rest
+    | "e" as l <> rest
+    | "f" as l <> rest
+    | "g" as l <> rest
+    | "h" as l <> rest
+    | "i" as l <> rest
+    | "j" as l <> rest
+    | "k" as l <> rest
+    | "l" as l <> rest
+    | "m" as l <> rest
+    | "n" as l <> rest
+    | "o" as l <> rest
+    | "p" as l <> rest
+    | "q" as l <> rest
+    | "r" as l <> rest
+    | "s" as l <> rest
+    | "t" as l <> rest
+    | "u" as l <> rest
+    | "v" as l <> rest
+    | "w" as l <> rest
+    | "x" as l <> rest
+    | "y" as l <> rest
+    | "z" as l <> rest -> parse_identifier(rest, acc <> l)
     _ -> {
       case acc {
         // Meaning we called this on something that didnt start with a capital letter

@@ -1,3 +1,4 @@
+import gleam/io
 import gleam/result
 import gleam/string
 import squared_away_lang/parser/expr
@@ -11,7 +12,9 @@ pub fn parse(
   case rest {
     [] -> Ok(expr)
     _ ->
-      Error(parse_error.ParseError("After parsing there were leftover tokens"))
+      Error(parse_error.ParseError(
+        "After parsing there were leftover tokens " <> string.inspect(rest),
+      ))
   }
 }
 
@@ -20,8 +23,13 @@ fn do_parse(
 ) -> Result(#(expr.Expr, List(token.Token)), parse_error.ParseError) {
   case tokens {
     [] -> Ok(#(expr.Empty, []))
-    [token.LabelDef(str, key), ..rest] -> Ok(#(expr.LabelDef(str, key), rest))
-    // Let's do the single token patterns first
+    [token.LabelDef(str), ..rest] -> Ok(#(expr.LabelDef(str), rest))
+    [token.Label(row), token.Underscore, token.Label(col), ..rest] -> {
+      case try_parse_binary_ops(rest) {
+        Ok(#(op, rest)) -> Ok(#(op(expr.CrossLabel(row, col)), rest))
+        Error(_) -> Ok(#(expr.CrossLabel(row, col), rest))
+      }
+    }
     [token.Label(str), ..rest] -> {
       case try_parse_binary_ops(rest) {
         Ok(#(op, rest)) -> Ok(#(op(expr.Label(str)), rest))

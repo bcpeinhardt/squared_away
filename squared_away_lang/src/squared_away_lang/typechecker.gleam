@@ -8,6 +8,7 @@ import squared_away_lang/parser/expr
 import squared_away_lang/typechecker/typ
 import squared_away_lang/typechecker/type_error
 import squared_away_lang/typechecker/typed_expr
+import squared_away_lang/util
 
 pub fn typecheck(
   env: dict.Dict(String, Result(expr.Expr, error.CompileError)),
@@ -15,8 +16,7 @@ pub fn typecheck(
 ) -> Result(typed_expr.TypedExpr, error.CompileError) {
   case expr {
     expr.Empty -> Ok(typed_expr.Empty(type_: typ.TNil))
-    expr.LabelDef(txt, key) ->
-      Ok(typed_expr.LabelDef(type_: typ.TNil, txt:, key:))
+    expr.LabelDef(txt) -> Ok(typed_expr.LabelDef(type_: typ.TNil, txt:))
 
     // We will typecheck the label when we typecheck the grid as a whole. For now it's a 
     // "Nil" type
@@ -26,12 +26,14 @@ pub fn typecheck(
         |> dict.to_list
         |> list.fold_until(None, fn(_, i) {
           case i {
-            #(_, Ok(expr.LabelDef(label_txt, cell_ref))) if label_txt == txt -> {
+            #(cell_ref, Ok(expr.LabelDef(label_txt))) if label_txt == txt -> {
               Stop(Some(cell_ref))
             }
             _ -> Continue(None)
           }
         })
+        |> option.map(util.cell_to_the_right)
+        |> option.flatten
 
       case key {
         None -> Ok(typed_expr.Label(typ.TNil, txt))
@@ -39,7 +41,60 @@ pub fn typecheck(
           let assert Ok(x) = dict.get(env, key)
           case x {
             Error(e) -> Error(e)
-            Ok(expr) -> typecheck(env, expr)
+            Ok(expr) -> {
+              case typecheck(env, expr) {
+                Ok(te) -> Ok(typed_expr.Label(type_: te.type_, txt:))
+                Error(e) -> Error(e)
+              }
+            }
+          }
+        }
+      }
+    }
+    expr.CrossLabel(row, col) -> {
+      let assert Some(col_cell) =
+        env
+        |> dict.to_list
+        |> list.fold_until(None, fn(_, i) {
+          case i {
+            #(cell_ref, Ok(expr.LabelDef(label_txt))) if label_txt == col -> {
+              Stop(Some(cell_ref))
+            }
+            _ -> Continue(None)
+          }
+        })
+      let col =
+        col_cell
+        |> string.to_graphemes
+        |> list.filter(string.contains("ABCDEFGHIJKLMNOPQRSTUVWXYZ", _))
+        |> string.join("")
+
+      let assert Some(row_cell) =
+        env
+        |> dict.to_list
+        |> list.fold_until(None, fn(_, i) {
+          case i {
+            #(cell_ref, Ok(expr.LabelDef(label_txt))) if label_txt == row -> {
+              Stop(Some(cell_ref))
+            }
+            _ -> Continue(None)
+          }
+        })
+
+      let row =
+        row_cell
+        |> string.to_graphemes
+        |> list.filter(string.contains("0123456789", _))
+        |> string.join("")
+      let key = col <> row
+
+      let assert Ok(x) = dict.get(env, key)
+      case x {
+        Error(e) -> Error(e)
+        Ok(expr) -> {
+          case typecheck(env, expr) {
+            Ok(te) -> Ok(typed_expr.CrossLabel(type_: te.type_, key:))
+            Error(e) -> Error(e)
           }
         }
       }

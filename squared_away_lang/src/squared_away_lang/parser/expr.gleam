@@ -1,8 +1,9 @@
 pub type Expr {
   Empty
   FloatLiteral(f: Float)
-  LabelDef(txt: String, cell_ref: String)
+  LabelDef(txt: String)
   Label(txt: String)
+  CrossLabel(row: String, col: String)
   IntegerLiteral(n: Int)
   CellReference(key: String)
   BooleanLiteral(val: Bool)

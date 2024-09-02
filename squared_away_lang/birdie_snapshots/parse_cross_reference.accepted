@@ -1,0 +1,10 @@
+---
+version: 1.2.1
+title: Parse Cross Reference
+file: ./test/squared_away_lang_test.gleam
+test_name: parse_cross_ref_test
+---
+B1: Height
+A2: Ben
+B2: 4
+C2: 4

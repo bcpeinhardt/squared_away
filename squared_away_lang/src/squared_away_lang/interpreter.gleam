@@ -69,13 +69,6 @@ pub fn interpret(
     typed_expr.BooleanLiteral(_, b) -> Ok(value.Boolean(b))
     typed_expr.IntegerLiteral(_, n) -> Ok(value.Integer(n))
     typed_expr.FloatLiteral(_, f) -> Ok(value.FloatingPointNumber(f))
-    typed_expr.CellReference(_, cell_ref) -> {
-      let assert Ok(maybe_expr) = dict.get(env, cell_ref)
-      case maybe_expr {
-        Error(e) -> Error(e)
-        Ok(expr) -> interpret(env, expr)
-      }
-    }
     typed_expr.UnaryOp(_, op, expr) -> {
       use value <- result.try(interpret(env, expr))
       case op, value {

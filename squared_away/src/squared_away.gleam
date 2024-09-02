@@ -97,13 +97,6 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
 fn view(model: Model) -> element.Element(Msg) {
   let alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" |> string.to_graphemes
 
-  let columns = [
-    html.th([class("sticky-header")], [html.text("")]),
-    ..list.map(alphabet, fn(l) {
-      html.th([class("sticky-header")], [html.text(l)])
-    })
-  ]
-
   let rows =
     list.range(1, 100)
     |> list.map(int.to_string)
@@ -132,15 +125,12 @@ fn view(model: Model) -> element.Element(Msg) {
           })
         })
 
-      html.tr([], [html.th([class("sticky-column")], t(row)), ..cells])
+      html.tr([], cells)
     })
 
   let grid =
     html.div([class("table-container")], [
-      html.table([], [
-        html.thead([], [html.tr([], columns)]),
-        html.tbody([], rows),
-      ]),
+      html.table([], [html.tbody([], rows)]),
     ])
 
   let formula_mode_toggle =

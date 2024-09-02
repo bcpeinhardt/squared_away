@@ -107,16 +107,6 @@ pub fn typecheck(
       use expr <- result.try(typecheck(env, inner))
       Ok(typed_expr.Group(type_: expr.type_, expr:))
     }
-    expr.CellReference(key) -> {
-      let assert Ok(ref_expr) = dict.get(env, key)
-      case ref_expr {
-        Ok(expr) -> {
-          use expr <- result.try(typecheck(env, expr))
-          Ok(typed_expr.CellReference(type_: expr.type_, key:))
-        }
-        Error(e) -> Error(e)
-      }
-    }
     expr.UnaryOp(op, expr) -> {
       use expr <- result.try(typecheck(env, expr))
       case op, expr.type_ {

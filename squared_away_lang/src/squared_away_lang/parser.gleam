@@ -48,12 +48,6 @@ fn do_parse(
         Error(_) -> Ok(#(expr.FloatLiteral(f), rest))
       }
     }
-    [token.CellReference(key), ..rest] -> {
-      case try_parse_binary_ops(rest) {
-        Ok(#(op, rest)) -> Ok(#(op(expr.CellReference(key)), rest))
-        Error(_) -> Ok(#(expr.CellReference(key), rest))
-      }
-    }
     [token.TrueToken, ..rest] -> {
       case try_parse_binary_ops(rest) {
         Ok(#(op, rest)) -> Ok(#(op(expr.BooleanLiteral(True)), rest))

@@ -5,7 +5,6 @@ pub type Expr {
   Label(txt: String)
   CrossLabel(row: String, col: String)
   IntegerLiteral(n: Int)
-  CellReference(key: String)
   BooleanLiteral(val: Bool)
   UnaryOp(op: UnaryOpKind, expr: Expr)
   BinaryOp(lhs: Expr, op: BinaryOpKind, rhs: Expr)

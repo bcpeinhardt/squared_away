@@ -8,7 +8,6 @@ pub type TypedExpr {
   CrossLabel(type_: typ.Typ, key: String)
   LabelDef(type_: typ.Typ, txt: String)
   IntegerLiteral(type_: typ.Typ, n: Int)
-  CellReference(type_: typ.Typ, key: String)
   BooleanLiteral(type_: typ.Typ, b: Bool)
   UnaryOp(type_: typ.Typ, op: expr.UnaryOpKind, expr: TypedExpr)
   BinaryOp(

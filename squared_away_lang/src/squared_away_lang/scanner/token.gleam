@@ -41,9 +41,6 @@ pub type Token {
   LParen
   /// ) 
   RParen
-  /// Cell Reference A3, XX532
-  CellReference(key: String)
-  /// Anything not starting with an = in a cell is a string literal
   Label(String)
   LabelDef(txt: String)
   Underscore

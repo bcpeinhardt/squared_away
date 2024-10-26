@@ -226,7 +226,7 @@ fn error_view(e: error.CompileError) {
         type_error.TypeError(txt) -> html.div([], t(txt))
       }
     }
-    _ -> html.p([], t("Unimplemented view"))
+    _ -> html.p([], t(error.to_string(e)))
   }
 }
 

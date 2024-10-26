@@ -11,10 +11,13 @@ pub fn parse(
   use #(expr, rest) <- result.try(do_parse(tokens))
   case rest {
     [] -> Ok(expr)
-    _ ->
+    _ -> {
+      io.debug(expr)
+      io.debug(rest)
       Error(parse_error.ParseError(
         "After parsing there were leftover tokens " <> string.inspect(rest),
       ))
+    }
   }
 }
 

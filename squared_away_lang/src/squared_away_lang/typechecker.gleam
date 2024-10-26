@@ -63,11 +63,10 @@ pub fn typecheck(
             _ -> Continue(None)
           }
         })
-      let col =
+
+      let assert Ok(#(col, _)) =
         col_cell
-        |> string.to_graphemes
-        |> list.filter(string.contains("ABCDEFGHIJKLMNOPQRSTUVWXYZ", _))
-        |> string.join("")
+        |> string.split_once("_")
 
       let assert Some(row_cell) =
         env
@@ -81,12 +80,8 @@ pub fn typecheck(
           }
         })
 
-      let row =
-        row_cell
-        |> string.to_graphemes
-        |> list.filter(string.contains("0123456789", _))
-        |> string.join("")
-      let key = col <> row
+      let assert Ok(#(_, row)) = row_cell |> string.split_once("_")
+      let key = col <> "_" <> row
 
       let assert Ok(x) = dict.get(env, key)
       case x {

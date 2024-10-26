@@ -4,7 +4,7 @@ title: Parse Cross Reference
 file: ./test/squared_away_lang_test.gleam
 test_name: parse_cross_ref_test
 ---
-C2: 4
-A2: Ben
-B2: 4
-B1: Height
+1_2: Ben
+2_1: Height
+2_2: 4
+3_2: 4

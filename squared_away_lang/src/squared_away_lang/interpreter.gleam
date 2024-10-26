@@ -19,11 +19,14 @@ pub fn interpret(
     typed_expr.Empty(_) -> Ok(value.Empty)
     typed_expr.LabelDef(_, txt) -> Ok(value.Text(txt))
     typed_expr.Group(_, expr) -> interpret(env, expr)
-    typed_expr.CrossLabel(_, key) -> {
-      let assert Ok(expr) = dict.get(env, key)
-      case expr {
-        Error(e) -> Error(e)
-        Ok(expr) -> interpret(env, expr)
+    typed_expr.CrossLabel(x, key) -> {
+      case dict.get(env, key) {
+        Ok(expr) ->
+          case expr {
+            Error(e) -> Error(e)
+            Ok(expr) -> interpret(env, expr)
+          }
+        Error(_) -> Ok(value.Empty)
       }
     }
     typed_expr.Label(_, txt) -> {

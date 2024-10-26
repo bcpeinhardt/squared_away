@@ -1,0 +1,1 @@
+-record(template_missing, {name :: binary(), reason :: simplifile:file_error()}).

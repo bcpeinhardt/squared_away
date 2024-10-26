@@ -1,0 +1,1 @@
+-record(otp_too_old, {version :: integer()}).

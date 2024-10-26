@@ -1,0 +1,1 @@
+-record(variable, {id :: integer()}).

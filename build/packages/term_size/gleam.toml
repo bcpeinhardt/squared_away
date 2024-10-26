@@ -1,0 +1,11 @@
+name = "term_size"
+version = "1.0.1"
+description = "Retrieve the terminal's size in rows and columns on all targets"
+licences = ["Apache-2.0"]
+repository = { type = "github", user = "MystPi", repo = "term_size" }
+
+[dependencies]
+gleam_stdlib = ">= 0.34.0 and < 2.0.0"
+
+[dev-dependencies]
+gleeunit = ">= 1.0.0 and < 2.0.0"

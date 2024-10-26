@@ -1,0 +1,1 @@
+-record(tuple, {elements :: list(gleam@package_interface:type())}).

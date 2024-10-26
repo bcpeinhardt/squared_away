@@ -1,0 +1,10 @@
+** this is the overview.doc file for the Erlang formatter **
+
+@author Brujo <brujo.benavides@nextroll.com>
+@author Juan <juan.bono@nextroll.com>
+@author Diego <diego.calero@nextroll.com>
+@author Carlos <carlos.bolanos@nextroll.com>
+@copyright (c) 2019 NextRoll Inc.
+@title The Erlang Formatter
+@doc This project provides a rebar3 plugin to use the <code>rebar3 format</code> command.
+@reference See <a target="_blank" href="https://github.com/AdRoll/rebar3_format#rebar3_format">Our README</a> for more information.

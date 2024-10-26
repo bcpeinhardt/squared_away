@@ -1,0 +1,14 @@
+name = "repeatedly"
+version = "2.1.1"
+description = "Call a function repeatedly with a delay between each call"
+licences = ["Apache-2.0"]
+repository = { type = "github", user = "lpil", repo = "repeatedly" }
+links = [
+  { title = "Website", href = "https://gleam.run" },
+  { title = "Sponsor", href = "https://github.com/sponsors/lpil" },
+]
+
+[dependencies]
+
+[dev-dependencies]
+gleam_stdlib = "~> 0.34"

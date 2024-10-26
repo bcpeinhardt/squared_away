@@ -1,0 +1,19 @@
+#!/usr/bin/env escript
+%%! -pa _build/default/lib/rebar3_format/ebin _build/default/lib/katana_code/ebin
+
+%% @doc This escript formats the formatter using the formatter.
+%%      It's meant to be run as a post_hook for rebar3 compile.
+main([]) ->
+    case code:ensure_loaded(rebar3_formatter) of
+        {module, rebar3_formatter} ->
+            Files =
+                [File || Path <- ["*.config", "src/*.app.src", "src/*.erl", "src/formatters/*.erl", "test/*.erl"],
+                         File <- filelib:wildcard(Path)],
+            Opts = #{output_dir => current},
+            lists:foreach(
+                fun (File) ->
+                    rebar3_formatter:format_file(File, rebar3_formatter:new(default_formatter, Opts, undefined))
+                end, Files);
+        _ ->
+            ok
+    end.

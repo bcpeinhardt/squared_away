@@ -1,0 +1,8 @@
+{application, filepath, [
+    {vsn, "1.0.0"},
+    {applications, [gleam_stdlib,
+                    gleeunit]},
+    {description, "Work with file paths in Gleam!"},
+    {modules, [filepath]},
+    {registered, []}
+]}.

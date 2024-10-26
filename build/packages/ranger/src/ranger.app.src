@@ -1,0 +1,8 @@
+{application, ranger, [
+    {vsn, "1.2.0"},
+    {applications, [gleam_stdlib,
+                    gleeunit]},
+    {description, "create ranges over any type"},
+    {modules, [ranger]},
+    {registered, []}
+]}.

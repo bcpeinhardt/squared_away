@@ -1,0 +1,8 @@
+{application, snag, [
+    {vsn, "0.3.0"},
+    {applications, [gleam_stdlib,
+                    gleeunit]},
+    {description, "A boilerplate-free ad-hoc error type"},
+    {modules, [snag]},
+    {registered, []}
+]}.

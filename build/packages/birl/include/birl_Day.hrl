@@ -1,0 +1,1 @@
+-record(day, {year :: integer(), month :: integer(), date :: integer()}).

@@ -1,0 +1,13 @@
+name = "glearray"
+version = "0.2.2"
+
+description = "Immutable arrays for Gleam"
+licences = ["Apache-2.0"]
+repository = { type = "github", user = "lunagl", repo = "glearray" }
+links = []
+
+[dependencies]
+gleam_stdlib = "~> 0.37"
+
+[dev-dependencies]
+gleeunit = "~> 1.1"

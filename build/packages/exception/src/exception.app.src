@@ -1,0 +1,9 @@
+{application, exception, [
+    {vsn, "2.0.0"},
+    {applications, [gleam_stdlib,
+                    gleeunit,
+                    simplifile]},
+    {description, "A tiny package for dealing with exceptions"},
+    {modules, [exception]},
+    {registered, []}
+]}.

@@ -1,0 +1,11 @@
+{application,rebar3_ex_doc,
+             [{description,"rebar3 plugin for generating docs with ex_doc"},
+              {vsn,"0.2.23"},
+              {registered,[]},
+              {applications,[kernel,stdlib]},
+              {env,[]},
+              {modules,[]},
+              {licenses,["Apache-2.0"]},
+              {include_paths,["priv"]},
+              {links,[{"Github",
+                       "https://github.com/starbelly/rebar3_ex_doc"}]}]}.

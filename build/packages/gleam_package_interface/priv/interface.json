@@ -1,0 +1,168 @@
+{
+  "name": "gleam_package_interface",
+  "version": "1.0.0",
+  "gleam-version-constraint": null,
+  "modules": {
+    "my_module": {
+      "documentation": [],
+      "type-aliases": {
+        "Wobble": {
+          "documentation": " Documentation!",
+          "deprecation": { "message": "this is deprecated!" },
+          "parameters": 0,
+          "alias": {
+            "kind": "named",
+            "name": "Wibble",
+            "package": "gleam_package_interface",
+            "module": "my_module",
+            "parameters": [
+              {
+                "kind": "named",
+                "name": "Int",
+                "package": "",
+                "module": "gleam",
+                "parameters": []
+              }
+            ]
+          }
+        }
+      },
+      "types": {
+        "Wibble": {
+          "documentation": " Documentation!",
+          "deprecation": null,
+          "parameters": 1,
+          "constructors": [
+            {
+              "documentation": " Documentation!",
+              "name": "Wibble",
+              "parameters": [
+                { "label": "label", "type": { "kind": "variable", "id": 0 } }
+              ]
+            },
+            {
+              "documentation": " Documentation!",
+              "name": "Wobble",
+              "parameters": [
+                { "label": null, "type": { "kind": "variable", "id": 0 } }
+              ]
+            },
+            { "documentation": null, "name": "Wabble", "parameters": [] }
+          ]
+        }
+      },
+      "constants": {
+        "wabble": {
+          "documentation": null,
+          "deprecation": null,
+          "implementations": {
+            "gleam": true,
+            "uses-erlang-externals": false,
+            "uses-javascript-externals": false
+          },
+          "type": {
+            "kind": "fn",
+            "parameters": [
+              {
+                "kind": "named",
+                "name": "String",
+                "package": "",
+                "module": "gleam",
+                "parameters": []
+              }
+            ],
+            "return": {
+              "kind": "named",
+              "name": "Wibble",
+              "package": "gleam_package_interface",
+              "module": "my_module",
+              "parameters": [{ "kind": "variable", "id": 0 }]
+            }
+          }
+        },
+        "wibble": {
+          "documentation": " Documentation!",
+          "deprecation": null,
+          "implementations": {
+            "gleam": true,
+            "uses-erlang-externals": false,
+            "uses-javascript-externals": false
+          },
+          "type": {
+            "kind": "named",
+            "name": "Wibble",
+            "package": "gleam_package_interface",
+            "module": "my_module",
+            "parameters": [
+              {
+                "kind": "named",
+                "name": "Int",
+                "package": "",
+                "module": "gleam",
+                "parameters": []
+              }
+            ]
+          }
+        },
+        "wobble": {
+          "documentation": null,
+          "deprecation": null,
+          "implementations": {
+            "gleam": true,
+            "uses-erlang-externals": false,
+            "uses-javascript-externals": false
+          },
+          "type": {
+            "kind": "tuple",
+            "elements": [
+              {
+                "kind": "named",
+                "name": "Int",
+                "package": "",
+                "module": "gleam",
+                "parameters": []
+              },
+              {
+                "kind": "named",
+                "name": "Int",
+                "package": "",
+                "module": "gleam",
+                "parameters": []
+              }
+            ]
+          }
+        }
+      },
+      "functions": {
+        "main": {
+          "documentation": " Documentation!",
+          "deprecation": null,
+          "implementations": {
+            "gleam": true,
+            "uses-erlang-externals": false,
+            "uses-javascript-externals": false
+          },
+          "parameters": [
+            {
+              "label": "wibble",
+              "type": {
+                "kind": "named",
+                "name": "String",
+                "package": "",
+                "module": "gleam",
+                "parameters": []
+              }
+            }
+          ],
+          "return": {
+            "kind": "named",
+            "name": "Wibble",
+            "package": "gleam_package_interface",
+            "module": "my_module",
+            "parameters": [{ "kind": "variable", "id": 0 }]
+          }
+        }
+      }
+    }
+  }
+}

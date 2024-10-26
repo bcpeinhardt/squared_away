@@ -1,0 +1,7 @@
+{application,rebar3_hex,
+             [{description,"Hex.pm plugin for rebar3"},
+              {vsn,"7.0.8"},
+              {applications,[kernel,stdlib,hex_core]},
+              {maintainers,["Tristan Sloughter","Bryan Paxton"]},
+              {licenses,["Apache-2.0"]},
+              {links,[{"GitHub","https://github.com/erlef/rebar3_hex"}]}]}.

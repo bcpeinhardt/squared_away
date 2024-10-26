@@ -1,0 +1,12 @@
+{application, gleam_package_interface, [
+    {vsn, "1.1.0"},
+    {applications, [birdie,
+                    glam,
+                    gleam_json,
+                    gleam_stdlib,
+                    gleeunit,
+                    simplifile]},
+    {description, "Work with Gleam's package interfaces"},
+    {modules, [gleam@package_interface]},
+    {registered, []}
+]}.

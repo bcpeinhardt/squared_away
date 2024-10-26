@@ -1,0 +1,17 @@
+name = "gleam_package_interface"
+version = "1.1.0"
+
+description = "Work with Gleam's package interfaces"
+licences = ["Apache-2.0"]
+repository = { type = "github", user = "gleam-lang", repo = "package-interface-decoder" }
+links = [{ title = "Website", href = "https://gleam.run" }]
+
+[dependencies]
+gleam_stdlib = ">= 0.38.0 and < 1.0.0"
+gleam_json = ">= 1.0.0 and < 3.0.0"
+
+[dev-dependencies]
+gleeunit = ">= 1.0.0 and < 2.0.0"
+simplifile = ">= 1.4.0 and < 2.0.0"
+birdie = ">= 1.0.0 and < 2.0.0"
+glam = ">= 2.0.0 and < 3.0.0"

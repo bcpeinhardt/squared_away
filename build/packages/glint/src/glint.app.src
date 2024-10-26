@@ -1,0 +1,16 @@
+{application, glint, [
+    {vsn, "1.0.1"},
+    {applications, [argv,
+                    birdie,
+                    gleam_community_ansi,
+                    gleam_community_colour,
+                    gleam_stdlib,
+                    gleeunit,
+                    snag]},
+    {description, "Gleam command-line argument parsing with flags and automated help text generation."},
+    {modules, [glint,
+               glint@constraint,
+               glint@internal@help,
+               glint@internal@utils]},
+    {registered, []}
+]}.

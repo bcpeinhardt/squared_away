@@ -131,6 +131,14 @@ pub fn typecheck(
           Ok(typed_expr.BinaryOp(type_: typ.TFloat, lhs:, op:, rhs:))
         typ.TInt, expr.Add, typ.TInt ->
           Ok(typed_expr.BinaryOp(type_: typ.TInt, lhs:, op:, rhs:))
+        _, expr.Add, _ ->
+          Error(
+            error.TypeError(type_error.IncorrectTypesForBinaryOp(
+              lhs.type_,
+              rhs.type_,
+              op,
+            )),
+          )
 
         // Subtraction 
         typ.TFloat, expr.Subtract, typ.TFloat ->
@@ -176,24 +184,14 @@ pub fn typecheck(
         // Boolean Operations
         typ.TBool, expr.And, typ.TBool | typ.TBool, expr.Or, typ.TBool ->
           Ok(typed_expr.BinaryOp(type_: typ.TBool, lhs:, op:, rhs:))
-
-        // Boolean TypeErrors
-        typ.TBool, expr.And, t ->
-          case t {
-            typ.TNil ->
-              Error(
-                error.TypeError(type_error.TypeError(
-                  "Tried to do a boolean and operation \"&&\" but the right hand side of the operation has type \"Empty\". Could you be referencing an empty cell?",
-                )),
-              )
-            _ ->
-              Error(
-                error.TypeError(type_error.TypeError(
-                  "Tried to do a boolean and operation (b1 && b2) but the right hand side has type "
-                  <> string.inspect(t),
-                )),
-              )
-          }
+        _, expr.And, _ ->
+          Error(
+            error.TypeError(type_error.IncorrectTypesForBinaryOp(
+              lhs.type_,
+              rhs.type_,
+              op,
+            )),
+          )
 
         _, _, _ ->
           Error(

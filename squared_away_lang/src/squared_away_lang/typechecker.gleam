@@ -1,4 +1,5 @@
 import gleam/dict
+import gleam/io
 import gleam/list.{Continue, Stop}
 import gleam/option.{None, Some}
 import gleam/result
@@ -51,12 +52,12 @@ pub fn typecheck(
         }
       }
     }
-    expr.CrossLabel(row, col) -> {
-      let assert Some(col_cell) =
+    expr.CrossLabel(row:, col:) -> {
+      let col_cell =
         env
         |> dict.to_list
-        |> list.fold_until(None, fn(_, i) {
-          case i {
+        |> list.fold_until(None, fn(_, cell) {
+          case cell {
             #(cell_ref, Ok(expr.LabelDef(label_txt))) if label_txt == col -> {
               Stop(Some(cell_ref))
             }
@@ -64,32 +65,48 @@ pub fn typecheck(
           }
         })
 
-      let assert Ok(#(col, _)) =
-        col_cell
-        |> string.split_once("_")
+      case col_cell {
+        None ->
+          Error(
+            error.TypeError(type_error.TypeError("No label called: " <> col)),
+          )
+        Some(col_cell) -> {
+          let assert Ok(#(col, _)) =
+            col_cell
+            |> string.split_once("_")
 
-      let assert Some(row_cell) =
-        env
-        |> dict.to_list
-        |> list.fold_until(None, fn(_, i) {
-          case i {
-            #(cell_ref, Ok(expr.LabelDef(label_txt))) if label_txt == row -> {
-              Stop(Some(cell_ref))
+          let row_cell =
+            env
+            |> dict.to_list
+            |> list.fold_until(None, fn(_, i) {
+              case i {
+                #(cell_ref, Ok(expr.LabelDef(label_txt))) if label_txt == row -> {
+                  Stop(Some(cell_ref))
+                }
+                _ -> Continue(None)
+              }
+            })
+
+          case row_cell {
+            None ->
+              Error(
+                error.TypeError(type_error.TypeError("No label called: " <> row)),
+              )
+            Some(row_cell) -> {
+              let assert Ok(#(_, row)) = row_cell |> string.split_once("_")
+              let key = col <> "_" <> row
+
+              let assert Ok(x) = dict.get(env, key)
+              case x {
+                Error(e) -> Error(e)
+                Ok(expr) -> {
+                  case typecheck(env, expr) {
+                    Ok(te) -> Ok(typed_expr.CrossLabel(type_: te.type_, key:))
+                    Error(e) -> Error(e)
+                  }
+                }
+              }
             }
-            _ -> Continue(None)
-          }
-        })
-
-      let assert Ok(#(_, row)) = row_cell |> string.split_once("_")
-      let key = col <> "_" <> row
-
-      let assert Ok(x) = dict.get(env, key)
-      case x {
-        Error(e) -> Error(e)
-        Ok(expr) -> {
-          case typecheck(env, expr) {
-            Ok(te) -> Ok(typed_expr.CrossLabel(type_: te.type_, key:))
-            Error(e) -> Error(e)
           }
         }
       }

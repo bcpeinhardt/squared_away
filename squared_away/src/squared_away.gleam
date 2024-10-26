@@ -140,11 +140,20 @@ fn view(model: Model) -> element.Element(Msg) {
             model.active_cell == Some(key) || model.formula_mode
           let value =
             case show_formula {
-              True -> assert_get(model.src_grid, key)
+              True ->
+                case dict.get(model.src_grid, key) {
+                  Error(_) -> no_value_found_txt()
+                  Ok(src) -> src
+                }
               False ->
-                case assert_get(model.value_grid, key) {
-                  Error(e) -> error.error_type_string(e)
-                  Ok(v) -> value.value_to_string(v)
+                case dict.get(model.value_grid, key) {
+                  Error(_) -> no_value_found_txt()
+                  Ok(v) -> {
+                    case v {
+                      Error(e) -> error.error_type_string(e)
+                      Ok(v) -> value.value_to_string(v)
+                    }
+                  }
                 }
             }
             |> attribute.value
@@ -185,6 +194,10 @@ fn view(model: Model) -> element.Element(Msg) {
     error_to_display,
     grid,
   ])
+}
+
+fn no_value_found_txt() {
+  "No value found"
 }
 
 fn error_view(e: error.CompileError) {
@@ -228,13 +241,6 @@ fn error_view(e: error.CompileError) {
     }
     _ -> html.p([], t(error.to_string(e)))
   }
-}
-
-// We operate on a dict which we prefill with cell values on init,
-// so we know the dict has value's for key's we're fetching
-fn assert_get(d: dict.Dict(a, b), key: a) -> b {
-  let assert Ok(v) = dict.get(d, key)
-  v
 }
 
 fn t(input: String) {

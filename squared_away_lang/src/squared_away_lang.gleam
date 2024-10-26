@@ -1,4 +1,5 @@
 import gleam/dict
+import gleam/io
 import gleam/list
 import gleam/option.{None, Some}
 import gleam/result
@@ -38,7 +39,15 @@ pub fn typecheck_grid(
         None ->
           dict.insert(acc, key, Ok(typed_expr.Label(type_: typ.TNil, txt:)))
         Some(new_key) -> {
-          let assert Ok(val) = dict.get(input, new_key)
+          let val = case dict.get(input, new_key) {
+            Error(_) -> {
+              io.debug(
+                "Unexpected uninitialized cell encountered suring typechecking",
+              )
+              panic
+            }
+            Ok(v) -> v
+          }
           case val {
             Error(e) -> dict.insert(acc, key, Error(e))
             Ok(val) -> {

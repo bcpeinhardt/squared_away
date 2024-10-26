@@ -4,6 +4,6 @@ title: Basic Label Usage
 file: ./test/squared_away_lang_test.gleam
 test_name: basic_label_usage_test
 ---
-A1: X
-B1: 4
-B2: 4
+1_1: X
+2_1: 4
+2_2: 4

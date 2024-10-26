@@ -13,12 +13,12 @@ pub fn main() {
 }
 
 fn empty_grid() -> dict.Dict(String, String) {
-  let cols = "ABCDEF" |> string.to_graphemes
-  let rows = list.range(1, 6)
+  let cols = list.range(1, 5)
+  let rows = list.range(1, 5)
 
   list.fold(cols, dict.new(), fn(grid, c) {
     list.fold(rows, dict.new(), fn(partial_grid, r) {
-      let key = c <> int.to_string(r)
+      let key = int.to_string(c) <> "_" <> int.to_string(r)
       partial_grid |> dict.insert(key, "")
     })
     |> dict.merge(grid)
@@ -44,9 +44,9 @@ fn print_grid_values(
 pub fn basic_label_usage_test() {
   let grid =
     empty_grid()
-    |> dict.insert("A1", "X")
-    |> dict.insert("B1", "=4")
-    |> dict.insert("B2", "=X")
+    |> dict.insert("1_1", "X")
+    |> dict.insert("2_1", "=4")
+    |> dict.insert("2_2", "=X")
 
   let res = {
     let scanned = lang.scan_grid(grid)
@@ -55,17 +55,17 @@ pub fn basic_label_usage_test() {
     lang.interpret_grid(typechecked)
   }
 
-  print_grid_values(res, ["A1", "B1", "B2"])
+  print_grid_values(res, ["1_1", "2_1", "2_2"])
   |> birdie.snap(title: "Basic Label Usage")
 }
 
 pub fn parse_cross_ref_test() {
   let grid =
     empty_grid()
-    |> dict.insert("A2", "Ben")
-    |> dict.insert("B1", "Height")
-    |> dict.insert("B2", "=4")
-    |> dict.insert("C2", "=Ben_Height")
+    |> dict.insert("1_2", "Ben")
+    |> dict.insert("2_1", "Height")
+    |> dict.insert("2_2", "=4")
+    |> dict.insert("3_2", "=Ben_Height")
 
   let res = {
     let scanned = lang.scan_grid(grid)
@@ -74,6 +74,6 @@ pub fn parse_cross_ref_test() {
     lang.interpret_grid(typechecked)
   }
 
-  print_grid_values(res, ["A2", "B1", "B2", "C2"])
+  print_grid_values(res, ["1_2", "2_1", "2_2", "3_2"])
   |> birdie.snap(title: "Parse Cross Reference")
 }

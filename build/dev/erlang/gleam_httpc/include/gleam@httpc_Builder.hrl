@@ -1,1 +1,0 @@
--record(builder, {verify_tls :: boolean()}).

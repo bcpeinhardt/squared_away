@@ -1,1 +1,0 @@
--record(file, {path :: binary()}).

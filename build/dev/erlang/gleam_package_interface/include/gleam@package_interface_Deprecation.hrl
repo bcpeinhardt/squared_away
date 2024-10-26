@@ -1,1 +1,0 @@
--record(deprecation, {message :: binary()}).

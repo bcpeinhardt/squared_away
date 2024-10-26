@@ -1,1 +1,0 @@
--record(internal_error, {message :: binary()}).

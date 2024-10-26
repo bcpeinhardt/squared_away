@@ -1,1 +1,0 @@
--record(build_error, {reason :: binary()}).

@@ -1,1 +1,0 @@
--record(invalid_proxy_target, {to :: binary()}).

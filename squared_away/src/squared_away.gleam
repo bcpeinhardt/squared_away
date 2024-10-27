@@ -1,16 +1,13 @@
-import gleam/dict.{type Dict}
-import gleam/int
+import gleam/dict
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
-import gleam/string
 import lustre
 import lustre/attribute.{class}
 import lustre/effect
 import lustre/element
 import lustre/element/html
 import lustre/event
-import pprint
 import squared_away_lang as lang
 import squared_away_lang/error
 import squared_away_lang/grid
@@ -107,8 +104,6 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
 }
 
 fn view(model: Model) -> element.Element(Msg) {
-  let columns = list.range(1, grid_width) |> list.map(int.to_string)
-
   let error_to_display =
     list.find_map(model.errors_to_display, fn(e) {
       case Some(e.0) == model.active_cell {
@@ -174,13 +169,9 @@ fn view(model: Model) -> element.Element(Msg) {
   html.div([], [
     formula_mode_toggle,
     formula_mode_toggle_label,
-    error_to_display,
     grid,
+    error_to_display,
   ])
-}
-
-fn no_value_found_txt() {
-  "No value found"
 }
 
 fn error_view(e: error.CompileError) {

@@ -1,5 +1,3 @@
-import gleam/dict
-import gleam/io
 import gleam/list.{Continue, Stop}
 import gleam/option.{None, Some}
 import gleam/result

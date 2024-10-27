@@ -1,4 +1,3 @@
-import gleam/dict
 import gleam/float
 import gleam/int
 import gleam/list.{Continue, Stop}
@@ -19,7 +18,7 @@ pub fn interpret(
     typed_expr.Empty(_) -> Ok(value.Empty)
     typed_expr.LabelDef(_, txt) -> Ok(value.Text(txt))
     typed_expr.Group(_, expr) -> interpret(env, expr)
-    typed_expr.CrossLabel(x, key) -> {
+    typed_expr.CrossLabel(_, key) -> {
       case grid.get(env, key) {
         Ok(expr) -> interpret(env, expr)
         Error(_) -> Ok(value.Empty)

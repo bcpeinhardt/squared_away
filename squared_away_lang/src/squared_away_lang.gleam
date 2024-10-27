@@ -1,7 +1,4 @@
-import gleam/dict
-import gleam/io
 import gleam/list
-import gleam/option.{None, Some}
 import gleam/result
 import squared_away_lang/error
 import squared_away_lang/grid

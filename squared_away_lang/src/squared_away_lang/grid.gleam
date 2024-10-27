@@ -4,7 +4,6 @@
 
 import gleam/dict
 import gleam/list
-import gleam/option.{type Option, None, Some}
 
 // Making the type generic since we do a grid of src
 // and a grid of interpreted values

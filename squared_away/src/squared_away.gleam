@@ -13,6 +13,7 @@ import lustre/event
 import pprint
 import squared_away_lang as lang
 import squared_away_lang/error
+import squared_away_lang/grid
 import squared_away_lang/interpreter/value
 import squared_away_lang/typechecker/typ
 import squared_away_lang/typechecker/type_error
@@ -32,25 +33,16 @@ pub fn main() {
 type Model {
   Model(
     formula_mode: Bool,
-    active_cell: Option(String),
-    src_grid: Dict(String, String),
-    value_grid: Dict(String, Result(value.Value, error.CompileError)),
-    errors_to_display: List(#(String, error.CompileError)),
+    active_cell: Option(grid.GridKey),
+    src_grid: grid.Grid(String),
+    value_grid: grid.Grid(Result(value.Value, error.CompileError)),
+    errors_to_display: List(#(grid.GridKey, error.CompileError)),
   )
 }
 
 fn init(_flags) -> #(Model, effect.Effect(Msg)) {
-  let cols = list.range(1, grid_width)
-  let rows = list.range(1, grid_height)
-
-  let src_grid =
-    list.fold(cols, dict.new(), fn(grid, c) {
-      list.fold(rows, dict.new(), fn(partial_grid, r) {
-        let key = int.to_string(c) <> "_" <> int.to_string(r)
-        partial_grid |> dict.insert(key, "")
-      })
-      |> dict.merge(grid)
-    })
+  let src_grid = grid.new(grid_width, grid_height, "")
+  let value_grid = grid.new(grid_width, grid_height, Ok(value.Empty))
 
   // We could presume that our value_grid starts with all empty,
   // but instead I think we should scan, parse, typecheck, and 
@@ -61,7 +53,7 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
       formula_mode: False,
       active_cell: None,
       src_grid:,
-      value_grid: dict.new(),
+      value_grid:,
       errors_to_display: [],
     )
     |> update_grid
@@ -71,8 +63,8 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
 
 type Msg {
   UserToggledFormulaMode(to: Bool)
-  UserSetCellValue(key: String, val: String)
-  UserFocusedOnCell(key: String)
+  UserSetCellValue(key: grid.GridKey, val: String)
+  UserFocusedOnCell(key: grid.GridKey)
   UserFocusedOffCell
 }
 
@@ -84,7 +76,7 @@ fn update_grid(model: Model) -> Model {
 
   // Loop over the grid to see if there's any errors to display
   let errors_to_display =
-    dict.fold(value_grid, [], fn(acc, key, val) {
+    grid.fold(value_grid, [], fn(acc, key, val) {
       case val {
         Error(err) -> [#(key, err), ..acc]
         Ok(_) -> acc
@@ -98,7 +90,7 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
   case msg {
     UserSetCellValue(key, val) -> {
       let model =
-        Model(..model, src_grid: dict.insert(model.src_grid, key, val))
+        Model(..model, src_grid: grid.insert(model.src_grid, key, val))
       #(update_grid(model), effect.none())
     }
     UserToggledFormulaMode(formula_mode) -> #(
@@ -127,12 +119,11 @@ fn view(model: Model) -> element.Element(Msg) {
     |> result.unwrap(or: html.div([], []))
 
   let rows =
-    list.range(1, grid_height)
-    |> list.map(int.to_string)
-    |> list.map(fn(row) {
+    model.src_grid.cells
+    |> list.group(grid.row)
+    |> dict.map_values(fn(_, keys) {
       let cells =
-        list.map(columns, fn(col) {
-          let key = col <> "_" <> row
+        list.map(keys, fn(key) {
           let on_input = event.on_input(UserSetCellValue(key:, val: _))
           let out_of_focus = event.on_blur(UserFocusedOffCell)
           let on_focus = event.on_focus(UserFocusedOnCell(key))
@@ -140,20 +131,11 @@ fn view(model: Model) -> element.Element(Msg) {
             model.active_cell == Some(key) || model.formula_mode
           let value =
             case show_formula {
-              True ->
-                case dict.get(model.src_grid, key) {
-                  Error(_) -> no_value_found_txt()
-                  Ok(src) -> src
-                }
+              True -> grid.get(model.src_grid, key)
               False ->
-                case dict.get(model.value_grid, key) {
-                  Error(_) -> no_value_found_txt()
-                  Ok(v) -> {
-                    case v {
-                      Error(e) -> error.error_type_string(e)
-                      Ok(v) -> value.value_to_string(v)
-                    }
-                  }
+                case grid.get(model.value_grid, key) {
+                  Error(e) -> error.error_type_string(e)
+                  Ok(v) -> value.value_to_string(v)
                 }
             }
             |> attribute.value
@@ -172,6 +154,7 @@ fn view(model: Model) -> element.Element(Msg) {
 
       html.tr([], cells)
     })
+    |> dict.values
 
   let grid =
     html.div([class("table-container")], [

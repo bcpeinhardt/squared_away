@@ -5,14 +5,14 @@ import gleam/list.{Continue, Stop}
 import gleam/option.{None, Some}
 import gleam/result
 import squared_away_lang/error
+import squared_away_lang/grid
 import squared_away_lang/interpreter/runtime_error
 import squared_away_lang/interpreter/value
 import squared_away_lang/parser/expr
 import squared_away_lang/typechecker/typed_expr
-import squared_away_lang/util
 
 pub fn interpret(
-  env: dict.Dict(String, Result(typed_expr.TypedExpr, error.CompileError)),
+  env: grid.Grid(Result(typed_expr.TypedExpr, error.CompileError)),
   expr: typed_expr.TypedExpr,
 ) -> Result(value.Value, error.CompileError) {
   case expr {
@@ -20,19 +20,15 @@ pub fn interpret(
     typed_expr.LabelDef(_, txt) -> Ok(value.Text(txt))
     typed_expr.Group(_, expr) -> interpret(env, expr)
     typed_expr.CrossLabel(x, key) -> {
-      case dict.get(env, key) {
-        Ok(expr) ->
-          case expr {
-            Error(e) -> Error(e)
-            Ok(expr) -> interpret(env, expr)
-          }
+      case grid.get(env, key) {
+        Ok(expr) -> interpret(env, expr)
         Error(_) -> Ok(value.Empty)
       }
     }
     typed_expr.Label(_, txt) -> {
       let key =
         env
-        |> dict.to_list
+        |> grid.to_list
         |> list.fold_until(None, fn(_, i) {
           case i {
             #(cell_ref, Ok(typed_expr.LabelDef(_, label_txt)))
@@ -43,7 +39,8 @@ pub fn interpret(
             _ -> Continue(None)
           }
         })
-        |> option.map(util.cell_to_the_right)
+        |> option.map(grid.cell_to_the_right(env, _))
+        |> option.map(option.from_result)
         |> option.flatten
 
       case key {
@@ -54,15 +51,9 @@ pub fn interpret(
             )),
           )
         Some(key) -> {
-          case dict.get(env, key) {
-            Error(Nil) ->
-              Error(
-                error.RuntimeError(runtime_error.RuntimeError(
-                  "Label doesn't point to anything",
-                )),
-              )
-            Ok(Error(e)) -> Error(e)
-            Ok(Ok(te)) -> {
+          case grid.get(env, key) {
+            Error(e) -> Error(e)
+            Ok(te) -> {
               interpret(env, te)
             }
           }

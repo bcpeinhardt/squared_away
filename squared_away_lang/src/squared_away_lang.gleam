@@ -4,6 +4,7 @@ import gleam/list
 import gleam/option.{None, Some}
 import gleam/result
 import squared_away_lang/error
+import squared_away_lang/grid
 import squared_away_lang/interpreter
 import squared_away_lang/interpreter/value
 import squared_away_lang/parser
@@ -13,82 +14,62 @@ import squared_away_lang/scanner/token
 import squared_away_lang/typechecker
 import squared_away_lang/typechecker/typ
 import squared_away_lang/typechecker/typed_expr
-import squared_away_lang/util
 
 pub fn interpret_grid(
-  input: dict.Dict(String, Result(typed_expr.TypedExpr, error.CompileError)),
-) -> dict.Dict(String, Result(value.Value, error.CompileError)) {
-  use acc, key, typed_expr <- dict.fold(input, dict.new())
+  input: grid.Grid(Result(typed_expr.TypedExpr, error.CompileError)),
+) -> grid.Grid(Result(value.Value, error.CompileError)) {
+  use _, typed_expr <- grid.map_values(input)
   case typed_expr {
-    Error(e) -> dict.insert(acc, key, Error(e))
-    Ok(typed_expr) -> {
-      let maybe_value = interpreter.interpret(input, typed_expr)
-      dict.insert(acc, key, maybe_value)
-    }
+    Error(e) -> Error(e)
+    Ok(typed_expr) -> interpreter.interpret(input, typed_expr)
   }
 }
 
 pub fn typecheck_grid(
-  input: dict.Dict(String, Result(expr.Expr, error.CompileError)),
-) -> dict.Dict(String, Result(typed_expr.TypedExpr, error.CompileError)) {
-  use acc, key, expr <- dict.fold(input, dict.new())
+  input: grid.Grid(Result(expr.Expr, error.CompileError)),
+) -> grid.Grid(Result(typed_expr.TypedExpr, error.CompileError)) {
+  use key, expr <- grid.map_values(input)
   case expr {
-    Error(e) -> dict.insert(acc, key, Error(e))
+    Error(e) -> Error(e)
     Ok(expr.Label(txt)) -> {
-      case util.cell_to_the_right(key) {
-        None ->
-          dict.insert(acc, key, Ok(typed_expr.Label(type_: typ.TNil, txt:)))
-        Some(new_key) -> {
-          let val = case dict.get(input, new_key) {
-            Error(_) -> {
-              io.debug(
-                "Unexpected uninitialized cell encountered suring typechecking",
-              )
-              panic
-            }
-            Ok(v) -> v
-          }
+      case grid.cell_to_the_right(input, key) {
+        Error(Nil) -> Ok(typed_expr.Label(type_: typ.TNil, txt:))
+        Ok(new_key) -> {
+          let val = grid.get(input, new_key)
           case val {
-            Error(e) -> dict.insert(acc, key, Error(e))
+            Error(e) -> Error(e)
             Ok(val) -> {
               case typechecker.typecheck(input, val) {
-                Error(e) -> dict.insert(acc, key, Error(e))
+                Error(e) -> Error(e)
                 Ok(typed_val) ->
-                  dict.insert(
-                    acc,
-                    key,
-                    Ok(typed_expr.Label(type_: typed_val.type_, txt:)),
-                  )
+                  Ok(typed_expr.Label(type_: typed_val.type_, txt:))
               }
             }
           }
         }
       }
     }
-    Ok(expr) -> {
-      let maybe_typed_expr = typechecker.typecheck(input, expr)
-      dict.insert(acc, key, maybe_typed_expr)
-    }
+    Ok(expr) -> typechecker.typecheck(input, expr)
   }
 }
 
 pub fn parse_grid(
-  input: dict.Dict(String, Result(List(token.Token), error.CompileError)),
-) -> dict.Dict(String, Result(expr.Expr, error.CompileError)) {
-  use acc, key, toks <- dict.fold(input, dict.new())
+  input: grid.Grid(Result(List(token.Token), error.CompileError)),
+) -> grid.Grid(Result(expr.Expr, error.CompileError)) {
+  use _, toks <- grid.map_values(input)
   case toks {
-    Error(e) -> dict.insert(acc, key, Error(e))
+    Error(e) -> Error(e)
     Ok(toks) -> {
       let expr = parser.parse(toks)
-      dict.insert(acc, key, expr |> result.map_error(error.ParseError))
+      expr |> result.map_error(error.ParseError)
     }
   }
 }
 
 pub fn scan_grid(
-  input: dict.Dict(String, String),
-) -> dict.Dict(String, Result(List(token.Token), error.CompileError)) {
-  use acc, key, src <- dict.fold(input, dict.new())
+  input: grid.Grid(String),
+) -> grid.Grid(Result(List(token.Token), error.CompileError)) {
+  use _, src <- grid.map_values(input)
   let maybe_scanned =
     scanner.scan(src)
     |> result.map_error(error.ScanError)
@@ -98,5 +79,5 @@ pub fn scan_grid(
         _ -> t
       }
     }))
-  dict.insert(acc, key, maybe_scanned)
+  maybe_scanned
 }

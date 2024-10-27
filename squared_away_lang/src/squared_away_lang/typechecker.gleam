@@ -5,14 +5,14 @@ import gleam/option.{None, Some}
 import gleam/result
 import gleam/string
 import squared_away_lang/error
+import squared_away_lang/grid
 import squared_away_lang/parser/expr
 import squared_away_lang/typechecker/typ
 import squared_away_lang/typechecker/type_error
 import squared_away_lang/typechecker/typed_expr
-import squared_away_lang/util
 
 pub fn typecheck(
-  env: dict.Dict(String, Result(expr.Expr, error.CompileError)),
+  env: grid.Grid(Result(expr.Expr, error.CompileError)),
   expr: expr.Expr,
 ) -> Result(typed_expr.TypedExpr, error.CompileError) {
   case expr {
@@ -24,7 +24,7 @@ pub fn typecheck(
     expr.Label(txt) -> {
       let key =
         env
-        |> dict.to_list
+        |> grid.to_list
         |> list.fold_until(None, fn(_, i) {
           case i {
             #(cell_ref, Ok(expr.LabelDef(label_txt))) if label_txt == txt -> {
@@ -33,13 +33,14 @@ pub fn typecheck(
             _ -> Continue(None)
           }
         })
-        |> option.map(util.cell_to_the_right)
+        |> option.map(grid.cell_to_the_right(env, _))
+        |> option.map(option.from_result)
         |> option.flatten
 
       case key {
         None -> Ok(typed_expr.Label(typ.TNil, txt))
         Some(key) -> {
-          let assert Ok(x) = dict.get(env, key)
+          let x = grid.get(env, key)
           case x {
             Error(e) -> Error(e)
             Ok(expr) -> {
@@ -55,7 +56,7 @@ pub fn typecheck(
     expr.CrossLabel(row:, col:) -> {
       let col_cell =
         env
-        |> dict.to_list
+        |> grid.to_list
         |> list.fold_until(None, fn(_, cell) {
           case cell {
             #(cell_ref, Ok(expr.LabelDef(label_txt))) if label_txt == col -> {
@@ -71,13 +72,9 @@ pub fn typecheck(
             error.TypeError(type_error.TypeError("No label called: " <> col)),
           )
         Some(col_cell) -> {
-          let assert Ok(#(col, _)) =
-            col_cell
-            |> string.split_once("_")
-
           let row_cell =
             env
-            |> dict.to_list
+            |> grid.to_list
             |> list.fold_until(None, fn(_, i) {
               case i {
                 #(cell_ref, Ok(expr.LabelDef(label_txt))) if label_txt == row -> {
@@ -93,16 +90,25 @@ pub fn typecheck(
                 error.TypeError(type_error.TypeError("No label called: " <> row)),
               )
             Some(row_cell) -> {
-              let assert Ok(#(_, row)) = row_cell |> string.split_once("_")
-              let key = col <> "_" <> row
-
-              let assert Ok(x) = dict.get(env, key)
-              case x {
-                Error(e) -> Error(e)
-                Ok(expr) -> {
-                  case typecheck(env, expr) {
-                    Ok(te) -> Ok(typed_expr.CrossLabel(type_: te.type_, key:))
+              let new_key = grid.intersect(row_cell, col_cell)
+              case new_key {
+                Error(_) ->
+                  Error(
+                    error.TypeError(type_error.TypeError(
+                      "Labels " <> row <> " and " <> col <> " do not intersect",
+                    )),
+                  )
+                Ok(nk) -> {
+                  let x = grid.get(env, nk)
+                  case x {
                     Error(e) -> Error(e)
+                    Ok(expr) -> {
+                      case typecheck(env, expr) {
+                        Ok(te) ->
+                          Ok(typed_expr.CrossLabel(type_: te.type_, key: nk))
+                        Error(e) -> Error(e)
+                      }
+                    }
                   }
                 }
               }

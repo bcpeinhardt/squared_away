@@ -1,4 +1,5 @@
 import gleam/dict
+import gleam/int
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
@@ -15,9 +16,9 @@ import squared_away_lang/interpreter/value
 import squared_away_lang/typechecker/typ
 import squared_away_lang/typechecker/type_error
 
-const grid_width = 5
+const initial_grid_width = 5
 
-const grid_height = 5
+const initial_grid_height = 5
 
 pub fn main() {
   let app = lustre.application(init, update, view)
@@ -29,6 +30,8 @@ pub fn main() {
 /// To start, our model will be a 5x5 grid of Strings
 type Model {
   Model(
+    grid_width: Int,
+    grid_height: Int,
     formula_mode: Bool,
     active_cell: Option(grid.GridKey),
     src_grid: grid.Grid(String),
@@ -38,15 +41,14 @@ type Model {
 }
 
 fn init(_flags) -> #(Model, effect.Effect(Msg)) {
-  let src_grid = grid.new(grid_width, grid_height, "")
-  let value_grid = grid.new(grid_width, grid_height, Ok(value.Empty))
-
-  // We could presume that our value_grid starts with all empty,
-  // but instead I think we should scan, parse, typecheck, and 
-  // interpret the grid on init, as later we'll pass in saved files
+  let src_grid = grid.new(initial_grid_width, initial_grid_height, "")
+  let value_grid =
+    grid.new(initial_grid_width, initial_grid_height, Ok(value.Empty))
 
   let model =
     Model(
+      grid_width: initial_grid_width,
+      grid_height: initial_grid_height,
       formula_mode: False,
       active_cell: None,
       src_grid:,
@@ -59,10 +61,12 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
 }
 
 type Msg {
+  Noop
   UserToggledFormulaMode(to: Bool)
   UserSetCellValue(key: grid.GridKey, val: String)
   UserFocusedOnCell(key: grid.GridKey)
   UserFocusedOffCell
+  UserResizedGrid(new_width: Int, new_height: Int)
 }
 
 fn update_grid(model: Model) -> Model {
@@ -85,6 +89,7 @@ fn update_grid(model: Model) -> Model {
 
 fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
   case msg {
+    Noop -> #(model, effect.none())
     UserSetCellValue(key, val) -> {
       let model =
         Model(..model, src_grid: grid.insert(model.src_grid, key, val))
@@ -100,6 +105,23 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
     UserFocusedOffCell -> {
       #(Model(..model, active_cell: None), effect.none())
     }
+    UserResizedGrid(new_width, new_height) -> {
+      #(
+        Model(
+          ..model,
+          grid_width: new_width,
+          grid_height: new_height,
+          src_grid: grid.resize(model.src_grid, new_width, new_height, ""),
+          value_grid: grid.resize(
+            model.value_grid,
+            new_width,
+            new_height,
+            Ok(value.Empty),
+          ),
+        ),
+        effect.none(),
+      )
+    }
   }
 }
 
@@ -112,6 +134,30 @@ fn view(model: Model) -> element.Element(Msg) {
       }
     })
     |> result.unwrap(or: html.div([], []))
+
+  let resize_menu =
+    html.div([], [
+      html.label([], t("Width")),
+      html.input([
+        event.on_input(fn(txt) {
+          case int.parse(txt) {
+            Error(_) -> Noop
+            Ok(n) -> UserResizedGrid(n, model.grid_height)
+          }
+        }),
+        attribute.value(model.grid_width |> int.to_string),
+      ]),
+      html.label([], t("Height")),
+      html.input([
+        event.on_input(fn(txt) {
+          case int.parse(txt) {
+            Error(_) -> Noop
+            Ok(n) -> UserResizedGrid(model.grid_width, n)
+          }
+        }),
+        attribute.value(model.grid_height |> int.to_string),
+      ]),
+    ])
 
   let rows =
     model.src_grid.cells
@@ -169,6 +215,7 @@ fn view(model: Model) -> element.Element(Msg) {
   html.div([], [
     formula_mode_toggle,
     formula_mode_toggle_label,
+    resize_menu,
     grid,
     error_to_display,
   ])

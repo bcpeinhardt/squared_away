@@ -4,6 +4,7 @@
 
 import gleam/dict
 import gleam/list
+import gleam/result
 
 // Making the type generic since we do a grid of src
 // and a grid of interpreted values
@@ -80,4 +81,27 @@ pub fn intersect(row_cell: GridKey, col_cell: GridKey) -> Result(GridKey, Nil) {
 
 pub fn to_list(grid: Grid(a)) -> List(#(GridKey, a)) {
   dict.to_list(grid.inner)
+}
+
+pub fn resize(old_grid: Grid(a), width: Int, height: Int, default: a) -> Grid(a) {
+  let cols = list.range(1, width)
+  let rows = list.range(1, height)
+
+  let #(g, c) =
+    list.fold(rows, #(dict.new(), []), fn(acc, row) {
+      let #(grid, cells) = acc
+
+      let #(g, c) =
+        list.fold(cols, #(dict.new(), []), fn(acc, col) {
+          let #(g, c) = acc
+          let key = GridKey(row:, col:)
+          let val = dict.get(old_grid.inner, key) |> result.unwrap(or: default)
+
+          #(dict.insert(g, key, val), [key, ..c])
+        })
+
+      #(dict.merge(grid, g), list.concat([c, cells]))
+    })
+
+  Grid(g, c)
 }

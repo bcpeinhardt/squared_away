@@ -11,7 +11,7 @@ pub fn scan(src: String) -> Result(List(token.Token), scan_error.ScanError) {
   case string.trim(src) {
     "" -> Ok([])
     "=" <> rest -> do_scan(rest |> string.trim_left, [])
-    _ -> Ok([token.LabelDef(src)])
+    _ -> Ok([token.LabelDef(src |> string.trim)])
   }
 }
 

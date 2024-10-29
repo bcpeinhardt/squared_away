@@ -1,3 +1,4 @@
+import renderable_error
 import gleam/dict
 import gleam/int
 import gleam/list
@@ -130,7 +131,7 @@ fn view(model: Model) -> element.Element(Msg) {
     list.find_map(model.errors_to_display, fn(e) {
       case Some(e.0) == model.active_cell {
         False -> Error(Nil)
-        True -> Ok(error_view(e.1))
+        True -> Ok(error_view(e.1 |> error.to_renderable_error))
       }
     })
     |> result.unwrap(or: html.div([], []))
@@ -221,47 +222,15 @@ fn view(model: Model) -> element.Element(Msg) {
   ])
 }
 
-fn error_view(e: error.CompileError) {
-  case e {
-    error.TypeError(te) -> {
-      case te {
-        type_error.IncorrectTypesForBinaryOp(lhs, rhs, bo) ->
-          html.div([], [
-            html.h4(
-              [],
-              t(
-                "Type Error: Incorrect types for binary operation "
-                <> type_error.describe_binary_op_kind_for_err(bo),
-              ),
-            ),
-            html.p(
-              [],
-              t(
-                "The `&&` operator is specifically for booleans values (TRUE/FALSE). ",
-              ),
-            ),
-            html.p(
-              [],
-              t(
-                "You provided a "
-                <> typ.to_string(lhs)
-                <> " on the left and a "
-                <> typ.to_string(rhs)
-                <> " on the right",
-              ),
-            ),
-            html.p(
-              [],
-              t(
-                "Hint: If you're trying to verify both values have been provided, use the global `notempty` function like so: notempty(myvar) && notempty(myothervar).",
-              ),
-            ),
-          ])
-        type_error.TypeError(txt) -> html.div([], t(txt))
-      }
+fn error_view(re: renderable_error.RenderableError) {
+  html.div([], [
+    html.h4([], t(re.title)),
+    html.p([], t(re.info)),
+    .. case re.hint {
+      None -> []
+      Some(hint) -> [html.p([], t(hint))]
     }
-    _ -> html.p([], t(error.to_string(e)))
-  }
+  ])
 }
 
 fn t(input: String) {

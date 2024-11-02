@@ -16,8 +16,6 @@ import squared_away_lang as lang
 import squared_away_lang/error
 import squared_away_lang/grid
 import squared_away_lang/interpreter/value
-import squared_away_lang/typechecker/typ
-import squared_away_lang/typechecker/type_error
 
 const initial_grid_width = 5
 
@@ -36,9 +34,11 @@ fn focus(id: String) -> Nil
 /// To start, our model will be a 5x5 grid of Strings
 type Model {
   Model(
+    holding_shift: Bool,
     grid_width: Int,
     grid_height: Int,
     display_mode: DisplayMode,
+    display_coords: Bool,
     active_cell: Option(grid.GridKey),
     src_grid: grid.Grid(String),
     value_grid: grid.Grid(Result(value.Value, error.CompileError)),
@@ -49,7 +49,6 @@ type Model {
 type DisplayMode {
   DisplayValues
   DisplayFormulas
-  DisplayGridCoords
 }
 
 fn init(_flags) -> #(Model, effect.Effect(Msg)) {
@@ -59,9 +58,11 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
 
   let model =
     Model(
+      holding_shift: False,
       grid_width: initial_grid_width,
       grid_height: initial_grid_height,
       display_mode: DisplayValues,
+      display_coords: False,
       active_cell: None,
       src_grid:,
       value_grid:,
@@ -75,10 +76,12 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
 type Msg {
   Noop
   UserToggledDisplayMode(to: DisplayMode)
+  UserToggledDisplayCoords(to: Bool)
   UserSetCellValue(key: grid.GridKey, val: String)
   UserFocusedOnCell(key: grid.GridKey)
   UserFocusedOffCell
   UserHitKeyInCell(key: grid.GridKey, keyboard_key: String)
+  UserReleasedKeyInCell(keyboard_key: String)
 }
 
 fn update_grid(model: Model) -> Model {
@@ -110,6 +113,9 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
     UserToggledDisplayMode(display_mode) -> {
       #(Model(..model, display_mode:), effect.none())
     }
+    UserToggledDisplayCoords(display_coords) -> {
+      #(Model(..model, display_coords:), effect.none())
+    }
     UserFocusedOnCell(key) -> {
       #(Model(..model, active_cell: Some(key)), effect.none())
     }
@@ -117,19 +123,65 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
       #(Model(..model, active_cell: None), effect.none())
     }
     UserHitKeyInCell(key, keyboard_key) -> {
-      case keyboard_key {
-        "Enter" -> {
-          let new_active_cell = grid.cell_underneath(model.src_grid, key)
-          case new_active_cell {
-            Error(_) -> #(Model(..model, active_cell: None), effect.none())
-            Ok(new) -> {
-              focus(grid.to_string(new))
-              #(Model(..model, active_cell: Some(new)), effect.none())
+      case keyboard_key, model.holding_shift {
+        "Shift", False -> #(Model(..model, holding_shift: True), effect.none())
+        "ArrowUp", _ ->
+          set_active_cell_to(model, grid.cell_above(model.src_grid, key))
+        "ArrowLeft", _ ->
+          set_active_cell_to(model, grid.cell_to_the_left(model.src_grid, key))
+        "Enter", _ | "ArrowDown", False ->
+          set_active_cell_to(model, grid.cell_underneath(model.src_grid, key))
+        "ArrowRight", False ->
+          set_active_cell_to(model, grid.cell_to_the_right(model.src_grid, key))
+        "ArrowRight", True -> {
+          let formula = grid.get(model.src_grid, key)
+          let maybe_cell_to_right = grid.cell_to_the_right(model.src_grid, key)
+          case maybe_cell_to_right {
+            Error(Nil) -> #(model, effect.none())
+            Ok(cell_to_right) -> {
+              let src_grid = grid.insert(model.src_grid, cell_to_right, formula)
+              let id = grid.to_string(cell_to_right)
+              focus(id)
+              let new_model =
+                Model(..model, src_grid:, active_cell: Some(cell_to_right))
+              #(update_grid(new_model), effect.none())
             }
           }
         }
+        "ArrowDown", True -> {
+          let formula = grid.get(model.src_grid, key)
+          let maybe_cell_below = grid.cell_underneath(model.src_grid, key)
+          case maybe_cell_below {
+            Error(Nil) -> #(model, effect.none())
+            Ok(cell_below) -> {
+              let src_grid = grid.insert(model.src_grid, cell_below, formula)
+              let id = grid.to_string(cell_below)
+              focus(id)
+              let new_model =
+                Model(..model, src_grid:, active_cell: Some(cell_below))
+              #(update_grid(new_model), effect.none())
+            }
+          }
+        }
+        _, _ -> #(model, effect.none())
+      }
+    }
+    UserReleasedKeyInCell(keyboard_key) -> {
+      case keyboard_key {
+        "Shift" -> #(Model(..model, holding_shift: False), effect.none())
         _ -> #(model, effect.none())
       }
+    }
+  }
+}
+
+fn set_active_cell_to(model, key: Result(grid.GridKey, Nil)) {
+  case key {
+    Error(_) -> #(model, effect.none())
+    Ok(key) -> {
+      let id = grid.to_string(key)
+      focus(id)
+      #(Model(..model, active_cell: Some(key)), effect.none())
     }
   }
 }
@@ -150,44 +202,52 @@ fn view(model: Model) -> element.Element(Msg) {
     |> dict.map_values(fn(_, keys) {
       let cells =
         list.map(keys, fn(key) {
-          let on_enter = event.on_keydown(UserHitKeyInCell(key, _))
+          let on_keydown = event.on_keydown(UserHitKeyInCell(key, _))
+          let on_keyup = event.on_keyup(UserReleasedKeyInCell)
           let on_input = event.on_input(UserSetCellValue(key:, val: _))
           let out_of_focus = event.on_blur(UserFocusedOffCell)
           let on_focus = event.on_focus(UserFocusedOnCell(key))
           let id = attribute.id(grid.to_string(key))
-          let value = case model.display_mode {
-            DisplayFormulas -> grid.get(model.src_grid, key)
-            DisplayGridCoords -> string.inspect(key)
-            DisplayValues -> case model.active_cell == Some(key) {
-              False -> case grid.get(model.value_grid, key) {
+          let value =
+            case model.display_mode, model.active_cell == Some(key) {
+              DisplayFormulas, _ | DisplayValues, True ->
+                grid.get(model.src_grid, key)
+              DisplayValues, _ ->
+                case grid.get(model.value_grid, key) {
                   Error(e) -> error.error_type_string(e)
                   Ok(v) -> value.value_to_string(v)
                 }
-              True -> grid.get(model.src_grid, key)
             }
-          } |> attribute.value
+            |> attribute.value
 
-          let styles = case
-            list.find(model.errors_to_display, fn(i) { i.0 == key })
-          {
-            Error(Nil) -> []
-            Ok(_) -> [attribute.style([#("background-color", "red")])]
+          let cell_is_errored =
+            list.any(model.errors_to_display, fn(i) { i.0 == key })
+          let error_class = case cell_is_errored {
+            False -> attribute.none()
+            True -> attribute.class("errorcell")
           }
 
-          let input = html.input([
-                on_input,
-                on_focus,
-                out_of_focus,
-                value,
-                on_enter,
-                id
-              ])
+          let input =
+            html.input([
+              on_input,
+              on_focus,
+              out_of_focus,
+              value,
+              on_keydown,
+              on_keyup,
+              id,
+              attribute.type_("text"),
+              error_class,
+            ])
 
-          html.td(styles, {
-            [
-              input
-            ]
-          })
+          case model.display_coords {
+            False -> html.td([], [input])
+            True ->
+              html.td([], [
+                html.label([], t(grid.to_string(key) <> ": ")),
+                input,
+              ])
+          }
         })
 
       html.tr([], cells)
@@ -214,10 +274,9 @@ fn view(model: Model) -> element.Element(Msg) {
 
   let grid_mode_toggle =
     html.input([
-      attribute.type_("radio"),
-      attribute.name("display_mode"),
+      attribute.type_("checkbox"),
       attribute.id("grid_mode"),
-      event.on_check(fn(_) { UserToggledDisplayMode(DisplayGridCoords) }),
+      event.on_check(UserToggledDisplayCoords),
     ])
 
   let grid_mode_toggle_label =

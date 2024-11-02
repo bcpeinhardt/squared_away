@@ -2,10 +2,9 @@
 //// boilerplate around results for get operations, so I'm gonna try and extract
 //// them to a module
 
-import gleam/int
 import gleam/dict
+import gleam/int
 import gleam/list
-import gleam/result
 
 // Making the type generic since we do a grid of src
 // and a grid of interpreted values
@@ -18,8 +17,8 @@ pub opaque type GridKey {
 }
 
 pub fn to_string(key: GridKey) -> String {
-  let GridKey(row, col) = key 
-  int.to_string(row) <> "_" <> int.to_string(col)
+  let GridKey(row, col) = key
+  "(" <> int.to_string(row) <> "," <> int.to_string(col) <> ")"
 }
 
 pub fn row(grid_key: GridKey) -> Int {
@@ -78,6 +77,14 @@ pub fn cell_to_the_right(grid: Grid(a), key: GridKey) -> Result(GridKey, Nil) {
 
 pub fn cell_underneath(grid: Grid(a), key: GridKey) -> Result(GridKey, Nil) {
   list.find(grid.cells, fn(k) { k.row == key.row + 1 && k.col == key.col })
+}
+
+pub fn cell_above(grid: Grid(a), key: GridKey) -> Result(GridKey, Nil) {
+  list.find(grid.cells, fn(k) { k.row + 1 == key.row && k.col == key.col })
+}
+
+pub fn cell_to_the_left(grid: Grid(a), key: GridKey) -> Result(GridKey, Nil) {
+  list.find(grid.cells, fn(k) { k.row == key.row && k.col + 1 == key.col })
 }
 
 pub fn intersect(row_cell: GridKey, col_cell: GridKey) -> Result(GridKey, Nil) {

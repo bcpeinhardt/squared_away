@@ -1,7 +1,7 @@
+import gleam/option.{None}
 import renderable_error
 import squared_away_lang/parser/expr
 import squared_away_lang/typechecker/typ
-import gleam/option.{None}
 
 pub type TypeError {
   TypeError(context: String)
@@ -14,11 +14,23 @@ pub type TypeError {
 
 pub fn to_renderable_error(te: TypeError) -> renderable_error.RenderableError {
   case te {
-    IncorrectTypesForBinaryOp(lhs, rhs, op) -> renderable_error.RenderableError(
-      title: "Unexpected arguments to binary operation `&&`", 
-      info: "Expected booleans. Got " <> typ.to_string(lhs) <> " on the left and " <> typ.to_string(rhs) <> " on the right", 
-      hint: None)
-    TypeError(_) -> renderable_error.RenderableError(title: "Type Error", info: "Todo: Fill in this error", hint: None)
+    IncorrectTypesForBinaryOp(lhs, rhs, op) ->
+      renderable_error.RenderableError(
+        title: "Unexpected arguments to binary operation "
+          <> describe_binary_op_kind_for_err(op),
+        info: "Expected booleans. Got "
+          <> typ.to_string(lhs)
+          <> " on the left and "
+          <> typ.to_string(rhs)
+          <> " on the right",
+        hint: None,
+      )
+    TypeError(_) ->
+      renderable_error.RenderableError(
+        title: "Type Error",
+        info: "Todo: Fill in this error",
+        hint: None,
+      )
   }
 }
 

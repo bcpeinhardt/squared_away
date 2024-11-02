@@ -11,3 +11,7 @@ review:
 
 dev:
 	cd squared_away && gleam run -m lustre/dev start
+
+clean:
+	cd squared_away && gleam clean 
+	cd squared_away_lang && gleam clean

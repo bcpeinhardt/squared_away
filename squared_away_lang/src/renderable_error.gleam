@@ -6,9 +6,5 @@ import gleam/option.{type Option}
 /// me as just one person. 
 /// It will hopefully also help to keep error's looking consistent in the UI.
 pub type RenderableError {
-  RenderableError(
-    title: String,
-    info: String,
-    hint: Option(String)
-  )
+  RenderableError(title: String, info: String, hint: Option(String))
 }

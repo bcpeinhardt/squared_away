@@ -2,6 +2,7 @@
 //// boilerplate around results for get operations, so I'm gonna try and extract
 //// them to a module
 
+import gleam/int
 import gleam/dict
 import gleam/list
 import gleam/result
@@ -14,6 +15,11 @@ pub type Grid(a) {
 
 pub opaque type GridKey {
   GridKey(row: Int, col: Int)
+}
+
+pub fn to_string(key: GridKey) -> String {
+  let GridKey(row, col) = key 
+  int.to_string(row) <> "_" <> int.to_string(col)
 }
 
 pub fn row(grid_key: GridKey) -> Int {
@@ -70,6 +76,10 @@ pub fn cell_to_the_right(grid: Grid(a), key: GridKey) -> Result(GridKey, Nil) {
   list.find(grid.cells, fn(k) { k.row == key.row && k.col == key.col + 1 })
 }
 
+pub fn cell_underneath(grid: Grid(a), key: GridKey) -> Result(GridKey, Nil) {
+  list.find(grid.cells, fn(k) { k.row == key.row + 1 && k.col == key.col })
+}
+
 pub fn intersect(row_cell: GridKey, col_cell: GridKey) -> Result(GridKey, Nil) {
   let GridKey(row, col_check) = row_cell
   let GridKey(row_check, col) = col_cell
@@ -81,27 +91,4 @@ pub fn intersect(row_cell: GridKey, col_cell: GridKey) -> Result(GridKey, Nil) {
 
 pub fn to_list(grid: Grid(a)) -> List(#(GridKey, a)) {
   dict.to_list(grid.inner)
-}
-
-pub fn resize(old_grid: Grid(a), width: Int, height: Int, default: a) -> Grid(a) {
-  let cols = list.range(1, width)
-  let rows = list.range(1, height)
-
-  let #(g, c) =
-    list.fold(rows, #(dict.new(), []), fn(acc, row) {
-      let #(grid, cells) = acc
-
-      let #(g, c) =
-        list.fold(cols, #(dict.new(), []), fn(acc, col) {
-          let #(g, c) = acc
-          let key = GridKey(row:, col:)
-          let val = dict.get(old_grid.inner, key) |> result.unwrap(or: default)
-
-          #(dict.insert(g, key, val), [key, ..c])
-        })
-
-      #(dict.merge(grid, g), list.concat([c, cells]))
-    })
-
-  Grid(g, c)
 }

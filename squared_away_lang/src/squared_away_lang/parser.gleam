@@ -1,3 +1,4 @@
+import gleam/bool
 import gleam/io
 import gleam/result
 import gleam/string
@@ -102,54 +103,132 @@ fn try_parse_binary_ops(
   case tokens {
     [token.Plus, ..rest] -> {
       use #(rhs, rest) <- result.try(do_parse(rest))
+      use <- bool.guard(
+        rhs == expr.Empty,
+        Error(parse_error.ParseError(
+          "No item on right hand side of binary operation.",
+        )),
+      )
       Ok(#(expr.BinaryOp(_, expr.Add, rhs), rest))
     }
     [token.Minus, ..rest] -> {
       use #(rhs, rest) <- result.try(do_parse(rest))
+      use <- bool.guard(
+        rhs == expr.Empty,
+        Error(parse_error.ParseError(
+          "No item on right hand side of binary operation.",
+        )),
+      )
       Ok(#(expr.BinaryOp(_, expr.Subtract, rhs), rest))
     }
     [token.Star, ..rest] -> {
       use #(rhs, rest) <- result.try(do_parse(rest))
+      use <- bool.guard(
+        rhs == expr.Empty,
+        Error(parse_error.ParseError(
+          "No item on right hand side of binary operation.",
+        )),
+      )
       Ok(#(expr.BinaryOp(_, expr.Multiply, rhs), rest))
     }
     [token.Div, ..rest] -> {
       use #(rhs, rest) <- result.try(do_parse(rest))
+      use <- bool.guard(
+        rhs == expr.Empty,
+        Error(parse_error.ParseError(
+          "No item on right hand side of binary operation.",
+        )),
+      )
       Ok(#(expr.BinaryOp(_, expr.Divide, rhs), rest))
     }
     [token.StarStar, ..rest] -> {
       use #(rhs, rest) <- result.try(do_parse(rest))
+      use <- bool.guard(
+        rhs == expr.Empty,
+        Error(parse_error.ParseError(
+          "No item on right hand side of binary operation.",
+        )),
+      )
       Ok(#(expr.BinaryOp(_, expr.Power, rhs), rest))
     }
     [token.BangEqual, ..rest] -> {
       use #(rhs, rest) <- result.try(do_parse(rest))
+      use <- bool.guard(
+        rhs == expr.Empty,
+        Error(parse_error.ParseError(
+          "No item on right hand side of binary operation.",
+        )),
+      )
       Ok(#(expr.BinaryOp(_, expr.NotEqualCheck, rhs), rest))
     }
     [token.EqualEqual, ..rest] -> {
       use #(rhs, rest) <- result.try(do_parse(rest))
+      use <- bool.guard(
+        rhs == expr.Empty,
+        Error(parse_error.ParseError(
+          "No item on right hand side of binary operation.",
+        )),
+      )
       Ok(#(expr.BinaryOp(_, expr.EqualCheck, rhs), rest))
     }
     [token.LessEqual, ..rest] -> {
       use #(rhs, rest) <- result.try(do_parse(rest))
+      use <- bool.guard(
+        rhs == expr.Empty,
+        Error(parse_error.ParseError(
+          "No item on right hand side of binary operation.",
+        )),
+      )
       Ok(#(expr.BinaryOp(_, expr.LessThanOrEqualCheck, rhs), rest))
     }
     [token.Less, ..rest] -> {
       use #(rhs, rest) <- result.try(do_parse(rest))
+      use <- bool.guard(
+        rhs == expr.Empty,
+        Error(parse_error.ParseError(
+          "No item on right hand side of binary operation.",
+        )),
+      )
       Ok(#(expr.BinaryOp(_, expr.LessThanCheck, rhs), rest))
     }
     [token.GreaterEqual, ..rest] -> {
       use #(rhs, rest) <- result.try(do_parse(rest))
+      use <- bool.guard(
+        rhs == expr.Empty,
+        Error(parse_error.ParseError(
+          "No item on right hand side of binary operation.",
+        )),
+      )
       Ok(#(expr.BinaryOp(_, expr.GreaterThanOrEqualCheck, rhs), rest))
     }
     [token.Greater, ..rest] -> {
       use #(rhs, rest) <- result.try(do_parse(rest))
+      use <- bool.guard(
+        rhs == expr.Empty,
+        Error(parse_error.ParseError(
+          "No item on right hand side of binary operation.",
+        )),
+      )
       Ok(#(expr.BinaryOp(_, expr.GreaterThanCheck, rhs), rest))
     }
     [token.And, ..rest] -> {
       use #(rhs, rest) <- result.try(do_parse(rest))
+      use <- bool.guard(
+        rhs == expr.Empty,
+        Error(parse_error.ParseError(
+          "No item on right hand side of binary operation.",
+        )),
+      )
       Ok(#(expr.BinaryOp(_, expr.And, rhs), rest))
     }
     [token.Or, ..rest] -> {
       use #(rhs, rest) <- result.try(do_parse(rest))
+      use <- bool.guard(
+        rhs == expr.Empty,
+        Error(parse_error.ParseError(
+          "No item on right hand side of binary operation.",
+        )),
+      )
       Ok(#(expr.BinaryOp(_, expr.Or, rhs), rest))
     }
     _ -> Error(parse_error.ParseError("Not a binary operation"))

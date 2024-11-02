@@ -1,9 +1,9 @@
+import gleam/option.{None}
 import renderable_error
 import squared_away_lang/interpreter/runtime_error
 import squared_away_lang/parser/parse_error
 import squared_away_lang/scanner/scan_error
 import squared_away_lang/typechecker/type_error
-import gleam/option.{None}
 
 pub type CompileError {
   ScanError(scan_error.ScanError)
@@ -15,7 +15,14 @@ pub type CompileError {
 pub fn to_renderable_error(ce: CompileError) -> renderable_error.RenderableError {
   case ce {
     TypeError(te) -> type_error.to_renderable_error(te)
-    _ -> renderable_error.RenderableError(title: "Compiler error", info: "Todo: implement this error description", hint: None)
+    ParseError(pe) ->
+      renderable_error.RenderableError(title: "", info: pe.context, hint: None)
+    _ ->
+      renderable_error.RenderableError(
+        title: "Compiler error",
+        info: "Todo: implement this error description",
+        hint: None,
+      )
   }
 }
 

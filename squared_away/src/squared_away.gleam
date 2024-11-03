@@ -187,11 +187,46 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
           }
         }
         "ArrowDown", True -> {
-          let formula = grid.get(model.src_grid, key)
           let maybe_cell_below = grid.cell_underneath(model.src_grid, key)
           case maybe_cell_below {
             Error(Nil) -> #(model, effect.none())
             Ok(cell_below) -> {
+
+              let scanned = lang.scan_grid(model.src_grid)
+              let parsed = lang.parse_grid(scanned)
+              let typechecked = lang.typecheck_grid(parsed)
+              let maybe_expr = grid.get(typechecked, key)
+
+              // if it doesn't typecheck, don't copy it over
+              use <- bool.guard(maybe_expr |> result.is_error, #(
+                model,
+                effect.none(),
+              ))
+              let assert Ok(expr) = maybe_expr
+
+              let expr_with_labels_updated =
+                typed_expr.visit_cross_labels(
+                  expr,
+                  fn(key, row_label, col_label) {
+                    // For this case, we want to get the label directly below the row label
+                    let assert Ok(key_for_row) =
+                      grid.find(model.src_grid, row_label)
+                    let assert Ok(key_for_new_row) =
+                      grid.cell_underneath(model.src_grid, key_for_row)
+                    let new_label = grid.get(model.src_grid, key_for_new_row)
+                    let assert Ok(new_key) =
+                      grid.cell_underneath(model.src_grid, key)
+                    typed_expr.CrossLabel(
+                      expr.type_,
+                      new_key,
+                      new_label,
+                      col_label,
+                    )
+                  },
+                )
+              let formula =
+                "=" <> typed_expr.to_string(expr_with_labels_updated)
+
               let src_grid = grid.insert(model.src_grid, cell_below, formula)
               let id = grid.to_string(cell_below)
               focus(id)

@@ -27,7 +27,32 @@ pub type BinaryOpKind {
   Or
 }
 
+pub fn binary_to_string(b: BinaryOpKind) -> String {
+  case b {
+    Add -> "+"
+    And -> "&&"
+    Divide -> "/"
+    EqualCheck -> "=="
+    GreaterThanCheck -> ">"
+    GreaterThanOrEqualCheck -> ">="
+    LessThanCheck -> "<"
+    LessThanOrEqualCheck -> "<="
+    Multiply -> "*"
+    NotEqualCheck -> "!="
+    Or -> "||"
+    Power -> "**"
+    Subtract -> "-"
+  }
+}
+
 pub type UnaryOpKind {
   Negate
   Not
+}
+
+pub fn unary_to_string(u: UnaryOpKind) -> String {
+  case u {
+    Negate -> "-"
+    Not -> "!"
+  }
 }

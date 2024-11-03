@@ -1,10 +1,9 @@
+import gleam/bool
 import gleam/dict
 import gleam/int
-import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
-import gleam/string
 import lustre
 import lustre/attribute.{class}
 import lustre/effect
@@ -16,6 +15,7 @@ import squared_away_lang as lang
 import squared_away_lang/error
 import squared_away_lang/grid
 import squared_away_lang/interpreter/value
+import squared_away_lang/typechecker/typed_expr
 
 const initial_grid_width = 5
 
@@ -134,11 +134,49 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
         "ArrowRight", False ->
           set_active_cell_to(model, grid.cell_to_the_right(model.src_grid, key))
         "ArrowRight", True -> {
-          let formula = grid.get(model.src_grid, key)
           let maybe_cell_to_right = grid.cell_to_the_right(model.src_grid, key)
           case maybe_cell_to_right {
             Error(Nil) -> #(model, effect.none())
             Ok(cell_to_right) -> {
+              // Alright, this might be a slightly complex operation
+              // If the current formula is a cross label, we want to 
+              // produce the equivalent cross label but updated to the new
+              // column value.
+
+              let scanned = lang.scan_grid(model.src_grid)
+              let parsed = lang.parse_grid(scanned)
+              let typechecked = lang.typecheck_grid(parsed)
+              let maybe_expr = grid.get(typechecked, key)
+
+              // if it doesn't typecheck, don't copy it over
+              use <- bool.guard(maybe_expr |> result.is_error, #(
+                model,
+                effect.none(),
+              ))
+              let assert Ok(expr) = maybe_expr
+
+              let expr_with_labels_updated =
+                typed_expr.visit_cross_labels(
+                  expr,
+                  fn(key, row_label, col_label) {
+                    // For this case, we want to get the label directly to the right of the col label
+                    let assert Ok(key_for_col) =
+                      grid.find(model.src_grid, col_label)
+                    let assert Ok(key_for_new_col) =
+                      grid.cell_to_the_right(model.src_grid, key_for_col)
+                    let new_label = grid.get(model.src_grid, key_for_new_col)
+                    let assert Ok(new_key) =
+                      grid.cell_to_the_right(model.src_grid, key)
+                    typed_expr.CrossLabel(
+                      expr.type_,
+                      new_key,
+                      row_label,
+                      new_label,
+                    )
+                  },
+                )
+              let formula =
+                "=" <> typed_expr.to_string(expr_with_labels_updated)
               let src_grid = grid.insert(model.src_grid, cell_to_right, formula)
               let id = grid.to_string(cell_to_right)
               focus(id)

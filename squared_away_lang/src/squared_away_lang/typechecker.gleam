@@ -103,7 +103,12 @@ pub fn typecheck(
                     Ok(expr) -> {
                       case typecheck(env, expr) {
                         Ok(te) ->
-                          Ok(typed_expr.CrossLabel(type_: te.type_, key: nk))
+                          Ok(typed_expr.CrossLabel(
+                            type_: te.type_,
+                            key: nk,
+                            row_label: row,
+                            col_label: col,
+                          ))
                         Error(e) -> Error(e)
                       }
                     }

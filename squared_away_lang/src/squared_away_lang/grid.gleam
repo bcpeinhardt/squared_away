@@ -56,6 +56,18 @@ pub fn insert(grid: Grid(a), key: GridKey, item: a) -> Grid(a) {
   Grid(..grid, inner: dict.insert(grid.inner, key, item))
 }
 
+pub fn find(grid: Grid(a), item: a) -> Result(GridKey, Nil) {
+  grid.inner
+  |> dict.to_list
+  |> list.find_map(fn(i) {
+    let #(k, i) = i
+    case i == item {
+      False -> Error(Nil)
+      True -> Ok(k)
+    }
+  })
+}
+
 pub fn fold(grid: Grid(a), acc: b, do: fn(b, GridKey, a) -> b) -> b {
   dict.fold(grid.inner, acc, do)
 }

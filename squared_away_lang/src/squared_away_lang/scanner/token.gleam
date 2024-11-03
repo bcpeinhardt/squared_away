@@ -41,7 +41,7 @@ pub type Token {
   LParen
   /// ) 
   RParen
-  Label(String)
+  Label(key: String)
   LabelDef(txt: String)
   Underscore
 }

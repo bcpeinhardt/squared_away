@@ -29,14 +29,25 @@ pub type TypedExpr {
 
 pub fn visit_cross_labels(
   te: TypedExpr,
-  f: fn(grid.GridKey, String, String) -> TypedExpr,
-) -> TypedExpr {
+  f: fn(grid.GridKey, String, String) -> Result(TypedExpr, Nil),
+) -> Result(TypedExpr, Nil) {
   case te {
     CrossLabel(_, key, row, col) -> f(key, row, col)
-    UnaryOp(t, o, expr) -> UnaryOp(t, o, expr: visit_cross_labels(expr, f))
-    BinaryOp(t, lhs, o, rhs) ->
-      BinaryOp(t, visit_cross_labels(lhs, f), o, visit_cross_labels(rhs, f))
-    _ -> te
+    UnaryOp(t, o, expr) -> {
+      case visit_cross_labels(expr, f) {
+        Error(_) -> Error(Nil)
+        Ok(modified_expr) -> Ok(UnaryOp(t, o, expr: modified_expr))
+      }
+    }
+    BinaryOp(t, lhs, o, rhs) -> {
+      case visit_cross_labels(lhs, f), visit_cross_labels(rhs, f) {
+        Ok(modified_lhs), Ok(modified_rhs) ->
+          Ok(BinaryOp(t, modified_lhs, o, modified_rhs))
+        _, _ -> Error(Nil)
+      }
+    }
+
+    _ -> Ok(te)
   }
 }
 

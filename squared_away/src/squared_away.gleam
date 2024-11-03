@@ -1,6 +1,7 @@
 import gleam/bool
 import gleam/dict
 import gleam/int
+import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
@@ -153,6 +154,7 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
                 model,
                 effect.none(),
               ))
+              // This assertion is safe because of the above bool.guard check
               let assert Ok(expr) = maybe_expr
 
               let expr_with_labels_updated =
@@ -160,29 +162,55 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
                   expr,
                   fn(key, row_label, col_label) {
                     // For this case, we want to get the label directly to the right of the col label
+
+                    // This assertion is safe because we know the label is present in the grid,
+                    // because we got it from a typechecked cross_label
                     let assert Ok(key_for_col) =
                       grid.find(model.src_grid, col_label)
-                    let assert Ok(key_for_new_col) =
-                      grid.cell_to_the_right(model.src_grid, key_for_col)
-                    let new_label = grid.get(model.src_grid, key_for_new_col)
+
+                    use key_for_new_col <- result.try(grid.cell_to_the_right(
+                      model.src_grid,
+                      key_for_col,
+                    ))
+
+                    let maybe_new_label = grid.get(typechecked, key_for_new_col)
+                    let get_new_label = fn(
+                      l: Result(typed_expr.TypedExpr, error.CompileError),
+                    ) {
+                      case l {
+                        Ok(typed_expr.LabelDef(_, txt)) -> Ok(txt)
+                        _ -> Error(Nil)
+                      }
+                    }
+                    use new_label <- result.try(get_new_label(maybe_new_label))
+
+                    // There was a cell to the right of the column label, so there 
+                    // must be a cell to the right of this one as well
                     let assert Ok(new_key) =
                       grid.cell_to_the_right(model.src_grid, key)
-                    typed_expr.CrossLabel(
+
+                    Ok(typed_expr.CrossLabel(
                       expr.type_,
                       new_key,
                       row_label,
                       new_label,
-                    )
+                    ))
                   },
                 )
-              let formula =
-                "=" <> typed_expr.to_string(expr_with_labels_updated)
-              let src_grid = grid.insert(model.src_grid, cell_to_right, formula)
-              let id = grid.to_string(cell_to_right)
-              focus(id)
-              let new_model =
-                Model(..model, src_grid:, active_cell: Some(cell_to_right))
-              #(update_grid(new_model), effect.none())
+
+              case expr_with_labels_updated {
+                Error(_) -> #(model, effect.none())
+                Ok(new_expr) -> {
+                  let formula = "=" <> typed_expr.to_string(new_expr)
+                  let src_grid =
+                    grid.insert(model.src_grid, cell_to_right, formula)
+                  let id = grid.to_string(cell_to_right)
+                  focus(id)
+                  let new_model =
+                    Model(..model, src_grid:, active_cell: Some(cell_to_right))
+                  #(update_grid(new_model), effect.none())
+                }
+              }
             }
           }
         }
@@ -191,7 +219,6 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
           case maybe_cell_below {
             Error(Nil) -> #(model, effect.none())
             Ok(cell_below) -> {
-
               let scanned = lang.scan_grid(model.src_grid)
               let parsed = lang.parse_grid(scanned)
               let typechecked = lang.typecheck_grid(parsed)
@@ -211,28 +238,50 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
                     // For this case, we want to get the label directly below the row label
                     let assert Ok(key_for_row) =
                       grid.find(model.src_grid, row_label)
-                    let assert Ok(key_for_new_row) =
-                      grid.cell_underneath(model.src_grid, key_for_row)
-                    let new_label = grid.get(model.src_grid, key_for_new_row)
+
+                    use key_for_new_row <- result.try(grid.cell_underneath(
+                      model.src_grid,
+                      key_for_row,
+                    ))
+
+                    let maybe_new_label = grid.get(typechecked, key_for_new_row)
+                    let get_new_label = fn(
+                      l: Result(typed_expr.TypedExpr, error.CompileError),
+                    ) {
+                      case l {
+                        Ok(typed_expr.LabelDef(_, txt)) -> Ok(txt)
+                        _ -> Error(Nil)
+                      }
+                    }
+                    use new_label <- result.try(get_new_label(maybe_new_label))
+
+                    // We know there's a cell underneath because there was a cell underneath the row label
                     let assert Ok(new_key) =
                       grid.cell_underneath(model.src_grid, key)
-                    typed_expr.CrossLabel(
+
+                    Ok(typed_expr.CrossLabel(
                       expr.type_,
                       new_key,
                       new_label,
                       col_label,
-                    )
+                    ))
                   },
                 )
-              let formula =
-                "=" <> typed_expr.to_string(expr_with_labels_updated)
 
-              let src_grid = grid.insert(model.src_grid, cell_below, formula)
-              let id = grid.to_string(cell_below)
-              focus(id)
-              let new_model =
-                Model(..model, src_grid:, active_cell: Some(cell_below))
-              #(update_grid(new_model), effect.none())
+              case expr_with_labels_updated {
+                Error(_) -> #(model, effect.none())
+                Ok(new_expr) -> {
+                  let formula = "=" <> typed_expr.to_string(new_expr)
+
+                  let src_grid =
+                    grid.insert(model.src_grid, cell_below, formula)
+                  let id = grid.to_string(cell_below)
+                  focus(id)
+                  let new_model =
+                    Model(..model, src_grid:, active_cell: Some(cell_below))
+                  #(update_grid(new_model), effect.none())
+                }
+              }
             }
           }
         }

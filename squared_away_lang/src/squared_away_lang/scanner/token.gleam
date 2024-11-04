@@ -1,3 +1,6 @@
+import gleam/option
+import squared_away_lang/grid
+
 pub type Token {
   /// +, addition op for integers
   Plus
@@ -44,5 +47,6 @@ pub type Token {
   Label(key: String)
   LabelDef(txt: String)
   Underscore
-  BuiltinSum
+  BuiltinSum(key: option.Option(grid.GridKey))
+  MustBe
 }

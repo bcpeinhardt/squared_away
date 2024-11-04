@@ -1,5 +1,4 @@
 import gleam/bool
-import gleam/option
 import gleam/result
 import gleam/string
 import squared_away_lang/parser/expr
@@ -25,13 +24,17 @@ fn do_parse(
 ) -> Result(#(expr.Expr, List(token.Token)), parse_error.ParseError) {
   case tokens {
     [] -> Ok(#(expr.Empty, []))
-    // We'll enrich with the grid key on the larger parsing loop
-    [token.BuiltinSum, ..rest] -> Ok(#(expr.BuiltinSum(option.None), rest))
     [token.LabelDef(str), ..rest] -> Ok(#(expr.LabelDef(str), rest))
     [token.Label(row), token.Underscore, token.Label(col), ..rest] -> {
       case try_parse_binary_ops(rest) {
         Ok(#(op, rest)) -> Ok(#(op(expr.CrossLabel(row, col)), rest))
         Error(_) -> Ok(#(expr.CrossLabel(row, col), rest))
+      }
+    }
+    [token.BuiltinSum(key), ..rest] -> {
+      case try_parse_binary_ops(rest) {
+        Ok(#(op, rest)) -> Ok(#(op(expr.BuiltinSum(key)), rest))
+        Error(_) -> Ok(#(expr.BuiltinSum(key), rest))
       }
     }
     [token.Label(str), ..rest] -> {
@@ -230,6 +233,16 @@ fn try_parse_binary_ops(
         )),
       )
       Ok(#(expr.BinaryOp(_, expr.Or, rhs), rest))
+    }
+    [token.MustBe, ..rest] -> {
+      use #(rhs, rest) <- result.try(do_parse(rest))
+      use <- bool.guard(
+        rhs == expr.Empty,
+        Error(parse_error.ParseError(
+          "No item on right hand side of binary operation.",
+        )),
+      )
+      Ok(#(expr.BinaryOp(_, expr.MustBe, rhs), rest))
     }
     _ -> Error(parse_error.ParseError("Not a binary operation"))
   }

@@ -56,5 +56,6 @@ pub fn describe_binary_op_kind_for_err(bo: expr.BinaryOpKind) -> String {
     expr.Or -> "Boolean Or `||`"
     expr.Power -> "To The Power Of `**`"
     expr.Subtract -> "Subtraction `-`"
+    expr.MustBe -> "MustBe `mustbe`"
   }
 }

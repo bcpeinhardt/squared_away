@@ -308,12 +308,17 @@ pub fn typecheck(
             )),
           )
 
-        lhs, binary_op, rhs ->
+        // A mustbe op will return the TestResult type, and must be called
+        // with the same type on either side of the op
+        lht, expr.MustBe, rht if rht == lht ->
+          Ok(typed_expr.BinaryOp(rht, lhs, expr.MustBe, rhs))
+
+        lht, binary_op, rht ->
           Error(
             error.TypeError(type_error.IncorrectTypesForBinaryOp(
-              lhs:,
-              rhs:,
-              binary_op:,
+              lht,
+              rht,
+              binary_op,
             )),
           )
       }

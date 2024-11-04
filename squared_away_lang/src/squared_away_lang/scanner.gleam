@@ -1,6 +1,7 @@
 import gleam/float
 import gleam/int
 import gleam/list
+import gleam/option
 import gleam/result
 import gleam/string
 
@@ -52,6 +53,7 @@ fn do_scan(
     "TRUE" <> rest -> do_scan(string.trim_left(rest), [token.TrueToken, ..acc])
     "FALSE" <> rest ->
       do_scan(string.trim_left(rest), [token.FalseToken, ..acc])
+    "mustbe" <> rest -> do_scan(string.trim_left(rest), [token.MustBe, ..acc])
     "&&" <> rest -> do_scan(string.trim_left(rest), [token.And, ..acc])
     "||" <> rest -> do_scan(string.trim_left(rest), [token.Or, ..acc])
     "**" <> rest -> do_scan(string.trim_left(rest), [token.StarStar, ..acc])
@@ -70,7 +72,8 @@ fn do_scan(
     "(" <> rest -> do_scan(string.trim_left(rest), [token.LParen, ..acc])
     ")" <> rest -> do_scan(string.trim_left(rest), [token.RParen, ..acc])
     "_" <> rest -> do_scan(string.trim_left(rest), [token.Underscore, ..acc])
-    "sum" <> rest -> do_scan(string.trim_left(rest), [token.BuiltinSum, ..acc])
+    "sum" <> rest ->
+      do_scan(string.trim_left(rest), [token.BuiltinSum(option.None), ..acc])
     _ -> {
       case parse_integer(src, "") {
         Ok(#(n, rest)) -> {

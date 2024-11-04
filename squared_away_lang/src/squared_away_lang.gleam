@@ -1,5 +1,3 @@
-import gleam/float
-import gleam/int
 import gleam/list
 import gleam/option
 import gleam/result
@@ -12,7 +10,6 @@ import squared_away_lang/parser/expr
 import squared_away_lang/scanner
 import squared_away_lang/scanner/token
 import squared_away_lang/typechecker
-import squared_away_lang/typechecker/typ
 import squared_away_lang/typechecker/typed_expr
 
 pub fn interpret_grid(
@@ -41,8 +38,17 @@ pub fn parse_grid(
   use key, toks <- grid.map_values(input)
   case toks {
     Error(e) -> Error(e)
-    Ok([token.BuiltinSum]) -> Ok(expr.BuiltinSum(option.Some(key)))
     Ok(toks) -> {
+      // I need to enrich the builtin sum with it's key before parsing
+      let toks =
+        toks
+        |> list.map(fn(t) {
+          case t {
+            token.BuiltinSum(option.None) -> token.BuiltinSum(option.Some(key))
+            _ -> t
+          }
+        })
+
       let expr = parser.parse(toks)
       expr |> result.map_error(error.ParseError)
     }

@@ -356,6 +356,8 @@ fn view(model: Model) -> element.Element(Msg) {
             Ok(v) ->
               case v {
                 value.Text(_) -> #("#4a4a4a", "#f2f2f2")
+                value.TestPass -> #("#006400", "#e6ffe6")
+                value.TestFail -> #("#b30000", "#ffe6e6")
                 _ -> #("black", "white")
               }
           }
@@ -446,14 +448,24 @@ fn view(model: Model) -> element.Element(Msg) {
 }
 
 fn error_view(re: renderable_error.RenderableError) {
-  html.div([], [
-    html.h4([], t(re.title)),
-    html.p([], t(re.info)),
-    ..case re.hint {
-      None -> []
-      Some(hint) -> [html.p([], t(hint))]
-    }
-  ])
+  html.div(
+    [
+      attribute.style([
+        #("background-color", "#ffe6e6"),
+        #("color", "#b30000"),
+        #("padding", "20px"),
+        #("border-radius", "20px"),
+      ]),
+    ],
+    [
+      html.h4([], t(re.title)),
+      html.p([], t(re.info)),
+      ..case re.hint {
+        None -> []
+        Some(hint) -> [html.p([], t(hint))]
+      }
+    ],
+  )
 }
 
 fn t(input: String) {

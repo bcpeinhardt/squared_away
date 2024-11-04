@@ -167,6 +167,13 @@ pub fn interpret(
         value.Boolean(a), expr.NotEqualCheck, value.Boolean(b) ->
           Ok(value.Boolean(a != b))
 
+        // MustBe
+        vlhs, expr.MustBe, vrhs ->
+          case vlhs == vrhs {
+            False -> Ok(value.TestFail)
+            True -> Ok(value.TestPass)
+          }
+
         lhs, op, rhs -> {
           let msg =
             "these should be the only options if the typechecker is working properly. "

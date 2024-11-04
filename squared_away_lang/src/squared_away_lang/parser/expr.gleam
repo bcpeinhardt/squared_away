@@ -29,6 +29,7 @@ pub type BinaryOpKind {
   GreaterThanOrEqualCheck
   And
   Or
+  MustBe
 }
 
 pub fn binary_to_string(b: BinaryOpKind) -> String {
@@ -46,6 +47,7 @@ pub fn binary_to_string(b: BinaryOpKind) -> String {
     Or -> "||"
     Power -> "**"
     Subtract -> "-"
+    MustBe -> "mustbe"
   }
 }
 

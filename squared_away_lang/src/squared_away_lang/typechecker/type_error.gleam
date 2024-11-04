@@ -18,19 +18,15 @@ pub fn to_renderable_error(te: TypeError) -> renderable_error.RenderableError {
       renderable_error.RenderableError(
         title: "Unexpected arguments to binary operation "
           <> describe_binary_op_kind_for_err(op),
-        info: "Expected booleans. Got "
+        info: "Got "
           <> typ.to_string(lhs)
           <> " on the left and "
           <> typ.to_string(rhs)
           <> " on the right",
         hint: None,
       )
-    TypeError(_) ->
-      renderable_error.RenderableError(
-        title: "Type Error",
-        info: "Todo: Fill in this error",
-        hint: None,
-      )
+    TypeError(t) ->
+      renderable_error.RenderableError(title: "Type Error", info: t, hint: None)
   }
 }
 

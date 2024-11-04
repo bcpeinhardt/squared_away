@@ -17,6 +17,8 @@ pub fn to_renderable_error(ce: CompileError) -> renderable_error.RenderableError
     TypeError(te) -> type_error.to_renderable_error(te)
     ParseError(pe) ->
       renderable_error.RenderableError(title: "", info: pe.context, hint: None)
+    RuntimeError(re) ->
+      renderable_error.RenderableError(title: "", info: re.context, hint: None)
     _ ->
       renderable_error.RenderableError(
         title: "Compiler error",

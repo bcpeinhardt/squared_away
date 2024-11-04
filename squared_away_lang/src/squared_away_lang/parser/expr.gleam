@@ -1,3 +1,6 @@
+import gleam/option
+import squared_away_lang/grid
+
 pub type Expr {
   Empty
   FloatLiteral(f: Float)
@@ -9,6 +12,7 @@ pub type Expr {
   UnaryOp(op: UnaryOpKind, expr: Expr)
   BinaryOp(lhs: Expr, op: BinaryOpKind, rhs: Expr)
   Group(inner: Expr)
+  BuiltinSum(key: option.Option(grid.GridKey))
 }
 
 pub type BinaryOpKind {

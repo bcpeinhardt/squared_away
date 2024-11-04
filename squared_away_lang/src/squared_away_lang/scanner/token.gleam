@@ -44,4 +44,5 @@ pub type Token {
   Label(key: String)
   LabelDef(txt: String)
   Underscore
+  BuiltinSum
 }

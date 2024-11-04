@@ -1,9 +1,9 @@
 pub type ScanError {
-  ScanError
+  ScanError(context: String)
 }
 
 pub fn to_string(se: ScanError) {
   case se {
-    ScanError -> "Scan Error"
+    ScanError(txt) -> "Scan Error: " <> txt
   }
 }

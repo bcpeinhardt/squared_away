@@ -25,6 +25,7 @@ pub type TypedExpr {
     rhs: TypedExpr,
   )
   Group(type_: typ.Typ, expr: TypedExpr)
+  BuiltinSum(type_: typ.Typ, keys: List(grid.GridKey))
 }
 
 pub fn visit_cross_labels(
@@ -69,5 +70,6 @@ pub fn to_string(te: TypedExpr) -> String {
     UnaryOp(_, op, te) -> expr.unary_to_string(op) <> to_string(te)
     BinaryOp(_, lhs, bop, rhs) ->
       to_string(lhs) <> expr.binary_to_string(bop) <> to_string(rhs)
+    BuiltinSum(_, _) -> "sum"
   }
 }

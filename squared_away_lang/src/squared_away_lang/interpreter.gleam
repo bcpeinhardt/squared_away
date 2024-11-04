@@ -1,5 +1,6 @@
 import gleam/float
 import gleam/int
+import gleam/io
 import gleam/list.{Continue, Stop}
 import gleam/option.{None, Some}
 import gleam/result
@@ -8,6 +9,7 @@ import squared_away_lang/grid
 import squared_away_lang/interpreter/runtime_error
 import squared_away_lang/interpreter/value
 import squared_away_lang/parser/expr
+import squared_away_lang/typechecker/typ
 import squared_away_lang/typechecker/typed_expr
 
 pub fn interpret(
@@ -25,6 +27,7 @@ pub fn interpret(
       }
     }
     typed_expr.Label(_, txt) -> {
+      io.debug(txt)
       let key =
         env
         |> grid.to_list
@@ -53,7 +56,16 @@ pub fn interpret(
           case grid.get(env, key) {
             Error(e) -> Error(e)
             Ok(te) -> {
-              interpret(env, te)
+              case te {
+                typed_expr.Label(_, ltxt) if ltxt == txt -> {
+                  Error(
+                    error.RuntimeError(runtime_error.RuntimeError(
+                      "Label points to itself",
+                    )),
+                  )
+                }
+                _ -> interpret(env, te)
+              }
             }
           }
         }
@@ -155,9 +167,53 @@ pub fn interpret(
         value.Boolean(a), expr.NotEqualCheck, value.Boolean(b) ->
           Ok(value.Boolean(a != b))
 
-        _, _, _ ->
-          panic as "these should be the only options if the typechecker is working properly"
+        lhs, op, rhs -> {
+          let msg =
+            "these should be the only options if the typechecker is working properly. "
+            <> value.value_to_string(lhs)
+            <> expr.binary_to_string(op)
+            <> value.value_to_string(rhs)
+          panic as msg
+        }
       }
+    }
+    // This will get interpreted in the parent grid-aware func to have access to keys.
+    typed_expr.BuiltinSum(type_:, keys:) -> {
+      // At this point, we've validated that the values to sum are either
+      // all ints or all floats, so we'll match on the type and sum them appropriately
+      let values =
+        grid.to_list(env)
+        |> list.filter_map(fn(i) {
+          let #(gk, item) = i
+          case list.contains(keys, gk) {
+            False -> Error(Nil)
+            True ->
+              case item {
+                Error(_) -> Error(Nil)
+                Ok(x) -> interpret(env, x) |> result.nil_error
+              }
+          }
+        })
+
+      let val = case type_ {
+        typ.TFloat ->
+          list.map(values, fn(v) {
+            let assert value.FloatingPointNumber(f) = v
+            f
+          })
+          |> float.sum
+          |> value.FloatingPointNumber
+        typ.TInt ->
+          list.map(values, fn(v) {
+            let assert value.Integer(i) = v
+            i
+          })
+          |> int.sum
+          |> value.Integer
+        _ -> panic as "internal compiler error sum function interpret"
+      }
+
+      Ok(val)
     }
   }
 }

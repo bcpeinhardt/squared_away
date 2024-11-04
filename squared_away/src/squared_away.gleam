@@ -18,9 +18,9 @@ import squared_away_lang/grid
 import squared_away_lang/interpreter/value
 import squared_away_lang/typechecker/typed_expr
 
-const initial_grid_width = 5
+const initial_grid_width = 7
 
-const initial_grid_height = 5
+const initial_grid_height = 20
 
 pub fn main() {
   let app = lustre.application(init, update, view)
@@ -86,7 +86,7 @@ type Msg {
 }
 
 fn update_grid(model: Model) -> Model {
-  let scanned = lang.scan_grid(model.src_grid)
+  let scanned = lang.scan_grid(model.src_grid) |> io.debug
   let parsed = lang.parse_grid(scanned)
   let typechecked = lang.typecheck_grid(parsed)
   let value_grid = lang.interpret_grid(typechecked)
@@ -336,7 +336,7 @@ fn view(model: Model) -> element.Element(Msg) {
                 grid.get(model.src_grid, key)
               DisplayValues, _ ->
                 case grid.get(model.value_grid, key) {
-                  Error(e) -> error.error_type_string(e)
+                  Error(_) -> grid.get(model.src_grid, key)
                   Ok(v) -> value.value_to_string(v)
                 }
             }
@@ -347,6 +347,17 @@ fn view(model: Model) -> element.Element(Msg) {
           let error_class = case cell_is_errored {
             False -> attribute.none()
             True -> attribute.class("errorcell")
+          }
+
+          let #(color, background_color) = case
+            grid.get(model.value_grid, key)
+          {
+            Error(_) -> #("#b30000", "#ffe6e6")
+            Ok(v) ->
+              case v {
+                value.Text(_) -> #("#4a4a4a", "#f2f2f2")
+                _ -> #("black", "white")
+              }
           }
 
           let input =
@@ -360,6 +371,10 @@ fn view(model: Model) -> element.Element(Msg) {
               id,
               attribute.type_("text"),
               error_class,
+              attribute.style([
+                #("background-color", background_color),
+                #("color", color),
+              ]),
             ])
 
           case model.display_coords {
@@ -422,7 +437,10 @@ fn view(model: Model) -> element.Element(Msg) {
     formula_mode_toggle_label,
     grid_mode_toggle,
     grid_mode_toggle_label,
+    html.br([]),
+    html.br([]),
     grid,
+    html.br([]),
     error_to_display,
   ])
 }

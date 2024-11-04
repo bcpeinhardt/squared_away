@@ -9,9 +9,37 @@ import squared_away_lang/scanner/token
 
 pub fn scan(src: String) -> Result(List(token.Token), scan_error.ScanError) {
   case string.trim(src) {
+    // No tokens will become an empty type
     "" -> Ok([])
+
+    // Boolean literal
+    "TRUE" -> Ok([token.TrueToken])
+    "FALSE" -> Ok([token.FalseToken])
+
+    // A formual starts with an = sign
     "=" <> rest -> do_scan(rest |> string.trim_left, [])
-    _ -> Ok([token.LabelDef(src |> string.trim)])
+    txt -> {
+      // We need to try and parse the text as a number literal
+      case float.parse(txt) {
+        Ok(f) -> Ok([token.FloatLiteral(f)])
+        Error(_) ->
+          case int.parse(txt) {
+            Ok(i) -> Ok([token.IntegerLiteral(i)])
+
+            // If it's not a Bool. Float, Or Int Literal, and it doesn't
+            // start with a = sign, it's a LabelDef
+            Error(_) -> {
+              case parse_identifier(txt, "") {
+                Ok(#(ident, "")) -> Ok([token.LabelDef(ident)])
+                _ ->
+                  Error(scan_error.ScanError(
+                    "Not a label definition, boolean, float, or integer. Are you possibly missing an `=` sign?",
+                  ))
+              }
+            }
+          }
+      }
+    }
   }
 }
 
@@ -42,6 +70,7 @@ fn do_scan(
     "(" <> rest -> do_scan(string.trim_left(rest), [token.LParen, ..acc])
     ")" <> rest -> do_scan(string.trim_left(rest), [token.RParen, ..acc])
     "_" <> rest -> do_scan(string.trim_left(rest), [token.Underscore, ..acc])
+    "sum" <> rest -> do_scan(string.trim_left(rest), [token.BuiltinSum, ..acc])
     _ -> {
       case parse_integer(src, "") {
         Ok(#(n, rest)) -> {
@@ -50,7 +79,9 @@ fn do_scan(
             "." <> rest -> {
               use #(m, rest) <- result.try(
                 parse_integer(rest, "")
-                |> result.replace_error(scan_error.ScanError),
+                |> result.replace_error(scan_error.ScanError(
+                  "Expected more digits after the decimal.",
+                )),
               )
               let assert Ok(f) =
                 float.parse(int.to_string(n) <> "." <> int.to_string(m))
@@ -63,7 +94,10 @@ fn do_scan(
 
         Error(_) -> {
           case parse_identifier(src, "") {
-            Error(Nil) -> Error(scan_error.ScanError)
+            Error(Nil) ->
+              Error(scan_error.ScanError(
+                "Could not understand provided txt: " <> src,
+              ))
             Ok(#(ident, rest)) ->
               do_scan(string.trim_left(rest), [token.Label(ident), ..acc])
           }

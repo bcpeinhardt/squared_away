@@ -1,5 +1,5 @@
 import gleam/bool
-import gleam/io
+import gleam/option
 import gleam/result
 import gleam/string
 import squared_away_lang/parser/expr
@@ -13,8 +13,6 @@ pub fn parse(
   case rest {
     [] -> Ok(expr)
     _ -> {
-      io.debug(expr)
-      io.debug(rest)
       Error(parse_error.ParseError(
         "After parsing there were leftover tokens " <> string.inspect(rest),
       ))
@@ -27,6 +25,8 @@ fn do_parse(
 ) -> Result(#(expr.Expr, List(token.Token)), parse_error.ParseError) {
   case tokens {
     [] -> Ok(#(expr.Empty, []))
+    // We'll enrich with the grid key on the larger parsing loop
+    [token.BuiltinSum, ..rest] -> Ok(#(expr.BuiltinSum(option.None), rest))
     [token.LabelDef(str), ..rest] -> Ok(#(expr.LabelDef(str), rest))
     [token.Label(row), token.Underscore, token.Label(col), ..rest] -> {
       case try_parse_binary_ops(rest) {

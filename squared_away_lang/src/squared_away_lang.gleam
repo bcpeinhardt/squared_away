@@ -1,4 +1,7 @@
+import gleam/float
+import gleam/int
 import gleam/list
+import gleam/option
 import gleam/result
 import squared_away_lang/error
 import squared_away_lang/grid
@@ -25,27 +28,9 @@ pub fn interpret_grid(
 pub fn typecheck_grid(
   input: grid.Grid(Result(expr.Expr, error.CompileError)),
 ) -> grid.Grid(Result(typed_expr.TypedExpr, error.CompileError)) {
-  use key, expr <- grid.map_values(input)
+  use _, expr <- grid.map_values(input)
   case expr {
     Error(e) -> Error(e)
-    Ok(expr.Label(txt)) -> {
-      case grid.cell_to_the_right(input, key) {
-        Error(Nil) -> Ok(typed_expr.Label(type_: typ.TNil, txt:))
-        Ok(new_key) -> {
-          let val = grid.get(input, new_key)
-          case val {
-            Error(e) -> Error(e)
-            Ok(val) -> {
-              case typechecker.typecheck(input, val) {
-                Error(e) -> Error(e)
-                Ok(typed_val) ->
-                  Ok(typed_expr.Label(type_: typed_val.type_, txt:))
-              }
-            }
-          }
-        }
-      }
-    }
     Ok(expr) -> typechecker.typecheck(input, expr)
   }
 }
@@ -53,9 +38,10 @@ pub fn typecheck_grid(
 pub fn parse_grid(
   input: grid.Grid(Result(List(token.Token), error.CompileError)),
 ) -> grid.Grid(Result(expr.Expr, error.CompileError)) {
-  use _, toks <- grid.map_values(input)
+  use key, toks <- grid.map_values(input)
   case toks {
     Error(e) -> Error(e)
+    Ok([token.BuiltinSum]) -> Ok(expr.BuiltinSum(option.Some(key)))
     Ok(toks) -> {
       let expr = parser.parse(toks)
       expr |> result.map_error(error.ParseError)
@@ -67,14 +53,6 @@ pub fn scan_grid(
   input: grid.Grid(String),
 ) -> grid.Grid(Result(List(token.Token), error.CompileError)) {
   use _, src <- grid.map_values(input)
-  let maybe_scanned =
-    scanner.scan(src)
-    |> result.map_error(error.ScanError)
-    |> result.map(list.map(_, fn(t) {
-      case t {
-        token.LabelDef(txt) -> token.LabelDef(txt)
-        _ -> t
-      }
-    }))
-  maybe_scanned
+  scanner.scan(src)
+  |> result.map_error(error.ScanError)
 }

@@ -1,7 +1,8 @@
+import gleam/bool
+import gleam/int
 import gleam/list.{Continue, Stop}
 import gleam/option.{None, Some}
 import gleam/result
-import gleam/string
 import squared_away_lang/error
 import squared_away_lang/grid
 import squared_away_lang/parser/expr
@@ -15,10 +16,98 @@ pub fn typecheck(
 ) -> Result(typed_expr.TypedExpr, error.CompileError) {
   case expr {
     expr.Empty -> Ok(typed_expr.Empty(type_: typ.TNil))
-    expr.LabelDef(txt) -> Ok(typed_expr.LabelDef(type_: typ.TNil, txt:))
+    expr.BuiltinSum(key) -> {
+      let assert option.Some(key) = key
 
-    // We will typecheck the label when we typecheck the grid as a whole. For now it's a 
-    // "Nil" type
+      // The sum builtin will sum up all the values above it until it finds a label, so we need to fetch those 
+      // values and sort them
+      let items_above_sum_call =
+        grid.to_list(env)
+        |> list.filter(fn(i) {
+          let #(gk, _) = i
+          grid.col(gk) == grid.col(key) && grid.row(gk) < grid.row(key)
+        })
+        |> list.sort(fn(i1, i2) {
+          let #(gk1, _) = i1
+          let #(gk2, _) = i2
+          int.compare(grid.row(gk1), grid.row(gk2))
+        })
+        |> list.reverse
+        |> list.take_while(fn(i) {
+          let #(_, item) = i
+          case item {
+            Ok(expr.LabelDef(_)) -> False
+            _ -> True
+          }
+        })
+
+      let keys = list.map(items_above_sum_call, fn(i) { i.0 })
+      let items_above_sum_call = list.map(items_above_sum_call, fn(i) { i.1 })
+
+      use <- bool.guard(
+        list.any(items_above_sum_call, result.is_error),
+        Error(
+          error.TypeError(type_error.TypeError(
+            "Cell above sum expression has error",
+          )),
+        ),
+      )
+      let types =
+        list.map(items_above_sum_call, fn(i) {
+          let assert Ok(item) = i
+          item
+        })
+        |> list.unique
+        |> list.map(fn(e) { typecheck(env, e) })
+
+      use <- bool.guard(
+        list.any(types, result.is_error),
+        Error(
+          error.TypeError(type_error.TypeError(
+            "Cell above sum expression has type error",
+          )),
+        ),
+      )
+      let types =
+        list.map(types, fn(t) {
+          let assert Ok(texpr) = t
+          texpr.type_
+        })
+        |> list.unique
+
+      case types {
+        [typ.TFloat] -> Ok(typed_expr.BuiltinSum(typ.TFloat, keys))
+        [typ.TInt] -> Ok(typed_expr.BuiltinSum(typ.TInt, keys))
+        _ ->
+          Error(
+            error.TypeError(type_error.TypeError(
+              "sum function used on cells of multiple types",
+            )),
+          )
+      }
+    }
+    expr.LabelDef(txt) -> {
+      // Duplicate label definitions should be a type error
+      let defs =
+        grid.fold(env, 0, fn(count, _, expr) {
+          case expr {
+            Ok(expr.LabelDef(t)) if txt == t -> count + 1
+            _ -> count
+          }
+        })
+
+      case defs {
+        1 -> Ok(typed_expr.LabelDef(typ.TNil, txt))
+        _ if defs > 1 ->
+          Error(error.TypeError(type_error.TypeError("Duplicate Label")))
+        _ ->
+          Error(
+            error.TypeError(type_error.TypeError(
+              "This is an internal compiler error.",
+            )),
+          )
+      }
+    }
     expr.Label(txt) -> {
       let key =
         env
@@ -41,6 +130,11 @@ pub fn typecheck(
           let x = grid.get(env, key)
           case x {
             Error(e) -> Error(e)
+            Ok(expr.Label(ltxt)) if ltxt == txt -> {
+              Error(
+                error.TypeError(type_error.TypeError("Label points to itself")),
+              )
+            }
             Ok(expr) -> {
               case typecheck(env, expr) {
                 Ok(te) -> Ok(typed_expr.Label(type_: te.type_, txt:))
@@ -214,10 +308,12 @@ pub fn typecheck(
             )),
           )
 
-        _, _, _ ->
+        lhs, binary_op, rhs ->
           Error(
-            error.TypeError(type_error.TypeError(
-              "Unexpected arguments to binary operation: " <> string.inspect(op),
+            error.TypeError(type_error.IncorrectTypesForBinaryOp(
+              lhs:,
+              rhs:,
+              binary_op:,
             )),
           )
       }

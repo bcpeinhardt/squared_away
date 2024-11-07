@@ -1,3 +1,4 @@
+import bigi
 import gleam/string
 import gleam/float
 import gleam/int
@@ -8,7 +9,7 @@ import squared_away/squared_away_lang/typechecker/typ
 pub type TypedExpr {
   Empty(type_: typ.Typ)
   FloatLiteral(type_: typ.Typ, f: Float)
-  UsdLiteral(type_: typ.Typ, cents: Int)
+  UsdLiteral(type_: typ.Typ, cents: bigi.BigInt)
   PercentLiteral(type_: typ.Typ, percent: Int)
   Label(type_: typ.Typ, txt: String)
   CrossLabel(
@@ -80,8 +81,8 @@ pub fn to_string(te: TypedExpr) -> String {
       <> to_string(rhs)
     BuiltinSum(_, _) -> "sum"
     UsdLiteral(_, cents) -> {
-      let dollars = int.to_string(cents / 100)
-      let cents = int.to_string(cents % 100)
+      let dollars = bigi.divide(cents, bigi.from_int(100)) |> bigi.to_string
+      let cents = bigi.modulo(cents, bigi.from_int(100)) |> bigi.to_string
       let cents = case string.length(cents) {
         1 -> cents <> "0"
         2 -> cents 

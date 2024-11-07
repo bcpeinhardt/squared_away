@@ -1,3 +1,4 @@
+import bigi
 import gleam/bool
 import gleam/float
 import gleam/int
@@ -8,7 +9,7 @@ pub type Value {
   Text(inner: String)
   Integer(n: Int)
   FloatingPointNumber(f: Float)
-  Usd(cents: Int)
+  Usd(cents: bigi.BigInt)
   Percent(percent: Int)
   Boolean(b: Bool)
   TestFail
@@ -26,8 +27,8 @@ pub fn value_to_string(fv: Value) -> String {
     TestFail -> "Test Failure"
     TestPass -> "Test Passing"
     Usd(cents) -> {
-      let dollars = int.to_string(cents / 100)
-      let cents = int.to_string(cents % 100)
+      let dollars = bigi.divide(cents, bigi.from_int(100)) |> bigi.to_string
+      let cents = bigi.modulo(cents, bigi.from_int(100)) |> bigi.to_string
       let cents = case string.length(cents) {
         1 -> cents <> "0"
         2 -> cents 

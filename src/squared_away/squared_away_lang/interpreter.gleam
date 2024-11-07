@@ -1,3 +1,4 @@
+import bigi
 import gleam/float
 import gleam/int
 import gleam/list.{Continue, Stop}
@@ -176,19 +177,19 @@ pub fn interpret(
 
         // Money Operations
         value.Usd(c1), expr.Add, value.Usd(c2) ->
-          Ok(value.Usd(c1 + c2))
+          Ok(value.Usd(bigi.add(c1, c2)))
         value.Usd(c1), expr.Subtract, value.Usd(c2) ->
-          Ok(value.Usd(c1 - c2))
+          Ok(value.Usd(bigi.subtract(c1, c2)))
         value.Usd(c), expr.Multiply, value.Integer(i) ->
-          Ok(value.Usd(c*i))
+          Ok(value.Usd(bigi.multiply(c, bigi.from_int(i))))
         value.Integer(i), expr.Multiply, value.Usd(c) ->
-          Ok(value.Usd(c*i))
+          Ok(value.Usd(bigi.multiply(c, bigi.from_int(i))))
         value.Usd(c), expr.Multiply, value.Percent(p) -> {
-          let cents = { c * p } / 100
+          let cents = bigi.multiply(c, bigi.from_int(p)) |> bigi.divide(bigi.from_int(100))
           Ok(value.Usd(cents))
         }
         value.Percent(p), expr.Multiply, value.Usd(c) -> {
-          let cents = { c * p } / 100
+          let cents = bigi.multiply(c, bigi.from_int(p)) |> bigi.divide(bigi.from_int(100))
           Ok(value.Usd(cents))
         }
 
@@ -242,7 +243,7 @@ pub fn interpret(
             let assert value.Usd(c) = v
             c
           })
-          |> int.sum
+          |> bigi.sum
           |> value.Usd
           |> Ok
         _ -> 

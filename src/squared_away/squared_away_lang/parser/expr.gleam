@@ -1,10 +1,11 @@
+import bigi
 import gleam/option
 import squared_away/squared_away_lang/grid
 
 pub type Expr {
   Empty
   FloatLiteral(f: Float)
-  UsdLiteral(cents: Int)
+  UsdLiteral(cents: bigi.BigInt)
   PercentLiteral(percent: Int)
   LabelDef(txt: String)
   Label(txt: String)

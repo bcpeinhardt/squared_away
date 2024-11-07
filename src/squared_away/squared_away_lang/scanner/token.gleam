@@ -1,3 +1,4 @@
+import bigi
 import gleam/option
 import squared_away/squared_away_lang/grid
 
@@ -33,7 +34,7 @@ pub type Token {
   /// 1.0, 6.87
   FloatLiteral(f: Float)
   // $34.20
-  UsdLiteral(cents: Int)
+  UsdLiteral(cents: bigi.BigInt)
   // 34%
   PercentLiteral(percent: Int)
   /// True

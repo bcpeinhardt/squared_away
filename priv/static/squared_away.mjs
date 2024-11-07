@@ -238,13 +238,6 @@ function structurallyCompatibleObjects(a, b) {
     return false;
   return a.constructor === b.constructor;
 }
-function remainderInt(a, b) {
-  if (b === 0) {
-    return 0;
-  } else {
-    return a % b;
-  }
-}
 function divideInt(a, b) {
   return Math.trunc(divideFloat(a, b));
 }
@@ -1463,8 +1456,8 @@ function sum2(numbers) {
 function new$() {
   return new_map();
 }
-function get(from2, get5) {
-  return map_get(from2, get5);
+function get(from3, get5) {
+  return map_get(from3, get5);
 }
 function insert(dict, key, value3) {
   return map_insert(key, value3, dict);
@@ -1928,7 +1921,7 @@ function unique(list) {
 function sequences(loop$list, loop$compare, loop$growing, loop$direction, loop$prev, loop$acc) {
   while (true) {
     let list = loop$list;
-    let compare4 = loop$compare;
+    let compare5 = loop$compare;
     let growing = loop$growing;
     let direction = loop$direction;
     let prev = loop$prev;
@@ -1943,24 +1936,24 @@ function sequences(loop$list, loop$compare, loop$growing, loop$direction, loop$p
     } else {
       let new$1 = list.head;
       let rest$1 = list.tail;
-      let $ = compare4(prev, new$1);
+      let $ = compare5(prev, new$1);
       if ($ instanceof Gt && direction instanceof Descending) {
         loop$list = rest$1;
-        loop$compare = compare4;
+        loop$compare = compare5;
         loop$growing = growing$1;
         loop$direction = direction;
         loop$prev = new$1;
         loop$acc = acc;
       } else if ($ instanceof Lt && direction instanceof Ascending) {
         loop$list = rest$1;
-        loop$compare = compare4;
+        loop$compare = compare5;
         loop$growing = growing$1;
         loop$direction = direction;
         loop$prev = new$1;
         loop$acc = acc;
       } else if ($ instanceof Eq && direction instanceof Ascending) {
         loop$list = rest$1;
-        loop$compare = compare4;
+        loop$compare = compare5;
         loop$growing = growing$1;
         loop$direction = direction;
         loop$prev = new$1;
@@ -1979,7 +1972,7 @@ function sequences(loop$list, loop$compare, loop$growing, loop$direction, loop$p
           let next = rest$1.head;
           let rest$2 = rest$1.tail;
           let direction$1 = (() => {
-            let $1 = compare4(new$1, next);
+            let $1 = compare5(new$1, next);
             if ($1 instanceof Lt) {
               return new Ascending();
             } else if ($1 instanceof Eq) {
@@ -1989,7 +1982,7 @@ function sequences(loop$list, loop$compare, loop$growing, loop$direction, loop$p
             }
           })();
           loop$list = rest$2;
-          loop$compare = compare4;
+          loop$compare = compare5;
           loop$growing = toList([new$1]);
           loop$direction = direction$1;
           loop$prev = next;
@@ -2009,7 +2002,7 @@ function sequences(loop$list, loop$compare, loop$growing, loop$direction, loop$p
           let next = rest$1.head;
           let rest$2 = rest$1.tail;
           let direction$1 = (() => {
-            let $1 = compare4(new$1, next);
+            let $1 = compare5(new$1, next);
             if ($1 instanceof Lt) {
               return new Ascending();
             } else if ($1 instanceof Eq) {
@@ -2019,7 +2012,7 @@ function sequences(loop$list, loop$compare, loop$growing, loop$direction, loop$p
             }
           })();
           loop$list = rest$2;
-          loop$compare = compare4;
+          loop$compare = compare5;
           loop$growing = toList([new$1]);
           loop$direction = direction$1;
           loop$prev = next;
@@ -2039,7 +2032,7 @@ function sequences(loop$list, loop$compare, loop$growing, loop$direction, loop$p
           let next = rest$1.head;
           let rest$2 = rest$1.tail;
           let direction$1 = (() => {
-            let $1 = compare4(new$1, next);
+            let $1 = compare5(new$1, next);
             if ($1 instanceof Lt) {
               return new Ascending();
             } else if ($1 instanceof Eq) {
@@ -2049,7 +2042,7 @@ function sequences(loop$list, loop$compare, loop$growing, loop$direction, loop$p
             }
           })();
           loop$list = rest$2;
-          loop$compare = compare4;
+          loop$compare = compare5;
           loop$growing = toList([new$1]);
           loop$direction = direction$1;
           loop$prev = next;
@@ -2063,7 +2056,7 @@ function merge_ascendings(loop$list1, loop$list2, loop$compare, loop$acc) {
   while (true) {
     let list1 = loop$list1;
     let list2 = loop$list2;
-    let compare4 = loop$compare;
+    let compare5 = loop$compare;
     let acc = loop$acc;
     if (list1.hasLength(0)) {
       let list = list2;
@@ -2076,21 +2069,21 @@ function merge_ascendings(loop$list1, loop$list2, loop$compare, loop$acc) {
       let rest1 = list1.tail;
       let first2 = list2.head;
       let rest2 = list2.tail;
-      let $ = compare4(first1, first2);
+      let $ = compare5(first1, first2);
       if ($ instanceof Lt) {
         loop$list1 = rest1;
         loop$list2 = list2;
-        loop$compare = compare4;
+        loop$compare = compare5;
         loop$acc = prepend(first1, acc);
       } else if ($ instanceof Gt) {
         loop$list1 = list1;
         loop$list2 = rest2;
-        loop$compare = compare4;
+        loop$compare = compare5;
         loop$acc = prepend(first2, acc);
       } else {
         loop$list1 = list1;
         loop$list2 = rest2;
-        loop$compare = compare4;
+        loop$compare = compare5;
         loop$acc = prepend(first2, acc);
       }
     }
@@ -2099,7 +2092,7 @@ function merge_ascendings(loop$list1, loop$list2, loop$compare, loop$acc) {
 function merge_ascending_pairs(loop$sequences, loop$compare, loop$acc) {
   while (true) {
     let sequences2 = loop$sequences;
-    let compare4 = loop$compare;
+    let compare5 = loop$compare;
     let acc = loop$acc;
     if (sequences2.hasLength(0)) {
       return do_reverse(acc, toList([]));
@@ -2116,11 +2109,11 @@ function merge_ascending_pairs(loop$sequences, loop$compare, loop$acc) {
       let descending = merge_ascendings(
         ascending1,
         ascending2,
-        compare4,
+        compare5,
         toList([])
       );
       loop$sequences = rest$1;
-      loop$compare = compare4;
+      loop$compare = compare5;
       loop$acc = prepend(descending, acc);
     }
   }
@@ -2129,7 +2122,7 @@ function merge_descendings(loop$list1, loop$list2, loop$compare, loop$acc) {
   while (true) {
     let list1 = loop$list1;
     let list2 = loop$list2;
-    let compare4 = loop$compare;
+    let compare5 = loop$compare;
     let acc = loop$acc;
     if (list1.hasLength(0)) {
       let list = list2;
@@ -2142,21 +2135,21 @@ function merge_descendings(loop$list1, loop$list2, loop$compare, loop$acc) {
       let rest1 = list1.tail;
       let first2 = list2.head;
       let rest2 = list2.tail;
-      let $ = compare4(first1, first2);
+      let $ = compare5(first1, first2);
       if ($ instanceof Lt) {
         loop$list1 = list1;
         loop$list2 = rest2;
-        loop$compare = compare4;
+        loop$compare = compare5;
         loop$acc = prepend(first2, acc);
       } else if ($ instanceof Gt) {
         loop$list1 = rest1;
         loop$list2 = list2;
-        loop$compare = compare4;
+        loop$compare = compare5;
         loop$acc = prepend(first1, acc);
       } else {
         loop$list1 = rest1;
         loop$list2 = list2;
-        loop$compare = compare4;
+        loop$compare = compare5;
         loop$acc = prepend(first1, acc);
       }
     }
@@ -2165,7 +2158,7 @@ function merge_descendings(loop$list1, loop$list2, loop$compare, loop$acc) {
 function merge_descending_pairs(loop$sequences, loop$compare, loop$acc) {
   while (true) {
     let sequences2 = loop$sequences;
-    let compare4 = loop$compare;
+    let compare5 = loop$compare;
     let acc = loop$acc;
     if (sequences2.hasLength(0)) {
       return do_reverse(acc, toList([]));
@@ -2182,11 +2175,11 @@ function merge_descending_pairs(loop$sequences, loop$compare, loop$acc) {
       let ascending = merge_descendings(
         descending1,
         descending2,
-        compare4,
+        compare5,
         toList([])
       );
       loop$sequences = rest$1;
-      loop$compare = compare4;
+      loop$compare = compare5;
       loop$acc = prepend(ascending, acc);
     }
   }
@@ -2195,7 +2188,7 @@ function merge_all(loop$sequences, loop$direction, loop$compare) {
   while (true) {
     let sequences2 = loop$sequences;
     let direction = loop$direction;
-    let compare4 = loop$compare;
+    let compare5 = loop$compare;
     if (sequences2.hasLength(0)) {
       return toList([]);
     } else if (sequences2.hasLength(1) && direction instanceof Ascending) {
@@ -2205,19 +2198,19 @@ function merge_all(loop$sequences, loop$direction, loop$compare) {
       let sequence = sequences2.head;
       return do_reverse(sequence, toList([]));
     } else if (direction instanceof Ascending) {
-      let sequences$1 = merge_ascending_pairs(sequences2, compare4, toList([]));
+      let sequences$1 = merge_ascending_pairs(sequences2, compare5, toList([]));
       loop$sequences = sequences$1;
       loop$direction = new Descending();
-      loop$compare = compare4;
+      loop$compare = compare5;
     } else {
-      let sequences$1 = merge_descending_pairs(sequences2, compare4, toList([]));
+      let sequences$1 = merge_descending_pairs(sequences2, compare5, toList([]));
       loop$sequences = sequences$1;
       loop$direction = new Ascending();
-      loop$compare = compare4;
+      loop$compare = compare5;
     }
   }
 }
-function sort(list, compare4) {
+function sort(list, compare5) {
   if (list.hasLength(0)) {
     return toList([]);
   } else if (list.hasLength(1)) {
@@ -2228,7 +2221,7 @@ function sort(list, compare4) {
     let y = list.tail.head;
     let rest$1 = list.tail.tail;
     let direction = (() => {
-      let $ = compare4(x, y);
+      let $ = compare5(x, y);
       if ($ instanceof Lt) {
         return new Ascending();
       } else if ($ instanceof Eq) {
@@ -2239,13 +2232,13 @@ function sort(list, compare4) {
     })();
     let sequences$1 = sequences(
       rest$1,
-      compare4,
+      compare5,
       toList([x]),
       direction,
       y,
       toList([])
     );
-    return merge_all(sequences$1, new Ascending(), compare4);
+    return merge_all(sequences$1, new Ascending(), compare5);
   }
 }
 function tail_recursive_range(loop$start, loop$stop, loop$acc) {
@@ -3631,6 +3624,50 @@ var ScanError = class extends CustomType {
   }
 };
 
+// build/dev/javascript/bigi/bigi_ffi.mjs
+function from2(int3) {
+  return BigInt(int3);
+}
+function from_string2(string3) {
+  try {
+    return new Ok(BigInt(string3));
+  } catch {
+    return new Error(void 0);
+  }
+}
+function to_string7(bigint) {
+  return bigint.toString();
+}
+function zero() {
+  return 0n;
+}
+function add2(a, b) {
+  return a + b;
+}
+function subtract(a, b) {
+  return a - b;
+}
+function multiply(a, b) {
+  return a * b;
+}
+function divide(a, b) {
+  if (b === 0n) {
+    return 0n;
+  }
+  return a / b;
+}
+function modulo(a, b) {
+  if (b === 0n) {
+    return 0n;
+  }
+  return (a % b + b) % b;
+}
+
+// build/dev/javascript/bigi/bigi.mjs
+function sum3(bigints) {
+  return fold2(bigints, zero(), add2);
+}
+
 // build/dev/javascript/gleam_stdlib/gleam/io.mjs
 function debug(term) {
   let _pipe = term;
@@ -3708,8 +3745,8 @@ function from_lists(rows, separator, line_ending) {
   );
   return join2(_pipe, line_ending$1);
 }
-function extract_field(string3, from2, length4, status) {
-  let field2 = slice3(string3, from2, length4);
+function extract_field(string3, from3, length4, status) {
+  let field2 = slice3(string3, from3, length4);
   if (status instanceof CommaFound) {
     return field2;
   } else if (status instanceof ParsingUnescapedField) {
@@ -4060,7 +4097,7 @@ var GridKey = class extends CustomType {
     this.col = col2;
   }
 };
-function to_string7(key) {
+function to_string8(key) {
   let row$1 = key.row;
   let col$1 = key.col;
   return "(" + to_string3(row$1) + "," + to_string3(col$1) + ")";
@@ -4437,7 +4474,7 @@ var TUsd = class extends CustomType {
 };
 var TPercent = class extends CustomType {
 };
-function to_string8(typ) {
+function to_string9(typ) {
   if (typ instanceof TNil) {
     return "Empty";
   } else if (typ instanceof TFloat) {
@@ -4512,7 +4549,7 @@ function to_renderable_error(te) {
       "Unexpected arguments to binary operation " + describe_binary_op_kind_for_err(
         op
       ),
-      "Got " + to_string8(lhs) + " on the left and " + to_string8(
+      "Got " + to_string9(lhs) + " on the left and " + to_string9(
         rhs
       ) + " on the right",
       new None()
@@ -4635,8 +4672,14 @@ function value_to_string(fv) {
     return "Test Passing";
   } else {
     let cents = fv.cents;
-    let dollars = to_string3(divideInt(cents, 100));
-    let cents$1 = to_string3(remainderInt(cents, 100));
+    let dollars = (() => {
+      let _pipe = divide(cents, from2(100));
+      return to_string7(_pipe);
+    })();
+    let cents$1 = (() => {
+      let _pipe = modulo(cents, from2(100));
+      return to_string7(_pipe);
+    })();
     let cents$2 = (() => {
       let $ = length2(cents$1);
       if ($ === 1) {
@@ -4647,7 +4690,7 @@ function value_to_string(fv) {
         throw makeError(
           "panic",
           "squared_away/squared_away_lang/interpreter/value",
-          34,
+          35,
           "value_to_string",
           "This shit shouldn't happen",
           {}
@@ -4789,7 +4832,7 @@ function visit_cross_labels(te, f) {
     return new Ok(te);
   }
 }
-function to_string9(te) {
+function to_string10(te) {
   if (te instanceof BooleanLiteral2) {
     let b = te.b;
     if (!b) {
@@ -4820,24 +4863,30 @@ function to_string9(te) {
     return l;
   } else if (te instanceof Group2) {
     let t2 = te.expr;
-    return "(" + to_string9(t2) + ")";
+    return "(" + to_string10(t2) + ")";
   } else if (te instanceof UnaryOp2) {
     let op = te.op;
     let te$1 = te.expr;
-    return unary_to_string(op) + to_string9(te$1);
+    return unary_to_string(op) + to_string10(te$1);
   } else if (te instanceof BinaryOp2) {
     let lhs = te.lhs;
     let bop = te.op;
     let rhs = te.rhs;
-    return to_string9(lhs) + " " + binary_to_string(bop) + " " + to_string9(
+    return to_string10(lhs) + " " + binary_to_string(bop) + " " + to_string10(
       rhs
     );
   } else if (te instanceof BuiltinSum2) {
     return "sum";
   } else {
     let cents = te.cents;
-    let dollars = to_string3(divideInt(cents, 100));
-    let cents$1 = to_string3(remainderInt(cents, 100));
+    let dollars = (() => {
+      let _pipe = divide(cents, from2(100));
+      return to_string7(_pipe);
+    })();
+    let cents$1 = (() => {
+      let _pipe = modulo(cents, from2(100));
+      return to_string7(_pipe);
+    })();
     let cents$2 = (() => {
       let $ = length2(cents$1);
       if ($ === 1) {
@@ -4848,7 +4897,7 @@ function to_string9(te) {
         throw makeError(
           "panic",
           "squared_away/squared_away_lang/typechecker/typed_expr",
-          88,
+          89,
           "to_string",
           "This shit shouldn't happen",
           {}
@@ -4971,7 +5020,7 @@ function interpret(loop$env, loop$expr) {
             throw makeError(
               "panic",
               "squared_away/squared_away_lang/interpreter",
-              85,
+              86,
               "",
               "These should be the only options if the typechecker is working",
               {}
@@ -5077,7 +5126,7 @@ function interpret(loop$env, loop$expr) {
                   throw makeError(
                     "let_assert",
                     "squared_away/squared_away_lang/interpreter",
-                    153,
+                    154,
                     "",
                     "Pattern match failed, no pattern matched the value.",
                     { value: $ }
@@ -5093,7 +5142,7 @@ function interpret(loop$env, loop$expr) {
                   throw makeError(
                     "let_assert",
                     "squared_away/squared_away_lang/interpreter",
-                    157,
+                    158,
                     "",
                     "Pattern match failed, no pattern matched the value.",
                     { value: $ }
@@ -5129,28 +5178,38 @@ function interpret(loop$env, loop$expr) {
               } else if (lhs2 instanceof Usd && op instanceof Add && rhs2 instanceof Usd) {
                 let c1 = lhs2.cents;
                 let c2 = rhs2.cents;
-                return new Ok(new Usd(c1 + c2));
+                return new Ok(new Usd(add2(c1, c2)));
               } else if (lhs2 instanceof Usd && op instanceof Subtract && rhs2 instanceof Usd) {
                 let c1 = lhs2.cents;
                 let c2 = rhs2.cents;
-                return new Ok(new Usd(c1 - c2));
+                return new Ok(new Usd(subtract(c1, c2)));
               } else if (lhs2 instanceof Usd && op instanceof Multiply && rhs2 instanceof Integer) {
                 let c = lhs2.cents;
                 let i = rhs2.n;
-                return new Ok(new Usd(c * i));
+                return new Ok(
+                  new Usd(multiply(c, from2(i)))
+                );
               } else if (lhs2 instanceof Integer && op instanceof Multiply && rhs2 instanceof Usd) {
                 let i = lhs2.n;
                 let c = rhs2.cents;
-                return new Ok(new Usd(c * i));
+                return new Ok(
+                  new Usd(multiply(c, from2(i)))
+                );
               } else if (lhs2 instanceof Usd && op instanceof Multiply && rhs2 instanceof Percent) {
                 let c = lhs2.cents;
                 let p2 = rhs2.percent;
-                let cents = divideInt(c * p2, 100);
+                let cents = (() => {
+                  let _pipe = multiply(c, from2(p2));
+                  return divide(_pipe, from2(100));
+                })();
                 return new Ok(new Usd(cents));
               } else if (lhs2 instanceof Percent && op instanceof Multiply && rhs2 instanceof Usd) {
                 let p2 = lhs2.percent;
                 let c = rhs2.cents;
-                let cents = divideInt(c * p2, 100);
+                let cents = (() => {
+                  let _pipe = multiply(c, from2(p2));
+                  return divide(_pipe, from2(100));
+                })();
                 return new Ok(new Usd(cents));
               } else {
                 let lhs$1 = lhs2;
@@ -5202,7 +5261,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                226,
+                227,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5223,7 +5282,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                234,
+                235,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5244,7 +5303,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                242,
+                243,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5254,7 +5313,7 @@ function interpret(loop$env, loop$expr) {
             return c;
           }
         );
-        let _pipe$1 = sum2(_pipe);
+        let _pipe$1 = sum3(_pipe);
         let _pipe$2 = new Usd(_pipe$1);
         return new Ok(_pipe$2);
       } else {
@@ -6279,8 +6338,69 @@ function parse_integer(loop$src, loop$acc) {
     }
   }
 }
+function parse_integer_text(loop$src, loop$acc) {
+  while (true) {
+    let src = loop$src;
+    let acc = loop$acc;
+    if (src.startsWith("1")) {
+      let rest = src.slice(1);
+      let x = "1";
+      loop$src = rest;
+      loop$acc = acc + x;
+    } else if (src.startsWith("2")) {
+      let rest = src.slice(1);
+      let x = "2";
+      loop$src = rest;
+      loop$acc = acc + x;
+    } else if (src.startsWith("3")) {
+      let rest = src.slice(1);
+      let x = "3";
+      loop$src = rest;
+      loop$acc = acc + x;
+    } else if (src.startsWith("4")) {
+      let rest = src.slice(1);
+      let x = "4";
+      loop$src = rest;
+      loop$acc = acc + x;
+    } else if (src.startsWith("5")) {
+      let rest = src.slice(1);
+      let x = "5";
+      loop$src = rest;
+      loop$acc = acc + x;
+    } else if (src.startsWith("6")) {
+      let rest = src.slice(1);
+      let x = "6";
+      loop$src = rest;
+      loop$acc = acc + x;
+    } else if (src.startsWith("7")) {
+      let rest = src.slice(1);
+      let x = "7";
+      loop$src = rest;
+      loop$acc = acc + x;
+    } else if (src.startsWith("8")) {
+      let rest = src.slice(1);
+      let x = "8";
+      loop$src = rest;
+      loop$acc = acc + x;
+    } else if (src.startsWith("9")) {
+      let rest = src.slice(1);
+      let x = "9";
+      loop$src = rest;
+      loop$acc = acc + x;
+    } else if (src.startsWith("0")) {
+      let rest = src.slice(1);
+      let x = "0";
+      loop$src = rest;
+      loop$acc = acc + x;
+    } else if (acc !== "") {
+      return new Ok([acc, src]);
+    } else {
+      return new Error(void 0);
+    }
+  }
+}
 function parse_usd_literal(src) {
-  let $ = parse_integer(src, "");
+  let $ = parse_integer_text(src, "");
   if (!$.isOk()) {
     return new Error(
       new ScanError(
@@ -6290,19 +6410,42 @@ function parse_usd_literal(src) {
   } else {
     let dollars = $[0][0];
     let rest = $[0][1];
+    let $1 = from_string2(dollars);
+    if (!$1.isOk()) {
+      throw makeError(
+        "let_assert",
+        "squared_away/squared_away_lang/scanner",
+        75,
+        "parse_usd_literal",
+        "Pattern match failed, no pattern matched the value.",
+        { value: $1 }
+      );
+    }
+    let dollars$1 = $1[0];
     if (rest.startsWith(".")) {
       let rest$1 = rest.slice(1);
-      let $1 = parse_integer(rest$1, "");
-      if (!$1.isOk()) {
+      let $2 = parse_integer(rest$1, "");
+      if (!$2.isOk()) {
         return new Error(
           new ScanError(
             "Expected 2 decimal places following `.` character in usd literal"
           )
         );
-      } else if ($1.isOk() && ($1[0][0] > 0 && $1[0][0] < 100)) {
-        let cents = $1[0][0];
-        let rest$2 = $1[0][1];
-        return new Ok([dollars * 100 + cents, rest$2]);
+      } else if ($2.isOk() && ($2[0][0] > 0 && $2[0][0] < 100)) {
+        let cents = $2[0][0];
+        let rest$2 = $2[0][1];
+        return new Ok(
+          [
+            multiply(
+              dollars$1,
+              (() => {
+                let _pipe = from2(100);
+                return add2(_pipe, from2(cents));
+              })()
+            ),
+            rest$2
+          ]
+        );
       } else {
         return new Error(
           new ScanError(
@@ -6311,7 +6454,7 @@ function parse_usd_literal(src) {
         );
       }
     } else {
-      return new Ok([dollars * 100, rest]);
+      return new Ok([multiply(dollars$1, from2(100)), rest]);
     }
   }
 }
@@ -6453,7 +6596,7 @@ function do_scan(loop$src, loop$acc) {
                 throw makeError(
                   "let_assert",
                   "squared_away/squared_away_lang/scanner",
-                  140,
+                  142,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $1 }
@@ -7264,15 +7407,15 @@ var Model2 = class extends CustomType {
 var Noop = class extends CustomType {
 };
 var UserToggledFormulaMode = class extends CustomType {
-  constructor(to) {
+  constructor(to2) {
     super();
-    this.to = to;
+    this.to = to2;
   }
 };
 var UserToggledDisplayCoords = class extends CustomType {
-  constructor(to) {
+  constructor(to2) {
     super();
-    this.to = to;
+    this.to = to2;
   }
 };
 var UserSetCellValue = class extends CustomType {
@@ -7344,7 +7487,7 @@ function set_active_cell_to(model, key) {
     return [model, none()];
   } else {
     let key$1 = key[0];
-    let id2 = to_string7(key$1);
+    let id2 = to_string8(key$1);
     focus(id2);
     return [model.withFields({ active_cell: new Some(key$1) }), none()];
   }
@@ -7445,7 +7588,7 @@ function view(model) {
               );
               let out_of_focus = on_blur(new UserFocusedOffCell());
               let on_focus2 = on_focus(new UserFocusedOnCell(key));
-              let id2 = id(to_string7(key));
+              let id2 = id(to_string8(key));
               let value3 = (() => {
                 let _pipe$32 = (() => {
                   let $2 = model.display_formulas;
@@ -7524,7 +7667,7 @@ function view(model) {
                 return td(
                   toList([]),
                   toList([
-                    label(toList([]), t(to_string7(key) + ": ")),
+                    label(toList([]), t(to_string8(key) + ": ")),
                     input2
                   ])
                 );
@@ -7784,13 +7927,13 @@ function update(model, msg) {
               return [model, none()];
             } else {
               let new_expr = expr_with_labels_updated[0];
-              let formula = "=" + to_string9(new_expr);
+              let formula = "=" + to_string10(new_expr);
               let src_grid = insert4(
                 model.src_grid,
                 cell_to_right,
                 formula
               );
-              let id2 = to_string7(cell_to_right);
+              let id2 = to_string8(cell_to_right);
               focus(id2);
               let new_model = model.withFields({
                 src_grid,
@@ -7892,9 +8035,9 @@ function update(model, msg) {
               return [model, none()];
             } else {
               let new_expr = expr_with_labels_updated[0];
-              let formula = "=" + to_string9(new_expr);
+              let formula = "=" + to_string10(new_expr);
               let src_grid = insert4(model.src_grid, cell_below, formula);
-              let id2 = to_string7(cell_below);
+              let id2 = to_string8(cell_below);
               focus(id2);
               let new_model = model.withFields({
                 src_grid,

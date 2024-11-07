@@ -4,6 +4,7 @@ import gleam/list
 import gleam/option
 import gleam/result
 import gleam/string
+import bigi
 
 import squared_away/squared_away_lang/scanner/scan_error
 import squared_away/squared_away_lang/scanner/token
@@ -64,13 +65,14 @@ pub fn scan(src: String) -> Result(List(token.Token), scan_error.ScanError) {
 
 fn parse_usd_literal(
   src: String,
-) -> Result(#(Int, String), scan_error.ScanError) {
-  case parse_integer(src, "") {
+) -> Result(#(bigi.BigInt, String), scan_error.ScanError) {
+  case parse_integer_text(src, "") {
     Error(_) ->
       Error(scan_error.ScanError(
         "Expected usd literal (a $ optionally followed by a number with two decimal places)",
       ))
     Ok(#(dollars, rest)) -> {
+      let assert Ok(dollars) = bigi.from_string(dollars)
       case rest {
         "." <> rest ->
           case parse_integer(rest, "") {
@@ -79,13 +81,13 @@ fn parse_usd_literal(
                 "Expected 2 decimal places following `.` character in usd literal",
               ))
             Ok(#(cents, rest)) if cents > 0 && cents < 100 ->
-              Ok(#(dollars * 100 + cents, rest))
+              Ok(#(bigi.multiply(dollars, bigi.from_int(100) |> bigi.add(bigi.from_int(cents))), rest))
             Ok(#(_, _)) ->
               Error(scan_error.ScanError(
                 "Usd literal must have zero or two decimal places.",
               ))
           }
-        _ -> Ok(#(dollars * 100, rest))
+        _ -> Ok(#(bigi.multiply(dollars, bigi.from_int(100)), rest))
       }
     }
   }
@@ -243,5 +245,22 @@ fn parse_integer(src: String, acc: String) -> Result(#(Int, String), Nil) {
     | "9" as x <> rest
     | "0" as x <> rest -> parse_integer(rest, acc <> x)
     _ -> int.parse(acc) |> result.map(fn(n) { #(n, src) })
+  }
+}
+
+fn parse_integer_text(src: String, acc: String) -> Result(#(String, String), Nil) {
+  case src {
+    "1" as x <> rest
+    | "2" as x <> rest
+    | "3" as x <> rest
+    | "4" as x <> rest
+    | "5" as x <> rest
+    | "6" as x <> rest
+    | "7" as x <> rest
+    | "8" as x <> rest
+    | "9" as x <> rest
+    | "0" as x <> rest -> parse_integer_text(rest, acc <> x)
+    _ if acc != "" -> Ok(#(acc, src))
+    _ -> Error(Nil)
   }
 }

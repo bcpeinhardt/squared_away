@@ -358,7 +358,8 @@ fn view(model: Model) -> element.Element(Msg) {
     |> list.group(grid.row)
     |> dict.map_values(fn(_, keys) {
       let cells =
-        list.map(keys, fn(key) {
+        list.sort(keys, fn(k1, k2) { int.compare(k1 |> grid.col(), k2 |> grid.col())})
+        |> list.map(fn(key) {
           let on_keydown = event.on_keydown(UserHitKeyInCell(key, _))
           let on_keyup = event.on_keyup(UserReleasedKeyInCell)
           let on_input = event.on_input(UserSetCellValue(key:, val: _))

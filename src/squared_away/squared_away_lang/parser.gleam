@@ -68,6 +68,8 @@ fn do_parse(
       }
     }
 
+    [token.UsdLiteral(cents), ..rest] -> Ok(#(expr.UsdLiteral(cents), rest))
+
     // Unary Ops
     [token.Minus, ..rest] -> {
       use #(parsed_remainder, rest) <- result.try(do_parse(rest))

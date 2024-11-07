@@ -1,7 +1,7 @@
-import gleam/javascript/promise
 import gleam/bool
 import gleam/dict
 import gleam/int
+import gleam/javascript/promise
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
@@ -44,18 +44,13 @@ type Model {
     holding_shift: Bool,
     grid_width: Int,
     grid_height: Int,
-    display_mode: DisplayMode,
+    display_formulas: Bool,
     display_coords: Bool,
     active_cell: Option(grid.GridKey),
     src_grid: grid.Grid(String),
     value_grid: grid.Grid(Result(value.Value, error.CompileError)),
     errors_to_display: List(#(grid.GridKey, error.CompileError)),
   )
-}
-
-type DisplayMode {
-  DisplayValues
-  DisplayFormulas
 }
 
 fn init(_flags) -> #(Model, effect.Effect(Msg)) {
@@ -68,7 +63,7 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
       holding_shift: False,
       grid_width: initial_grid_width,
       grid_height: initial_grid_height,
-      display_mode: DisplayValues,
+      display_formulas: False,
       display_coords: False,
       active_cell: None,
       src_grid:,
@@ -82,7 +77,7 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
 
 type Msg {
   Noop
-  UserToggledDisplayMode(to: DisplayMode)
+  UserToggledFormulaMode(to: Bool)
   UserToggledDisplayCoords(to: Bool)
   UserSetCellValue(key: grid.GridKey, val: String)
   UserFocusedOnCell(key: grid.GridKey)
@@ -120,8 +115,8 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
         Model(..model, src_grid: grid.insert(model.src_grid, key, val))
       #(update_grid(model), effect.none())
     }
-    UserToggledDisplayMode(display_mode) -> {
-      #(Model(..model, display_mode:), effect.none())
+    UserToggledFormulaMode(display_formulas) -> {
+      #(Model(..model, display_formulas:), effect.none())
     }
     UserToggledDisplayCoords(display_coords) -> {
       #(Model(..model, display_coords:), effect.none())
@@ -310,25 +305,26 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
       #(model, effect.none())
     }
     UserUploadedFile(_) -> {
-      let get_file_contents_effect = effect.from(fn(dispatch) {
-        promise.await(upload_file(), fn(file_content) {
+      let get_file_contents_effect =
+        effect.from(fn(dispatch) {
+          promise.await(upload_file(), fn(file_content) {
             promise.new(fn(resolve) {
               dispatch(FileUploadComplete(file_content))
               resolve(Nil)
             })
+          })
+          Nil
         })
-        Nil
-      })
 
-      
       #(model, get_file_contents_effect)
     }
     FileUploadComplete(file_content) -> {
-      let src_grid = file_content |> grid.from_src_csv(initial_grid_width, initial_grid_height)
+      let src_grid =
+        file_content
+        |> grid.from_src_csv(initial_grid_width, initial_grid_height)
       let new_model = Model(..model, src_grid:) |> update_grid
       #(new_model, effect.none())
     }
-    
   }
 }
 
@@ -358,7 +354,9 @@ fn view(model: Model) -> element.Element(Msg) {
     |> list.group(grid.row)
     |> dict.map_values(fn(_, keys) {
       let cells =
-        list.sort(keys, fn(k1, k2) { int.compare(k1 |> grid.col(), k2 |> grid.col())})
+        list.sort(keys, fn(k1, k2) {
+          int.compare(k1 |> grid.col(), k2 |> grid.col())
+        })
         |> list.map(fn(key) {
           let on_keydown = event.on_keydown(UserHitKeyInCell(key, _))
           let on_keyup = event.on_keyup(UserReleasedKeyInCell)
@@ -367,10 +365,9 @@ fn view(model: Model) -> element.Element(Msg) {
           let on_focus = event.on_focus(UserFocusedOnCell(key))
           let id = attribute.id(grid.to_string(key))
           let value =
-            case model.display_mode, model.active_cell == Some(key) {
-              DisplayFormulas, _ | DisplayValues, True ->
-                grid.get(model.src_grid, key)
-              DisplayValues, _ ->
+            case model.display_formulas, model.active_cell == Some(key) {
+              True, _ | False, True -> grid.get(model.src_grid, key)
+              False, _ ->
                 case grid.get(model.value_grid, key) {
                   Error(_) -> grid.get(model.src_grid, key)
                   Ok(v) -> value.value_to_string(v)
@@ -438,10 +435,9 @@ fn view(model: Model) -> element.Element(Msg) {
 
   let formula_mode_toggle =
     html.input([
-      attribute.type_("radio"),
-      attribute.name("display_mode"),
+      attribute.type_("checkbox"),
       attribute.id("formula_mode"),
-      event.on_check(fn(_) { UserToggledDisplayMode(DisplayFormulas) }),
+      event.on_check(UserToggledFormulaMode),
     ])
 
   let formula_mode_toggle_label =
@@ -457,24 +453,16 @@ fn view(model: Model) -> element.Element(Msg) {
   let grid_mode_toggle_label =
     html.label([attribute.for("grid_mode")], t("Show grid coordinates"))
 
-  let value_mode_toggle =
-    html.input([
-      attribute.type_("radio"),
-      attribute.name("display_mode"),
-      attribute.id("value_mode"),
-      event.on_check(fn(_) { UserToggledDisplayMode(DisplayValues) }),
-    ])
-
-  let value_mode_toggle_label =
-    html.label([attribute.for("value_mode")], t("Show evaluated values"))
-
   let save_button = html.button([event.on_click(UserClickedSaveBtn)], t("Save"))
   let load_label = html.label([], t("Load file"))
-  let load_button = html.input([attribute.type_("file"), attribute.id("csvupload"), event.on_input(UserUploadedFile)])
+  let load_button =
+    html.input([
+      attribute.type_("file"),
+      attribute.id("csvupload"),
+      event.on_input(UserUploadedFile),
+    ])
 
   html.div([], [
-    value_mode_toggle,
-    value_mode_toggle_label,
     formula_mode_toggle,
     formula_mode_toggle_label,
     grid_mode_toggle,

@@ -32,6 +32,8 @@ pub type Token {
   IntegerLiteral(n: Int)
   /// 1.0, 6.87
   FloatLiteral(f: Float)
+  // $34.20
+  UsdLiteral(cents: Int)
   /// True
   TrueToken
   /// False

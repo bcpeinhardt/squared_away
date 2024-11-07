@@ -19,6 +19,12 @@ pub fn scan(src: String) -> Result(List(token.Token), scan_error.ScanError) {
 
     // A formual starts with an = sign
     "=" <> rest -> do_scan(rest |> string.trim_left, [])
+    "$" <> rest -> case parse_usd_literal(rest) {
+      Error(e) -> Error(e)
+      Ok(#(n, "")) -> Ok([token.UsdLiteral(cents: n)])
+      _ -> Error(scan_error.ScanError("Unexpected content after $ literal. If you're typing a formula, be sure to add an equal sign in front."))
+    }
+
     txt -> {
       // We need to try and parse the text as a number literal
       case float.parse(txt) {
@@ -39,6 +45,35 @@ pub fn scan(src: String) -> Result(List(token.Token), scan_error.ScanError) {
               }
             }
           }
+      }
+    }
+  }
+}
+
+fn parse_usd_literal(
+  src: String,
+) -> Result(#(Int, String), scan_error.ScanError) {
+  case parse_integer(src, "") {
+    Error(_) ->
+      Error(scan_error.ScanError(
+        "Expected usd literal (a $ optionally followed by a number with two decimal places)",
+      ))
+    Ok(#(dollars, rest)) -> {
+      case rest {
+        "." <> rest ->
+          case parse_integer(rest, "") {
+            Error(_) ->
+              Error(scan_error.ScanError(
+                "Expected 2 decimal places following `.` character in usd literal",
+              ))
+            Ok(#(cents, rest)) if cents > 0 && cents < 100 ->
+              Ok(#(dollars * 100 + cents, rest))
+            Ok(#(_, _)) ->
+              Error(scan_error.ScanError(
+                "Usd literal must have zero or two decimal places.",
+              ))
+          }
+        _ -> Ok(#(dollars * 100, rest))
       }
     }
   }

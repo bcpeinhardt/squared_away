@@ -1,3 +1,4 @@
+import gleam/string
 import gleam/float
 import gleam/int
 import squared_away/squared_away_lang/grid
@@ -7,6 +8,7 @@ import squared_away/squared_away_lang/typechecker/typ
 pub type TypedExpr {
   Empty(type_: typ.Typ)
   FloatLiteral(type_: typ.Typ, f: Float)
+  UsdLiteral(type_: typ.Typ, cents: Int)
   Label(type_: typ.Typ, txt: String)
   CrossLabel(
     type_: typ.Typ,
@@ -69,7 +71,22 @@ pub fn to_string(te: TypedExpr) -> String {
     Group(_, t) -> "(" <> to_string(t) <> ")"
     UnaryOp(_, op, te) -> expr.unary_to_string(op) <> to_string(te)
     BinaryOp(_, lhs, bop, rhs) ->
-      to_string(lhs) <> expr.binary_to_string(bop) <> to_string(rhs)
+      to_string(lhs)
+      <> " "
+      <> expr.binary_to_string(bop)
+      <> " "
+      <> to_string(rhs)
     BuiltinSum(_, _) -> "sum"
+    UsdLiteral(_, cents) -> {
+      let dollars = int.to_string(cents / 100)
+      let cents = int.to_string(cents % 100)
+      let cents = case string.length(cents) {
+        1 -> cents <> "0"
+        2 -> cents 
+        _ -> panic as "This shit shouldn't happen"
+      }
+
+      "$" <> dollars <> "." <> cents
+    }
   }
 }

@@ -2,11 +2,11 @@
 //// boilerplate around results for get operations, so I'm gonna try and extract
 //// them to a module
 
-import gleam/io
-import gleam/order
 import gleam/dict
 import gleam/int
+import gleam/io
 import gleam/list
+import gleam/order
 import gsv
 
 // Making the type generic since we do a grid of src
@@ -116,30 +116,39 @@ pub fn to_list(grid: Grid(a)) -> List(#(GridKey, a)) {
 }
 
 pub fn src_csv(grid: Grid(String)) -> String {
-  to_list(grid) |> list.sort(fn(c1, c2) {
+  to_list(grid)
+  |> list.sort(fn(c1, c2) {
     let #(GridKey(r1, c1), _) = c1
     let #(GridKey(r2, c2), _) = c2
     case int.compare(r1, r2) {
       order.Eq -> int.compare(c1, c2)
       _ as x -> x
     }
-  }) |> list.chunk(fn(c) {
-    let #(GridKey(r, _), _) = c 
+  })
+  |> list.chunk(fn(c) {
+    let #(GridKey(r, _), _) = c
     r
-  }) |> list.map(list.map(_, fn(c) {
-    let #(_, src) = c 
+  })
+  |> list.map(list.map(_, fn(c) {
+    let #(_, src) = c
     src
-  })) |> gsv.from_lists(",", gsv.Unix)
+  }))
+  |> gsv.from_lists(",", gsv.Unix)
 }
 
 pub fn from_src_csv(src: String, width: Int, height: Int) -> Grid(String) {
   // Filter down the content to just the appropriate rows and columns 
   let assert Ok(src) = gsv.to_lists(src) |> io.debug
-  let inner = list.take(src, height) |> list.map(list.take(_, width)) |> list.index_map(fn(src_row, row_index) {
-    list.index_map(src_row, fn(cell_content, col_index) {
-      #(GridKey(row_index + 1, col_index + 1), cell_content)
+  let inner =
+    list.take(src, height)
+    |> list.map(list.take(_, width))
+    |> list.index_map(fn(src_row, row_index) {
+      list.index_map(src_row, fn(cell_content, col_index) {
+        #(GridKey(row_index + 1, col_index + 1), cell_content)
+      })
     })
-  }) |> list.flatten |> dict.from_list
+    |> list.flatten
+    |> dict.from_list
 
   let cells = dict.keys(inner)
   Grid(inner, cells)

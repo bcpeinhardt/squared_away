@@ -5,6 +5,7 @@ pub type Typ {
   TInt
   TBool
   TTestResult
+  TUsd
 }
 
 pub fn to_string(typ: Typ) {
@@ -15,5 +16,6 @@ pub fn to_string(typ: Typ) {
     TInt -> "Integer"
     TBool -> "Boolean (True or False)"
     TTestResult -> "Test Result (Pass or Fail)"
+    TUsd -> "Usd"
   }
 }

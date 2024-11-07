@@ -217,6 +217,7 @@ pub fn typecheck(
     expr.BooleanLiteral(b) ->
       Ok(typed_expr.BooleanLiteral(type_: typ.TBool, b:))
     expr.FloatLiteral(f) -> Ok(typed_expr.FloatLiteral(type_: typ.TFloat, f:))
+    expr.UsdLiteral(cents) -> Ok(typed_expr.UsdLiteral(type_: typ.TUsd, cents:))
     expr.IntegerLiteral(n) -> Ok(typed_expr.IntegerLiteral(type_: typ.TInt, n:))
     expr.Group(inner) -> {
       use expr <- result.try(typecheck(env, inner))
@@ -225,7 +226,7 @@ pub fn typecheck(
     expr.UnaryOp(op, expr) -> {
       use expr <- result.try(typecheck(env, expr))
       case op, expr.type_ {
-        expr.Negate, typ.TInt | expr.Negate, typ.TFloat ->
+        expr.Negate, typ.TInt | expr.Negate, typ.TFloat | expr.Negate, typ.TUsd ->
           Ok(typed_expr.UnaryOp(type_: expr.type_, op:, expr:))
         expr.Not, typ.TBool ->
           Ok(typed_expr.UnaryOp(type_: expr.type_, op:, expr:))
@@ -246,6 +247,8 @@ pub fn typecheck(
           Ok(typed_expr.BinaryOp(type_: typ.TFloat, lhs:, op:, rhs:))
         typ.TInt, expr.Add, typ.TInt ->
           Ok(typed_expr.BinaryOp(type_: typ.TInt, lhs:, op:, rhs:))
+        typ.TUsd, expr.Add, typ.TUsd ->
+          Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
         _, expr.Add, _ ->
           Error(
             error.TypeError(type_error.IncorrectTypesForBinaryOp(
@@ -260,6 +263,8 @@ pub fn typecheck(
           Ok(typed_expr.BinaryOp(type_: typ.TFloat, lhs:, op:, rhs:))
         typ.TInt, expr.Subtract, typ.TInt ->
           Ok(typed_expr.BinaryOp(type_: typ.TInt, lhs:, op:, rhs:))
+        typ.TUsd, expr.Subtract, typ.TUsd ->
+          Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
 
         // Multiplication
         typ.TFloat, expr.Multiply, typ.TFloat ->
@@ -272,6 +277,8 @@ pub fn typecheck(
           Ok(typed_expr.BinaryOp(type_: typ.TFloat, lhs:, op:, rhs:))
         typ.TInt, expr.Divide, typ.TInt ->
           Ok(typed_expr.BinaryOp(type_: typ.TInt, lhs:, op:, rhs:))
+        typ.TUsd, expr.Divide, typ.TUsd ->
+          Ok(typed_expr.BinaryOp(type_: typ.TFloat, lhs:, op:, rhs:))
 
         // Power
         typ.TFloat, expr.Power, typ.TFloat | typ.TInt, expr.Power, typ.TFloat ->

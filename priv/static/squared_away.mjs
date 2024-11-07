@@ -238,6 +238,13 @@ function structurallyCompatibleObjects(a, b) {
     return false;
   return a.constructor === b.constructor;
 }
+function remainderInt(a, b) {
+  if (b === 0) {
+    return 0;
+  } else {
+    return a % b;
+  }
+}
 function divideInt(a, b) {
   return Math.trunc(divideFloat(a, b));
 }
@@ -1227,17 +1234,17 @@ function decode_int(data) {
 function decode_bool(data) {
   return typeof data === "boolean" ? new Ok(data) : decoder_error("Bool", data);
 }
-function decode_field(value3, name2) {
+function decode_field(value3, name) {
   const not_a_map_error = () => decoder_error("Dict", value3);
   if (value3 instanceof Dict || value3 instanceof WeakMap || value3 instanceof Map) {
-    const entry = map_get(value3, name2);
+    const entry = map_get(value3, name);
     return new Ok(entry.isOk() ? new Some(entry[0]) : new None());
   } else if (value3 === null) {
     return not_a_map_error();
   } else if (Object.getPrototypeOf(value3) == Object.prototype) {
-    return try_get_field(value3, name2, () => new Ok(new None()));
+    return try_get_field(value3, name, () => new Ok(new None()));
   } else {
-    return try_get_field(value3, name2, not_a_map_error);
+    return try_get_field(value3, name, not_a_map_error);
   }
 }
 function try_get_field(value3, field2, or_else) {
@@ -1335,13 +1342,13 @@ function inspectDict(map6) {
   return body + "])";
 }
 function inspectObject(v) {
-  const name2 = Object.getPrototypeOf(v)?.constructor?.name || "Object";
+  const name = Object.getPrototypeOf(v)?.constructor?.name || "Object";
   const props = [];
   for (const k of Object.keys(v)) {
     props.push(`${inspect(k)}: ${inspect(v[k])}`);
   }
   const body = props.length ? " " + props.join(", ") + " " : "";
-  const head = name2 === "Object" ? "" : name2 + " ";
+  const head = name === "Object" ? "" : name + " ";
   return `//js(${head}{${body}})`;
 }
 function inspectCustomType(record) {
@@ -2484,8 +2491,8 @@ function any2(decoders) {
     }
   };
 }
-function push_path(error, name2) {
-  let name$1 = identity(name2);
+function push_path(error, name) {
+  let name$1 = identity(name);
   let decoder = any2(
     toList([string, (x) => {
       return map3(int(x), to_string3);
@@ -2515,11 +2522,11 @@ function map_errors(result, f) {
 function string(data) {
   return decode_string(data);
 }
-function field(name2, inner_type) {
+function field(name, inner_type) {
   return (value3) => {
     let missing_field_error = new DecodeError("field", "nothing", toList([]));
     return try$(
-      decode_field(value3, name2),
+      decode_field(value3, name),
       (maybe_inner) => {
         let _pipe = maybe_inner;
         let _pipe$1 = to_result(_pipe, toList([missing_field_error]));
@@ -2527,7 +2534,7 @@ function field(name2, inner_type) {
         return map_errors(
           _pipe$2,
           (_capture) => {
-            return push_path(_capture, name2);
+            return push_path(_capture, name);
           }
         );
       }
@@ -2643,9 +2650,9 @@ function attribute_to_event_handler(attribute2) {
   if (attribute2 instanceof Attribute) {
     return new Error(void 0);
   } else {
-    let name2 = attribute2[0];
+    let name = attribute2[0];
     let handler = attribute2[1];
-    let name$1 = drop_left(name2, 2);
+    let name$1 = drop_left(name, 2);
     return new Ok([name$1, handler]);
   }
 }
@@ -2680,9 +2687,9 @@ function do_handlers(loop$element, loop$handlers, loop$key) {
         (handlers3, attr) => {
           let $ = attribute_to_event_handler(attr);
           if ($.isOk()) {
-            let name2 = $[0][0];
+            let name = $[0][0];
             let handler = $[0][1];
-            return insert(handlers3, key + "-" + name2, handler);
+            return insert(handlers3, key + "-" + name, handler);
           } else {
             return handlers3;
           }
@@ -2697,11 +2704,11 @@ function handlers(element2) {
 }
 
 // build/dev/javascript/lustre/lustre/attribute.mjs
-function attribute(name2, value3) {
-  return new Attribute(name2, identity(value3), false);
+function attribute(name, value3) {
+  return new Attribute(name, identity(value3), false);
 }
-function on(name2, handler) {
-  return new Event("on" + name2, handler);
+function on(name, handler) {
+  return new Event("on" + name, handler);
 }
 function style(properties) {
   return attribute(
@@ -2717,23 +2724,20 @@ function style(properties) {
     )
   );
 }
-function class$(name2) {
-  return attribute("class", name2);
+function class$(name) {
+  return attribute("class", name);
 }
 function none2() {
   return class$("");
 }
-function id(name2) {
-  return attribute("id", name2);
+function id(name) {
+  return attribute("id", name);
 }
-function type_(name2) {
-  return attribute("type", name2);
+function type_(name) {
+  return attribute("type", name);
 }
 function value(val) {
   return attribute("value", val);
-}
-function name(name2) {
-  return attribute("name", name2);
 }
 function for$(id2) {
   return attribute("for", id2);
@@ -2951,15 +2955,15 @@ function createElementNode({ prev, next, dispatch, stack }) {
   }
   const delegated = [];
   for (const attr of next.attrs) {
-    const name2 = attr[0];
+    const name = attr[0];
     const value3 = attr[1];
     if (attr.as_property) {
-      if (el[name2] !== value3)
-        el[name2] = value3;
+      if (el[name] !== value3)
+        el[name] = value3;
       if (canMorph)
-        prevAttributes.delete(name2);
-    } else if (name2.startsWith("on")) {
-      const eventName = name2.slice(2);
+        prevAttributes.delete(name);
+    } else if (name.startsWith("on")) {
+      const eventName = name.slice(2);
       const callback = dispatch(value3, eventName === "input");
       if (!handlersForEl.has(eventName)) {
         el.addEventListener(eventName, lustreGenericEventHandler);
@@ -2967,30 +2971,30 @@ function createElementNode({ prev, next, dispatch, stack }) {
       handlersForEl.set(eventName, callback);
       if (canMorph)
         prevHandlers.delete(eventName);
-    } else if (name2.startsWith("data-lustre-on-")) {
-      const eventName = name2.slice(15);
+    } else if (name.startsWith("data-lustre-on-")) {
+      const eventName = name.slice(15);
       const callback = dispatch(lustreServerEventHandler);
       if (!handlersForEl.has(eventName)) {
         el.addEventListener(eventName, lustreGenericEventHandler);
       }
       handlersForEl.set(eventName, callback);
-      el.setAttribute(name2, value3);
-    } else if (name2.startsWith("delegate:data-") || name2.startsWith("delegate:aria-")) {
-      el.setAttribute(name2, value3);
-      delegated.push([name2.slice(10), value3]);
-    } else if (name2 === "class") {
+      el.setAttribute(name, value3);
+    } else if (name.startsWith("delegate:data-") || name.startsWith("delegate:aria-")) {
+      el.setAttribute(name, value3);
+      delegated.push([name.slice(10), value3]);
+    } else if (name === "class") {
       className = className === null ? value3 : className + " " + value3;
-    } else if (name2 === "style") {
+    } else if (name === "style") {
       style2 = style2 === null ? value3 : style2 + value3;
-    } else if (name2 === "dangerous-unescaped-html") {
+    } else if (name === "dangerous-unescaped-html") {
       innerHTML = value3;
     } else {
-      if (el.getAttribute(name2) !== value3)
-        el.setAttribute(name2, value3);
-      if (name2 === "value" || name2 === "selected")
-        el[name2] = value3;
+      if (el.getAttribute(name) !== value3)
+        el.setAttribute(name, value3);
+      if (name === "value" || name === "selected")
+        el[name] = value3;
       if (canMorph)
-        prevAttributes.delete(name2);
+        prevAttributes.delete(name);
     }
   }
   if (className !== null) {
@@ -3015,9 +3019,9 @@ function createElementNode({ prev, next, dispatch, stack }) {
   if (next.tag === "slot") {
     window.queueMicrotask(() => {
       for (const child of el.assignedElements()) {
-        for (const [name2, value3] of delegated) {
-          if (!child.hasAttribute(name2)) {
-            child.setAttribute(name2, value3);
+        for (const [name, value3] of delegated) {
+          if (!child.hasAttribute(name)) {
+            child.setAttribute(name, value3);
           }
         }
       }
@@ -3510,8 +3514,8 @@ function label(attrs, children2) {
 }
 
 // build/dev/javascript/lustre/lustre/event.mjs
-function on2(name2, handler) {
-  return on(name2, handler);
+function on2(name, handler) {
+  return on(name, handler);
 }
 function on_click(msg) {
   return on2("click", (_) => {
@@ -4219,7 +4223,7 @@ function from_src_csv(src, width, height) {
     throw makeError(
       "let_assert",
       "squared_away/squared_away_lang/grid",
-      137,
+      141,
       "from_src_csv",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -4259,6 +4263,12 @@ var FloatLiteral = class extends CustomType {
   constructor(f) {
     super();
     this.f = f;
+  }
+};
+var UsdLiteral = class extends CustomType {
+  constructor(cents) {
+    super();
+    this.cents = cents;
   }
 };
 var LabelDef = class extends CustomType {
@@ -4401,6 +4411,10 @@ var TInt = class extends CustomType {
 };
 var TBool = class extends CustomType {
 };
+var TTestResult = class extends CustomType {
+};
+var TUsd = class extends CustomType {
+};
 function to_string8(typ) {
   if (typ instanceof TNil) {
     return "Empty";
@@ -4412,8 +4426,10 @@ function to_string8(typ) {
     return "Integer";
   } else if (typ instanceof TBool) {
     return "Boolean (True or False)";
-  } else {
+  } else if (typ instanceof TTestResult) {
     return "Test Result (Pass or Fail)";
+  } else {
+    return "Usd";
   }
 }
 
@@ -4548,6 +4564,12 @@ var FloatingPointNumber = class extends CustomType {
     this.f = f;
   }
 };
+var Usd = class extends CustomType {
+  constructor(cents) {
+    super();
+    this.cents = cents;
+  }
+};
 var Boolean = class extends CustomType {
   constructor(b) {
     super();
@@ -4576,8 +4598,30 @@ function value_to_string(fv) {
     return to_string2(f);
   } else if (fv instanceof TestFail) {
     return "Test Failure";
-  } else {
+  } else if (fv instanceof TestPass) {
     return "Test Passing";
+  } else {
+    let cents = fv.cents;
+    let dollars = to_string3(divideInt(cents, 100));
+    let cents$1 = to_string3(remainderInt(cents, 100));
+    let cents$2 = (() => {
+      let $ = length2(cents$1);
+      if ($ === 1) {
+        return cents$1 + "0";
+      } else if ($ === 2) {
+        return cents$1;
+      } else {
+        throw makeError(
+          "panic",
+          "squared_away/squared_away_lang/interpreter/value",
+          32,
+          "value_to_string",
+          "This shit shouldn't happen",
+          {}
+        );
+      }
+    })();
+    return "$" + dollars + "." + cents$2;
   }
 }
 
@@ -4593,6 +4637,13 @@ var FloatLiteral2 = class extends CustomType {
     super();
     this.type_ = type_2;
     this.f = f;
+  }
+};
+var UsdLiteral2 = class extends CustomType {
+  constructor(type_2, cents) {
+    super();
+    this.type_ = type_2;
+    this.cents = cents;
   }
 };
 var Label2 = class extends CustomType {
@@ -4735,9 +4786,33 @@ function to_string9(te) {
     let lhs = te.lhs;
     let bop = te.op;
     let rhs = te.rhs;
-    return to_string9(lhs) + binary_to_string(bop) + to_string9(rhs);
-  } else {
+    return to_string9(lhs) + " " + binary_to_string(bop) + " " + to_string9(
+      rhs
+    );
+  } else if (te instanceof BuiltinSum2) {
     return "sum";
+  } else {
+    let cents = te.cents;
+    let dollars = to_string3(divideInt(cents, 100));
+    let cents$1 = to_string3(remainderInt(cents, 100));
+    let cents$2 = (() => {
+      let $ = length2(cents$1);
+      if ($ === 1) {
+        return cents$1 + "0";
+      } else if ($ === 2) {
+        return cents$1;
+      } else {
+        throw makeError(
+          "panic",
+          "squared_away/squared_away_lang/typechecker/typed_expr",
+          86,
+          "to_string",
+          "This shit shouldn't happen",
+          {}
+        );
+      }
+    })();
+    return "$" + dollars + "." + cents$2;
   }
 }
 
@@ -4751,6 +4826,9 @@ function interpret(loop$env, loop$expr) {
     } else if (expr instanceof LabelDef2) {
       let txt = expr.txt;
       return new Ok(new Text2(txt));
+    } else if (expr instanceof UsdLiteral2) {
+      let cents = expr.cents;
+      return new Ok(new Usd(cents));
     } else if (expr instanceof Group2) {
       let expr$1 = expr.expr;
       loop$env = env;
@@ -4847,7 +4925,7 @@ function interpret(loop$env, loop$expr) {
             throw makeError(
               "panic",
               "squared_away/squared_away_lang/interpreter",
-              83,
+              84,
               "",
               "These should be the only options if the typechecker is working",
               {}
@@ -4953,7 +5031,7 @@ function interpret(loop$env, loop$expr) {
                   throw makeError(
                     "let_assert",
                     "squared_away/squared_away_lang/interpreter",
-                    151,
+                    152,
                     "",
                     "Pattern match failed, no pattern matched the value.",
                     { value: $ }
@@ -4969,7 +5047,7 @@ function interpret(loop$env, loop$expr) {
                   throw makeError(
                     "let_assert",
                     "squared_away/squared_away_lang/interpreter",
-                    155,
+                    156,
                     "",
                     "Pattern match failed, no pattern matched the value.",
                     { value: $ }
@@ -5014,7 +5092,7 @@ function interpret(loop$env, loop$expr) {
                 throw makeError(
                   "panic",
                   "squared_away/squared_away_lang/interpreter",
-                  181,
+                  182,
                   "",
                   msg,
                   {}
@@ -5058,7 +5136,7 @@ function interpret(loop$env, loop$expr) {
                 throw makeError(
                   "let_assert",
                   "squared_away/squared_away_lang/interpreter",
-                  206,
+                  207,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: v }
@@ -5078,7 +5156,7 @@ function interpret(loop$env, loop$expr) {
                 throw makeError(
                   "let_assert",
                   "squared_away/squared_away_lang/interpreter",
-                  213,
+                  214,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: v }
@@ -5094,7 +5172,7 @@ function interpret(loop$env, loop$expr) {
           throw makeError(
             "panic",
             "squared_away/squared_away_lang/interpreter",
-            218,
+            219,
             "interpret",
             "internal compiler error sum function interpret",
             {}
@@ -5143,6 +5221,12 @@ var FloatLiteral3 = class extends CustomType {
   constructor(f) {
     super();
     this.f = f;
+  }
+};
+var UsdLiteral3 = class extends CustomType {
+  constructor(cents) {
+    super();
+    this.cents = cents;
   }
 };
 var TrueToken = class extends CustomType {
@@ -5671,6 +5755,10 @@ function do_parse2(tokens) {
     } else {
       return new Ok([new BooleanLiteral(false), rest]);
     }
+  } else if (tokens.atLeastLength(1) && tokens.head instanceof UsdLiteral3) {
+    let cents = tokens.head.cents;
+    let rest = tokens.tail;
+    return new Ok([new UsdLiteral(cents), rest]);
   } else if (tokens.atLeastLength(1) && tokens.head instanceof Minus) {
     let rest = tokens.tail;
     return try$(
@@ -6081,6 +6169,42 @@ function parse_integer(loop$src, loop$acc) {
     }
   }
 }
+function parse_usd_literal(src) {
+  let $ = parse_integer(src, "");
+  if (!$.isOk()) {
+    return new Error(
+      new ScanError(
+        "Expected usd literal (a $ optionally followed by a number with two decimal places)"
+      )
+    );
+  } else {
+    let dollars = $[0][0];
+    let rest = $[0][1];
+    if (rest.startsWith(".")) {
+      let rest$1 = rest.slice(1);
+      let $1 = parse_integer(rest$1, "");
+      if (!$1.isOk()) {
+        return new Error(
+          new ScanError(
+            "Expected 2 decimal places following `.` character in usd literal"
+          )
+        );
+      } else if ($1.isOk() && ($1[0][0] > 0 && $1[0][0] < 100)) {
+        let cents = $1[0][0];
+        let rest$2 = $1[0][1];
+        return new Ok([dollars * 100 + cents, rest$2]);
+      } else {
+        return new Error(
+          new ScanError(
+            "Usd literal must have zero or two decimal places."
+          )
+        );
+      }
+    } else {
+      return new Ok([dollars * 100, rest]);
+    }
+  }
+}
 function do_scan(loop$src, loop$acc) {
   while (true) {
     let src = loop$src;
@@ -6207,7 +6331,7 @@ function do_scan(loop$src, loop$acc) {
                 throw makeError(
                   "let_assert",
                   "squared_away/squared_away_lang/scanner",
-                  89,
+                  124,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $1 }
@@ -6259,6 +6383,22 @@ function scan(src) {
       })(),
       toList([])
     );
+  } else if ($.startsWith("$")) {
+    let rest = $.slice(1);
+    let $1 = parse_usd_literal(rest);
+    if (!$1.isOk()) {
+      let e = $1[0];
+      return new Error(e);
+    } else if ($1.isOk() && $1[0][1] === "") {
+      let n = $1[0][0];
+      return new Ok(toList([new UsdLiteral3(n)]));
+    } else {
+      return new Error(
+        new ScanError(
+          "Unexpected content after $ literal. If you're typing a formula, be sure to add an equal sign in front."
+        )
+      );
+    }
   } else {
     let txt = $;
     let $1 = parse(txt);
@@ -6592,6 +6732,9 @@ function typecheck(env, expr) {
   } else if (expr instanceof FloatLiteral) {
     let f = expr.f;
     return new Ok(new FloatLiteral2(new TFloat(), f));
+  } else if (expr instanceof UsdLiteral) {
+    let cents = expr.cents;
+    return new Ok(new UsdLiteral2(new TUsd(), cents));
   } else if (expr instanceof IntegerLiteral) {
     let n = expr.n;
     return new Ok(new IntegerLiteral2(new TInt(), n));
@@ -6613,6 +6756,8 @@ function typecheck(env, expr) {
         if (op instanceof Negate && $ instanceof TInt) {
           return new Ok(new UnaryOp2(expr2.type_, op, expr2));
         } else if (op instanceof Negate && $ instanceof TFloat) {
+          return new Ok(new UnaryOp2(expr2.type_, op, expr2));
+        } else if (op instanceof Negate && $ instanceof TUsd) {
           return new Ok(new UnaryOp2(expr2.type_, op, expr2));
         } else if (op instanceof Not && $ instanceof TBool) {
           return new Ok(new UnaryOp2(expr2.type_, op, expr2));
@@ -6647,6 +6792,10 @@ function typecheck(env, expr) {
               return new Ok(
                 new BinaryOp2(new TInt(), lhs2, op, rhs2)
               );
+            } else if ($ instanceof TUsd && op instanceof Add && $1 instanceof TUsd) {
+              return new Ok(
+                new BinaryOp2(new TUsd(), lhs2, op, rhs2)
+              );
             } else if (op instanceof Add) {
               return new Error(
                 new TypeError2(
@@ -6665,6 +6814,10 @@ function typecheck(env, expr) {
               return new Ok(
                 new BinaryOp2(new TInt(), lhs2, op, rhs2)
               );
+            } else if ($ instanceof TUsd && op instanceof Subtract && $1 instanceof TUsd) {
+              return new Ok(
+                new BinaryOp2(new TUsd(), lhs2, op, rhs2)
+              );
             } else if ($ instanceof TFloat && op instanceof Multiply && $1 instanceof TFloat) {
               return new Ok(
                 new BinaryOp2(new TFloat(), lhs2, op, rhs2)
@@ -6680,6 +6833,10 @@ function typecheck(env, expr) {
             } else if ($ instanceof TInt && op instanceof Divide && $1 instanceof TInt) {
               return new Ok(
                 new BinaryOp2(new TInt(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TUsd && op instanceof Divide && $1 instanceof TUsd) {
+              return new Ok(
+                new BinaryOp2(new TFloat(), lhs2, op, rhs2)
               );
             } else if ($ instanceof TFloat && op instanceof Power && $1 instanceof TFloat) {
               return new Ok(
@@ -6896,12 +7053,12 @@ function uploadFile() {
 
 // build/dev/javascript/squared_away/squared_away.mjs
 var Model2 = class extends CustomType {
-  constructor(holding_shift, grid_width, grid_height, display_mode, display_coords, active_cell, src_grid, value_grid, errors_to_display) {
+  constructor(holding_shift, grid_width, grid_height, display_formulas, display_coords, active_cell, src_grid, value_grid, errors_to_display) {
     super();
     this.holding_shift = holding_shift;
     this.grid_width = grid_width;
     this.grid_height = grid_height;
-    this.display_mode = display_mode;
+    this.display_formulas = display_formulas;
     this.display_coords = display_coords;
     this.active_cell = active_cell;
     this.src_grid = src_grid;
@@ -6909,13 +7066,9 @@ var Model2 = class extends CustomType {
     this.errors_to_display = errors_to_display;
   }
 };
-var DisplayValues = class extends CustomType {
-};
-var DisplayFormulas = class extends CustomType {
-};
 var Noop = class extends CustomType {
 };
-var UserToggledDisplayMode = class extends CustomType {
+var UserToggledFormulaMode = class extends CustomType {
   constructor(to) {
     super();
     this.to = to;
@@ -7100,11 +7253,11 @@ function view(model) {
               let id2 = id(to_string7(key));
               let value3 = (() => {
                 let _pipe$32 = (() => {
-                  let $2 = model.display_mode;
+                  let $2 = model.display_formulas;
                   let $12 = isEqual(model.active_cell, new Some(key));
-                  if ($2 instanceof DisplayFormulas) {
+                  if ($2) {
                     return get4(model.src_grid, key);
-                  } else if ($2 instanceof DisplayValues && $12) {
+                  } else if (!$2 && $12) {
                     return get4(model.src_grid, key);
                   } else {
                     let $22 = get4(model.value_grid, key);
@@ -7209,14 +7362,11 @@ function view(model) {
   );
   let formula_mode_toggle = input(
     toList([
-      type_("radio"),
-      name("display_mode"),
+      type_("checkbox"),
       id("formula_mode"),
-      on_check(
-        (_) => {
-          return new UserToggledDisplayMode(new DisplayFormulas());
-        }
-      )
+      on_check((var0) => {
+        return new UserToggledFormulaMode(var0);
+      })
     ])
   );
   let formula_mode_toggle_label = label(
@@ -7236,22 +7386,6 @@ function view(model) {
     toList([for$("grid_mode")]),
     t("Show grid coordinates")
   );
-  let value_mode_toggle = input(
-    toList([
-      type_("radio"),
-      name("display_mode"),
-      id("value_mode"),
-      on_check(
-        (_) => {
-          return new UserToggledDisplayMode(new DisplayValues());
-        }
-      )
-    ])
-  );
-  let value_mode_toggle_label = label(
-    toList([for$("value_mode")]),
-    t("Show evaluated values")
-  );
   let save_button = button(
     toList([on_click(new UserClickedSaveBtn())]),
     t("Save")
@@ -7269,8 +7403,6 @@ function view(model) {
   return div(
     toList([]),
     toList([
-      value_mode_toggle,
-      value_mode_toggle_label,
       formula_mode_toggle,
       formula_mode_toggle_label,
       grid_mode_toggle,
@@ -7300,7 +7432,7 @@ function init2(_) {
       false,
       initial_grid_width,
       initial_grid_height,
-      new DisplayValues(),
+      false,
       false,
       new None(),
       src_grid,
@@ -7321,9 +7453,12 @@ function update(model, msg) {
       src_grid: insert4(model.src_grid, key, val)
     });
     return [update_grid(model$1), none()];
-  } else if (msg instanceof UserToggledDisplayMode) {
-    let display_mode = msg.to;
-    return [model.withFields({ display_mode }), none()];
+  } else if (msg instanceof UserToggledFormulaMode) {
+    let display_formulas = msg.to;
+    return [
+      model.withFields({ display_formulas }),
+      none()
+    ];
   } else if (msg instanceof UserToggledDisplayCoords) {
     let display_coords = msg.to;
     return [
@@ -7384,7 +7519,7 @@ function update(model, msg) {
               throw makeError(
                 "let_assert",
                 "squared_away",
-                167,
+                162,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: maybe_expr }
@@ -7399,7 +7534,7 @@ function update(model, msg) {
                   throw makeError(
                     "let_assert",
                     "squared_away",
-                    177,
+                    172,
                     "",
                     "Pattern match failed, no pattern matched the value.",
                     { value: $1 }
@@ -7429,7 +7564,7 @@ function update(model, msg) {
                           throw makeError(
                             "let_assert",
                             "squared_away",
-                            198,
+                            193,
                             "",
                             "Pattern match failed, no pattern matched the value.",
                             { value: $2 }
@@ -7492,7 +7627,7 @@ function update(model, msg) {
               throw makeError(
                 "let_assert",
                 "squared_away",
-                241,
+                236,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: maybe_expr }
@@ -7507,7 +7642,7 @@ function update(model, msg) {
                   throw makeError(
                     "let_assert",
                     "squared_away",
-                    248,
+                    243,
                     "",
                     "Pattern match failed, no pattern matched the value.",
                     { value: $1 }
@@ -7537,7 +7672,7 @@ function update(model, msg) {
                           throw makeError(
                             "let_assert",
                             "squared_away",
-                            268,
+                            263,
                             "",
                             "Pattern match failed, no pattern matched the value.",
                             { value: $2 }

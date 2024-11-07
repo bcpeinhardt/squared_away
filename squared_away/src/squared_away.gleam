@@ -1,7 +1,7 @@
+import gleam/javascript/promise
 import gleam/bool
 import gleam/dict
 import gleam/int
-import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
@@ -11,12 +11,12 @@ import lustre/effect
 import lustre/element
 import lustre/element/html
 import lustre/event
-import renderable_error
-import squared_away_lang as lang
-import squared_away_lang/error
-import squared_away_lang/grid
-import squared_away_lang/interpreter/value
-import squared_away_lang/typechecker/typed_expr
+import squared_away/renderable_error
+import squared_away/squared_away_lang as lang
+import squared_away/squared_away_lang/error
+import squared_away/squared_away_lang/grid
+import squared_away/squared_away_lang/interpreter/value
+import squared_away/squared_away_lang/typechecker/typed_expr
 
 const initial_grid_width = 7
 
@@ -31,6 +31,12 @@ pub fn main() {
 
 @external(javascript, "./squared_away_ffi.js", "focus")
 fn focus(id: String) -> Nil
+
+@external(javascript, "./squared_away_ffi.js", "saveFile")
+fn save_file(content: String, filename: String) -> Nil
+
+@external(javascript, "./squared_away_ffi.js", "uploadFile")
+fn upload_file() -> promise.Promise(String)
 
 /// To start, our model will be a 5x5 grid of Strings
 type Model {
@@ -83,10 +89,13 @@ type Msg {
   UserFocusedOffCell
   UserHitKeyInCell(key: grid.GridKey, keyboard_key: String)
   UserReleasedKeyInCell(keyboard_key: String)
+  UserClickedSaveBtn
+  UserUploadedFile(path: String)
+  FileUploadComplete(file_content: String)
 }
 
 fn update_grid(model: Model) -> Model {
-  let scanned = lang.scan_grid(model.src_grid) |> io.debug
+  let scanned = lang.scan_grid(model.src_grid)
   let parsed = lang.parse_grid(scanned)
   let typechecked = lang.typecheck_grid(parsed)
   let value_grid = lang.interpret_grid(typechecked)
@@ -294,6 +303,32 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
         _ -> #(model, effect.none())
       }
     }
+    UserClickedSaveBtn -> {
+      let content = grid.src_csv(model.src_grid)
+      save_file(content, "myspreadsheet.csv")
+
+      #(model, effect.none())
+    }
+    UserUploadedFile(_) -> {
+      let get_file_contents_effect = effect.from(fn(dispatch) {
+        promise.await(upload_file(), fn(file_content) {
+            promise.new(fn(resolve) {
+              dispatch(FileUploadComplete(file_content))
+              resolve(Nil)
+            })
+        })
+        Nil
+      })
+
+      
+      #(model, get_file_contents_effect)
+    }
+    FileUploadComplete(file_content) -> {
+      let src_grid = file_content |> grid.from_src_csv(initial_grid_width, initial_grid_height)
+      let new_model = Model(..model, src_grid:) |> update_grid
+      #(new_model, effect.none())
+    }
+    
   }
 }
 
@@ -432,6 +467,10 @@ fn view(model: Model) -> element.Element(Msg) {
   let value_mode_toggle_label =
     html.label([attribute.for("value_mode")], t("Show evaluated values"))
 
+  let save_button = html.button([event.on_click(UserClickedSaveBtn)], t("Save"))
+  let load_label = html.label([], t("Load file"))
+  let load_button = html.input([attribute.type_("file"), attribute.id("csvupload"), event.on_input(UserUploadedFile)])
+
   html.div([], [
     value_mode_toggle,
     value_mode_toggle_label,
@@ -439,6 +478,9 @@ fn view(model: Model) -> element.Element(Msg) {
     formula_mode_toggle_label,
     grid_mode_toggle,
     grid_mode_toggle_label,
+    save_button,
+    load_label,
+    load_button,
     html.br([]),
     html.br([]),
     grid,

@@ -79,6 +79,7 @@ pub fn typecheck(
         [typ.TFloat] -> Ok(typed_expr.BuiltinSum(typ.TFloat, keys))
         [typ.TInt] -> Ok(typed_expr.BuiltinSum(typ.TInt, keys))
         [typ.TUsd] -> Ok(typed_expr.BuiltinSum(typ.TUsd, keys))
+        [typ.TPercent] -> Ok(typed_expr.BuiltinSum(typ.TPercent, keys))
         _ ->
           Error(
             error.TypeError(type_error.TypeError(
@@ -252,13 +253,9 @@ pub fn typecheck(
           Ok(typed_expr.BinaryOp(type_: typ.TInt, lhs:, op:, rhs:))
         typ.TUsd, expr.Add, typ.TUsd ->
           Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
+        typ.TPercent, expr.Add, typ.TPercent ->
+          Ok(typed_expr.BinaryOp(type_: typ.TPercent, lhs:, op:, rhs:))
 
-        // We *could* implement adding percents here, but why?
-        // Adding percents only makes sense when they have a common base,
-        // i.e. 20% of a pizza plus 30% of a pizza = 50% of a pizza.
-        //
-        // I think the type signature of that is 
-        // Pizza + Pizza = Pizza, not Percent + Percent = Percent.
         _, expr.Add, _ ->
           Error(
             error.TypeError(type_error.IncorrectTypesForBinaryOp(
@@ -275,6 +272,8 @@ pub fn typecheck(
           Ok(typed_expr.BinaryOp(type_: typ.TInt, lhs:, op:, rhs:))
         typ.TUsd, expr.Subtract, typ.TUsd ->
           Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
+        typ.TPercent, expr.Subtract, typ.TPercent ->
+          Ok(typed_expr.BinaryOp(type_: typ.TPercent, lhs:, op:, rhs:))
 
         // Multiplication
         typ.TFloat, expr.Multiply, typ.TFloat ->
@@ -287,8 +286,6 @@ pub fn typecheck(
           Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
         typ.TPercent, expr.Multiply, typ.TUsd ->
           Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
-        typ.TPercent, expr.Multiply, typ.TPercent ->
-          Ok(typed_expr.BinaryOp(type_: typ.TPercent, lhs:, op:, rhs:))
         typ.TPercent, expr.Multiply, some_type ->
           Ok(typed_expr.BinaryOp(type_: some_type, lhs:, op:, rhs:))
         some_type, expr.Multiply, typ.TPercent ->
@@ -303,6 +300,10 @@ pub fn typecheck(
           Ok(typed_expr.BinaryOp(type_: typ.TFloat, lhs:, op:, rhs:))
         typ.TUsd, expr.Divide, typ.TInt ->
           Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
+        typ.TPercent, expr.Divide, some_type ->
+          Ok(typed_expr.BinaryOp(type_: some_type, lhs:, op:, rhs:))
+        some_type, expr.Divide, typ.TPercent ->
+          Ok(typed_expr.BinaryOp(type_: some_type, lhs:, op:, rhs:))
 
         // Power
         typ.TFloat, expr.Power, typ.TFloat | typ.TInt, expr.Power, typ.TFloat ->
@@ -329,6 +330,10 @@ pub fn typecheck(
         | typ.TUsd, expr.LessThanOrEqualCheck, typ.TUsd
         | typ.TUsd, expr.GreaterThanOrEqualCheck, typ.TUsd
         | typ.TUsd, expr.GreaterThanCheck, typ.TUsd
+        | typ.TPercent, expr.LessThanCheck, typ.TPercent
+        | typ.TPercent, expr.LessThanOrEqualCheck, typ.TPercent
+        | typ.TPercent, expr.GreaterThanOrEqualCheck, typ.TPercent
+        | typ.TPercent, expr.GreaterThanCheck, typ.TPercent
         -> Ok(typed_expr.BinaryOp(type_: typ.TBool, lhs:, op:, rhs:))
 
         // Boolean Operations

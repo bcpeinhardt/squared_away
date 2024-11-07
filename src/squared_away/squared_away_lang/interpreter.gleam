@@ -250,6 +250,14 @@ pub fn interpret(
           |> bigi.sum
           |> value.Usd
           |> Ok
+        typ.TPercent ->
+          list.map(values, fn(v) {
+            let assert value.Percent(p) = v
+            p
+          })
+          |> int.sum
+          |> value.Percent
+          |> Ok
         _ ->
           Error(
             error.RuntimeError(runtime_error.RuntimeError(

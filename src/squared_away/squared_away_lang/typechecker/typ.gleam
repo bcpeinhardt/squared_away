@@ -19,6 +19,5 @@ pub fn to_string(typ: Typ) {
     TTestResult -> "Test Result (Pass or Fail)"
     TUsd -> "Usd"
     TPercent -> "Percent"
-    
   }
 }

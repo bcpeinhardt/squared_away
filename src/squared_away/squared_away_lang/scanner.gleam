@@ -1,10 +1,10 @@
+import bigi
 import gleam/float
 import gleam/int
 import gleam/list
 import gleam/option
 import gleam/result
 import gleam/string
-import bigi
 
 import squared_away/squared_away_lang/scanner/scan_error
 import squared_away/squared_away_lang/scanner/token
@@ -20,11 +20,15 @@ pub fn scan(src: String) -> Result(List(token.Token), scan_error.ScanError) {
 
     // A formual starts with an = sign
     "=" <> rest -> do_scan(rest |> string.trim_left, [])
-    "$" <> rest -> case parse_usd_literal(rest) {
-      Error(e) -> Error(e)
-      Ok(#(n, "")) -> Ok([token.UsdLiteral(cents: n)])
-      _ -> Error(scan_error.ScanError("Unexpected content after $ literal. If you're typing a formula, be sure to add an equal sign in front."))
-    }
+    "$" <> rest ->
+      case parse_usd_literal(rest) {
+        Error(e) -> Error(e)
+        Ok(#(n, "")) -> Ok([token.UsdLiteral(cents: n)])
+        _ ->
+          Error(scan_error.ScanError(
+            "Unexpected content after $ literal. If you're typing a formula, be sure to add an equal sign in front.",
+          ))
+      }
 
     txt -> {
       // We need to try and parse the text as a number literal
@@ -42,20 +46,22 @@ pub fn scan(src: String) -> Result(List(token.Token), scan_error.ScanError) {
                   // There should be an integer between 0 and 100 inclusive in front
                   let percent = string.drop_right(txt, 1)
                   case int.parse(percent) {
-                     Ok(p) if p <= 100 && p >= 0 -> Ok([token.PercentLiteral(p)])
-                     Ok(_) | Error(_) -> Error(scan_error.ScanError("Percent literal must be an integer b/w 0 and 100 inclusive."))
+                    Ok(p) if p <= 100 && p >= 0 -> Ok([token.PercentLiteral(p)])
+                    Ok(_) | Error(_) ->
+                      Error(scan_error.ScanError(
+                        "Percent literal must be an integer b/w 0 and 100 inclusive.",
+                      ))
                   }
                 }
-                False -> case parse_identifier(txt, "") {
-                Ok(#(ident, "")) -> Ok([token.LabelDef(ident)])
-                _ ->
-                  Error(scan_error.ScanError(
-                    "Not a label definition, boolean, float, or integer. Are you possibly missing an `=` sign?",
-                  ))
+                False ->
+                  case parse_identifier(txt, "") {
+                    Ok(#(ident, "")) -> Ok([token.LabelDef(ident)])
+                    _ ->
+                      Error(scan_error.ScanError(
+                        "Not a label definition, boolean, float, or integer. Are you possibly missing an `=` sign?",
+                      ))
+                  }
               }
-              }
-
-              
             }
           }
       }
@@ -81,7 +87,13 @@ fn parse_usd_literal(
                 "Expected 2 decimal places following `.` character in usd literal",
               ))
             Ok(#(cents, rest)) if cents > 0 && cents < 100 ->
-              Ok(#(bigi.multiply(dollars, bigi.from_int(100) |> bigi.add(bigi.from_int(cents))), rest))
+              Ok(#(
+                bigi.multiply(
+                  dollars,
+                  bigi.from_int(100) |> bigi.add(bigi.from_int(cents)),
+                ),
+                rest,
+              ))
             Ok(#(_, _)) ->
               Error(scan_error.ScanError(
                 "Usd literal must have zero or two decimal places.",
@@ -123,10 +135,12 @@ fn do_scan(
     "_" <> rest -> do_scan(string.trim_left(rest), [token.Underscore, ..acc])
     "sum" <> rest ->
       do_scan(string.trim_left(rest), [token.BuiltinSum(option.None), ..acc])
-    "$" <> rest -> case parse_usd_literal(rest) {
-      Error(e) -> Error(e)
-      Ok(#(cents, rest)) -> do_scan(string.trim_left(rest), [token.UsdLiteral(cents:), ..acc])
-    }
+    "$" <> rest ->
+      case parse_usd_literal(rest) {
+        Error(e) -> Error(e)
+        Ok(#(cents, rest)) ->
+          do_scan(string.trim_left(rest), [token.UsdLiteral(cents:), ..acc])
+      }
     _ -> {
       case parse_integer(src, "") {
         Ok(#(n, rest)) -> {
@@ -144,7 +158,10 @@ fn do_scan(
               do_scan(string.trim_left(rest), [token.FloatLiteral(f), ..acc])
             }
             "%" <> rest if n >= 0 && n <= 100 -> {
-              do_scan(string.trim_left(rest), [token.PercentLiteral(percent: n), ..acc])
+              do_scan(string.trim_left(rest), [
+                token.PercentLiteral(percent: n),
+                ..acc
+              ])
             }
             _ ->
               do_scan(string.trim_left(rest), [token.IntegerLiteral(n), ..acc])
@@ -248,7 +265,10 @@ fn parse_integer(src: String, acc: String) -> Result(#(Int, String), Nil) {
   }
 }
 
-fn parse_integer_text(src: String, acc: String) -> Result(#(String, String), Nil) {
+fn parse_integer_text(
+  src: String,
+  acc: String,
+) -> Result(#(String, String), Nil) {
   case src {
     "1" as x <> rest
     | "2" as x <> rest

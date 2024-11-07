@@ -219,7 +219,8 @@ pub fn typecheck(
       Ok(typed_expr.BooleanLiteral(type_: typ.TBool, b:))
     expr.FloatLiteral(f) -> Ok(typed_expr.FloatLiteral(type_: typ.TFloat, f:))
     expr.UsdLiteral(cents) -> Ok(typed_expr.UsdLiteral(type_: typ.TUsd, cents:))
-    expr.PercentLiteral(percent) -> Ok(typed_expr.PercentLiteral(type_: typ.TPercent, percent:))
+    expr.PercentLiteral(percent) ->
+      Ok(typed_expr.PercentLiteral(type_: typ.TPercent, percent:))
     expr.IntegerLiteral(n) -> Ok(typed_expr.IntegerLiteral(type_: typ.TInt, n:))
     expr.Group(inner) -> {
       use expr <- result.try(typecheck(env, inner))
@@ -280,13 +281,13 @@ pub fn typecheck(
           Ok(typed_expr.BinaryOp(type_: typ.TFloat, lhs:, op:, rhs:))
         typ.TInt, expr.Multiply, typ.TInt ->
           Ok(typed_expr.BinaryOp(type_: typ.TInt, lhs:, op:, rhs:))
-        typ.TUsd, expr.Multiply, typ.TInt -> 
+        typ.TUsd, expr.Multiply, typ.TInt ->
           Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
-        typ.TUsd, expr.Multiply, typ.TPercent -> 
+        typ.TUsd, expr.Multiply, typ.TPercent ->
           Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
-        typ.TPercent, expr.Multiply, typ.TUsd -> 
+        typ.TPercent, expr.Multiply, typ.TUsd ->
           Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
-        typ.TPercent, expr.Multiply, typ.TPercent -> 
+        typ.TPercent, expr.Multiply, typ.TPercent ->
           Ok(typed_expr.BinaryOp(type_: typ.TPercent, lhs:, op:, rhs:))
         typ.TPercent, expr.Multiply, some_type ->
           Ok(typed_expr.BinaryOp(type_: some_type, lhs:, op:, rhs:))
@@ -300,7 +301,7 @@ pub fn typecheck(
           Ok(typed_expr.BinaryOp(type_: typ.TInt, lhs:, op:, rhs:))
         typ.TUsd, expr.Divide, typ.TUsd ->
           Ok(typed_expr.BinaryOp(type_: typ.TFloat, lhs:, op:, rhs:))
-        typ.TUsd, expr.Divide, typ.TInt -> 
+        typ.TUsd, expr.Divide, typ.TInt ->
           Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
 
         // Power

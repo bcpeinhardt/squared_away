@@ -1,7 +1,7 @@
 import bigi
-import gleam/string
 import gleam/float
 import gleam/int
+import gleam/string
 import squared_away/squared_away_lang/grid
 import squared_away/squared_away_lang/parser/expr
 import squared_away/squared_away_lang/typechecker/typ
@@ -85,7 +85,7 @@ pub fn to_string(te: TypedExpr) -> String {
       let cents = bigi.modulo(cents, bigi.from_int(100)) |> bigi.to_string
       let cents = case string.length(cents) {
         1 -> cents <> "0"
-        2 -> cents 
+        2 -> cents
         _ -> panic as "This shit shouldn't happen"
       }
 

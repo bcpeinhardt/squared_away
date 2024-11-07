@@ -185,11 +185,15 @@ pub fn interpret(
         value.Integer(i), expr.Multiply, value.Usd(c) ->
           Ok(value.Usd(bigi.multiply(c, bigi.from_int(i))))
         value.Usd(c), expr.Multiply, value.Percent(p) -> {
-          let cents = bigi.multiply(c, bigi.from_int(p)) |> bigi.divide(bigi.from_int(100))
+          let cents =
+            bigi.multiply(c, bigi.from_int(p))
+            |> bigi.divide(bigi.from_int(100))
           Ok(value.Usd(cents))
         }
         value.Percent(p), expr.Multiply, value.Usd(c) -> {
-          let cents = bigi.multiply(c, bigi.from_int(p)) |> bigi.divide(bigi.from_int(100))
+          let cents =
+            bigi.multiply(c, bigi.from_int(p))
+            |> bigi.divide(bigi.from_int(100))
           Ok(value.Usd(cents))
         }
 
@@ -246,8 +250,12 @@ pub fn interpret(
           |> bigi.sum
           |> value.Usd
           |> Ok
-        _ -> 
-          Error(error.RuntimeError(runtime_error.RuntimeError("internal compiler error sum function interpret")))
+        _ ->
+          Error(
+            error.RuntimeError(runtime_error.RuntimeError(
+              "internal compiler error sum function interpret",
+            )),
+          )
       }
     }
   }

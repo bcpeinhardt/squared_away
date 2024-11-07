@@ -31,7 +31,7 @@ pub fn value_to_string(fv: Value) -> String {
       let cents = bigi.modulo(cents, bigi.from_int(100)) |> bigi.to_string
       let cents = case string.length(cents) {
         1 -> cents <> "0"
-        2 -> cents 
+        2 -> cents
         _ -> panic as "This shit shouldn't happen"
       }
 

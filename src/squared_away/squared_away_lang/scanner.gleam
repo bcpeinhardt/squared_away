@@ -33,16 +33,28 @@ pub fn scan(src: String) -> Result(List(token.Token), scan_error.ScanError) {
           case int.parse(txt) {
             Ok(i) -> Ok([token.IntegerLiteral(i)])
 
-            // If it's not a Bool. Float, Or Int Literal, and it doesn't
+            // If it's not a Bool, Float, Int, Usd, or Percent Literal, and it doesn't
             // start with a = sign, it's a LabelDef
             Error(_) -> {
-              case parse_identifier(txt, "") {
+              case string.ends_with(txt, "%") {
+                True -> {
+                  // There should be an integer between 0 and 100 inclusive in front
+                  let percent = string.drop_right(txt, 1)
+                  case int.parse(percent) {
+                     Ok(p) if p <= 100 && p >= 0 -> Ok([token.PercentLiteral(p)])
+                     Ok(_) | Error(_) -> Error(scan_error.ScanError("Percent literal must be an integer b/w 0 and 100 inclusive."))
+                  }
+                }
+                False -> case parse_identifier(txt, "") {
                 Ok(#(ident, "")) -> Ok([token.LabelDef(ident)])
                 _ ->
                   Error(scan_error.ScanError(
                     "Not a label definition, boolean, float, or integer. Are you possibly missing an `=` sign?",
                   ))
               }
+              }
+
+              
             }
           }
       }
@@ -109,6 +121,10 @@ fn do_scan(
     "_" <> rest -> do_scan(string.trim_left(rest), [token.Underscore, ..acc])
     "sum" <> rest ->
       do_scan(string.trim_left(rest), [token.BuiltinSum(option.None), ..acc])
+    "$" <> rest -> case parse_usd_literal(rest) {
+      Error(e) -> Error(e)
+      Ok(#(cents, rest)) -> do_scan(string.trim_left(rest), [token.UsdLiteral(cents:), ..acc])
+    }
     _ -> {
       case parse_integer(src, "") {
         Ok(#(n, rest)) -> {
@@ -124,6 +140,9 @@ fn do_scan(
               let assert Ok(f) =
                 float.parse(int.to_string(n) <> "." <> int.to_string(m))
               do_scan(string.trim_left(rest), [token.FloatLiteral(f), ..acc])
+            }
+            "%" <> rest if n >= 0 && n <= 100 -> {
+              do_scan(string.trim_left(rest), [token.PercentLiteral(percent: n), ..acc])
             }
             _ ->
               do_scan(string.trim_left(rest), [token.IntegerLiteral(n), ..acc])

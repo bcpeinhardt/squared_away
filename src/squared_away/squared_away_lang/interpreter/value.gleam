@@ -9,6 +9,7 @@ pub type Value {
   Integer(n: Int)
   FloatingPointNumber(f: Float)
   Usd(cents: Int)
+  Percent(percent: Int)
   Boolean(b: Bool)
   TestFail
   TestPass
@@ -21,6 +22,7 @@ pub fn value_to_string(fv: Value) -> String {
     Integer(n) -> int.to_string(n)
     Boolean(b) -> bool.to_string(b) |> string.uppercase
     FloatingPointNumber(f) -> float.to_string(f)
+    Percent(p) -> int.to_string(p) <> "%"
     TestFail -> "Test Failure"
     TestPass -> "Test Passing"
     Usd(cents) -> {

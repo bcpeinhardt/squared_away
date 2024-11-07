@@ -78,10 +78,11 @@ pub fn typecheck(
       case types {
         [typ.TFloat] -> Ok(typed_expr.BuiltinSum(typ.TFloat, keys))
         [typ.TInt] -> Ok(typed_expr.BuiltinSum(typ.TInt, keys))
+        [typ.TUsd] -> Ok(typed_expr.BuiltinSum(typ.TUsd, keys))
         _ ->
           Error(
             error.TypeError(type_error.TypeError(
-              "sum function used on cells of multiple types",
+              "sum function can only be used on floats, integers, and USD.",
             )),
           )
       }
@@ -218,6 +219,7 @@ pub fn typecheck(
       Ok(typed_expr.BooleanLiteral(type_: typ.TBool, b:))
     expr.FloatLiteral(f) -> Ok(typed_expr.FloatLiteral(type_: typ.TFloat, f:))
     expr.UsdLiteral(cents) -> Ok(typed_expr.UsdLiteral(type_: typ.TUsd, cents:))
+    expr.PercentLiteral(percent) -> Ok(typed_expr.PercentLiteral(type_: typ.TPercent, percent:))
     expr.IntegerLiteral(n) -> Ok(typed_expr.IntegerLiteral(type_: typ.TInt, n:))
     expr.Group(inner) -> {
       use expr <- result.try(typecheck(env, inner))
@@ -249,6 +251,13 @@ pub fn typecheck(
           Ok(typed_expr.BinaryOp(type_: typ.TInt, lhs:, op:, rhs:))
         typ.TUsd, expr.Add, typ.TUsd ->
           Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
+
+        // We *could* implement adding percents here, but why?
+        // Adding percents only makes sense when they have a common base,
+        // i.e. 20% of a pizza plus 30% of a pizza = 50% of a pizza.
+        //
+        // I think the type signature of that is 
+        // Pizza + Pizza = Pizza, not Percent + Percent = Percent.
         _, expr.Add, _ ->
           Error(
             error.TypeError(type_error.IncorrectTypesForBinaryOp(
@@ -271,6 +280,18 @@ pub fn typecheck(
           Ok(typed_expr.BinaryOp(type_: typ.TFloat, lhs:, op:, rhs:))
         typ.TInt, expr.Multiply, typ.TInt ->
           Ok(typed_expr.BinaryOp(type_: typ.TInt, lhs:, op:, rhs:))
+        typ.TUsd, expr.Multiply, typ.TInt -> 
+          Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
+        typ.TUsd, expr.Multiply, typ.TPercent -> 
+          Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
+        typ.TPercent, expr.Multiply, typ.TUsd -> 
+          Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
+        typ.TPercent, expr.Multiply, typ.TPercent -> 
+          Ok(typed_expr.BinaryOp(type_: typ.TPercent, lhs:, op:, rhs:))
+        typ.TPercent, expr.Multiply, some_type ->
+          Ok(typed_expr.BinaryOp(type_: some_type, lhs:, op:, rhs:))
+        some_type, expr.Multiply, typ.TPercent ->
+          Ok(typed_expr.BinaryOp(type_: some_type, lhs:, op:, rhs:))
 
         // Division
         typ.TFloat, expr.Divide, typ.TFloat ->
@@ -279,6 +300,8 @@ pub fn typecheck(
           Ok(typed_expr.BinaryOp(type_: typ.TInt, lhs:, op:, rhs:))
         typ.TUsd, expr.Divide, typ.TUsd ->
           Ok(typed_expr.BinaryOp(type_: typ.TFloat, lhs:, op:, rhs:))
+        typ.TUsd, expr.Divide, typ.TInt -> 
+          Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
 
         // Power
         typ.TFloat, expr.Power, typ.TFloat | typ.TInt, expr.Power, typ.TFloat ->
@@ -301,6 +324,10 @@ pub fn typecheck(
         | typ.TString, expr.LessThanOrEqualCheck, typ.TString
         | typ.TString, expr.GreaterThanOrEqualCheck, typ.TString
         | typ.TString, expr.GreaterThanCheck, typ.TString
+        | typ.TUsd, expr.LessThanCheck, typ.TUsd
+        | typ.TUsd, expr.LessThanOrEqualCheck, typ.TUsd
+        | typ.TUsd, expr.GreaterThanOrEqualCheck, typ.TUsd
+        | typ.TUsd, expr.GreaterThanCheck, typ.TUsd
         -> Ok(typed_expr.BinaryOp(type_: typ.TBool, lhs:, op:, rhs:))
 
         // Boolean Operations

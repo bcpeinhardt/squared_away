@@ -1127,6 +1127,9 @@ function string_slice(string3, idx, len) {
 function contains_string(haystack, needle) {
   return haystack.indexOf(needle) >= 0;
 }
+function ends_with(haystack, needle) {
+  return haystack.endsWith(needle);
+}
 var unicode_whitespaces = [
   " ",
   // Space
@@ -2382,6 +2385,17 @@ function drop_left(string3, num_graphemes) {
   } else {
     return slice(string3, num_graphemes, length2(string3) - num_graphemes);
   }
+}
+function drop_right(string3, num_graphemes) {
+  let $ = num_graphemes < 0;
+  if ($) {
+    return string3;
+  } else {
+    return slice(string3, 0, length2(string3) - num_graphemes);
+  }
+}
+function ends_with2(string3, suffix) {
+  return ends_with(string3, suffix);
 }
 function join2(strings, separator) {
   return join(strings, separator);
@@ -4271,6 +4285,12 @@ var UsdLiteral = class extends CustomType {
     this.cents = cents;
   }
 };
+var PercentLiteral = class extends CustomType {
+  constructor(percent) {
+    super();
+    this.percent = percent;
+  }
+};
 var LabelDef = class extends CustomType {
   constructor(txt) {
     super();
@@ -4415,6 +4435,8 @@ var TTestResult = class extends CustomType {
 };
 var TUsd = class extends CustomType {
 };
+var TPercent = class extends CustomType {
+};
 function to_string8(typ) {
   if (typ instanceof TNil) {
     return "Empty";
@@ -4428,8 +4450,10 @@ function to_string8(typ) {
     return "Boolean (True or False)";
   } else if (typ instanceof TTestResult) {
     return "Test Result (Pass or Fail)";
-  } else {
+  } else if (typ instanceof TUsd) {
     return "Usd";
+  } else {
+    return "Percent";
   }
 }
 
@@ -4570,6 +4594,12 @@ var Usd = class extends CustomType {
     this.cents = cents;
   }
 };
+var Percent = class extends CustomType {
+  constructor(percent) {
+    super();
+    this.percent = percent;
+  }
+};
 var Boolean = class extends CustomType {
   constructor(b) {
     super();
@@ -4596,6 +4626,9 @@ function value_to_string(fv) {
   } else if (fv instanceof FloatingPointNumber) {
     let f = fv.f;
     return to_string2(f);
+  } else if (fv instanceof Percent) {
+    let p2 = fv.percent;
+    return to_string3(p2) + "%";
   } else if (fv instanceof TestFail) {
     return "Test Failure";
   } else if (fv instanceof TestPass) {
@@ -4614,7 +4647,7 @@ function value_to_string(fv) {
         throw makeError(
           "panic",
           "squared_away/squared_away_lang/interpreter/value",
-          32,
+          34,
           "value_to_string",
           "This shit shouldn't happen",
           {}
@@ -4644,6 +4677,13 @@ var UsdLiteral2 = class extends CustomType {
     super();
     this.type_ = type_2;
     this.cents = cents;
+  }
+};
+var PercentLiteral2 = class extends CustomType {
+  constructor(type_2, percent) {
+    super();
+    this.type_ = type_2;
+    this.percent = percent;
   }
 };
 var Label2 = class extends CustomType {
@@ -4769,6 +4809,9 @@ function to_string9(te) {
   } else if (te instanceof IntegerLiteral2) {
     let i = te.n;
     return to_string3(i);
+  } else if (te instanceof PercentLiteral2) {
+    let p2 = te.percent;
+    return to_string3(p2) + "%";
   } else if (te instanceof Label2) {
     let l = te.txt;
     return l;
@@ -4805,7 +4848,7 @@ function to_string9(te) {
         throw makeError(
           "panic",
           "squared_away/squared_away_lang/typechecker/typed_expr",
-          86,
+          88,
           "to_string",
           "This shit shouldn't happen",
           {}
@@ -4829,6 +4872,9 @@ function interpret(loop$env, loop$expr) {
     } else if (expr instanceof UsdLiteral2) {
       let cents = expr.cents;
       return new Ok(new Usd(cents));
+    } else if (expr instanceof PercentLiteral2) {
+      let percent = expr.percent;
+      return new Ok(new Percent(percent));
     } else if (expr instanceof Group2) {
       let expr$1 = expr.expr;
       loop$env = env;
@@ -4925,7 +4971,7 @@ function interpret(loop$env, loop$expr) {
             throw makeError(
               "panic",
               "squared_away/squared_away_lang/interpreter",
-              84,
+              85,
               "",
               "These should be the only options if the typechecker is working",
               {}
@@ -5031,7 +5077,7 @@ function interpret(loop$env, loop$expr) {
                   throw makeError(
                     "let_assert",
                     "squared_away/squared_away_lang/interpreter",
-                    152,
+                    153,
                     "",
                     "Pattern match failed, no pattern matched the value.",
                     { value: $ }
@@ -5047,7 +5093,7 @@ function interpret(loop$env, loop$expr) {
                   throw makeError(
                     "let_assert",
                     "squared_away/squared_away_lang/interpreter",
-                    156,
+                    157,
                     "",
                     "Pattern match failed, no pattern matched the value.",
                     { value: $ }
@@ -5080,6 +5126,32 @@ function interpret(loop$env, loop$expr) {
                 } else {
                   return new Ok(new TestPass());
                 }
+              } else if (lhs2 instanceof Usd && op instanceof Add && rhs2 instanceof Usd) {
+                let c1 = lhs2.cents;
+                let c2 = rhs2.cents;
+                return new Ok(new Usd(c1 + c2));
+              } else if (lhs2 instanceof Usd && op instanceof Subtract && rhs2 instanceof Usd) {
+                let c1 = lhs2.cents;
+                let c2 = rhs2.cents;
+                return new Ok(new Usd(c1 - c2));
+              } else if (lhs2 instanceof Usd && op instanceof Multiply && rhs2 instanceof Integer) {
+                let c = lhs2.cents;
+                let i = rhs2.n;
+                return new Ok(new Usd(c * i));
+              } else if (lhs2 instanceof Integer && op instanceof Multiply && rhs2 instanceof Usd) {
+                let i = lhs2.n;
+                let c = rhs2.cents;
+                return new Ok(new Usd(c * i));
+              } else if (lhs2 instanceof Usd && op instanceof Multiply && rhs2 instanceof Percent) {
+                let c = lhs2.cents;
+                let p2 = rhs2.percent;
+                let cents = divideInt(c * p2, 100);
+                return new Ok(new Usd(cents));
+              } else if (lhs2 instanceof Percent && op instanceof Multiply && rhs2 instanceof Usd) {
+                let p2 = lhs2.percent;
+                let c = rhs2.cents;
+                let cents = divideInt(c * p2, 100);
+                return new Ok(new Usd(cents));
               } else {
                 let lhs$1 = lhs2;
                 let op$1 = op;
@@ -5089,13 +5161,8 @@ function interpret(loop$env, loop$expr) {
                 ) + binary_to_string(op$1) + value_to_string(
                   rhs$1
                 );
-                throw makeError(
-                  "panic",
-                  "squared_away/squared_away_lang/interpreter",
-                  182,
-                  "",
-                  msg,
-                  {}
+                return new Error(
+                  new RuntimeError2(new RuntimeError(msg))
                 );
               }
             }
@@ -5127,59 +5194,78 @@ function interpret(loop$env, loop$expr) {
           }
         );
       })();
-      let val = (() => {
-        if (type_2 instanceof TFloat) {
-          let _pipe = map2(
-            values,
-            (v) => {
-              if (!(v instanceof FloatingPointNumber)) {
-                throw makeError(
-                  "let_assert",
-                  "squared_away/squared_away_lang/interpreter",
-                  207,
-                  "",
-                  "Pattern match failed, no pattern matched the value.",
-                  { value: v }
-                );
-              }
-              let f = v.f;
-              return f;
+      if (type_2 instanceof TFloat) {
+        let _pipe = map2(
+          values,
+          (v) => {
+            if (!(v instanceof FloatingPointNumber)) {
+              throw makeError(
+                "let_assert",
+                "squared_away/squared_away_lang/interpreter",
+                226,
+                "",
+                "Pattern match failed, no pattern matched the value.",
+                { value: v }
+              );
             }
-          );
-          let _pipe$1 = sum(_pipe);
-          return new FloatingPointNumber(_pipe$1);
-        } else if (type_2 instanceof TInt) {
-          let _pipe = map2(
-            values,
-            (v) => {
-              if (!(v instanceof Integer)) {
-                throw makeError(
-                  "let_assert",
-                  "squared_away/squared_away_lang/interpreter",
-                  214,
-                  "",
-                  "Pattern match failed, no pattern matched the value.",
-                  { value: v }
-                );
-              }
-              let i = v.n;
-              return i;
+            let f = v.f;
+            return f;
+          }
+        );
+        let _pipe$1 = sum(_pipe);
+        let _pipe$2 = new FloatingPointNumber(_pipe$1);
+        return new Ok(_pipe$2);
+      } else if (type_2 instanceof TInt) {
+        let _pipe = map2(
+          values,
+          (v) => {
+            if (!(v instanceof Integer)) {
+              throw makeError(
+                "let_assert",
+                "squared_away/squared_away_lang/interpreter",
+                234,
+                "",
+                "Pattern match failed, no pattern matched the value.",
+                { value: v }
+              );
             }
-          );
-          let _pipe$1 = sum2(_pipe);
-          return new Integer(_pipe$1);
-        } else {
-          throw makeError(
-            "panic",
-            "squared_away/squared_away_lang/interpreter",
-            219,
-            "interpret",
-            "internal compiler error sum function interpret",
-            {}
-          );
-        }
-      })();
-      return new Ok(val);
+            let i = v.n;
+            return i;
+          }
+        );
+        let _pipe$1 = sum2(_pipe);
+        let _pipe$2 = new Integer(_pipe$1);
+        return new Ok(_pipe$2);
+      } else if (type_2 instanceof TUsd) {
+        let _pipe = map2(
+          values,
+          (v) => {
+            if (!(v instanceof Usd)) {
+              throw makeError(
+                "let_assert",
+                "squared_away/squared_away_lang/interpreter",
+                242,
+                "",
+                "Pattern match failed, no pattern matched the value.",
+                { value: v }
+              );
+            }
+            let c = v.cents;
+            return c;
+          }
+        );
+        let _pipe$1 = sum2(_pipe);
+        let _pipe$2 = new Usd(_pipe$1);
+        return new Ok(_pipe$2);
+      } else {
+        return new Error(
+          new RuntimeError2(
+            new RuntimeError(
+              "internal compiler error sum function interpret"
+            )
+          )
+        );
+      }
     }
   }
 }
@@ -5227,6 +5313,12 @@ var UsdLiteral3 = class extends CustomType {
   constructor(cents) {
     super();
     this.cents = cents;
+  }
+};
+var PercentLiteral3 = class extends CustomType {
+  constructor(percent) {
+    super();
+    this.percent = percent;
   }
 };
 var TrueToken = class extends CustomType {
@@ -5758,7 +5850,25 @@ function do_parse2(tokens) {
   } else if (tokens.atLeastLength(1) && tokens.head instanceof UsdLiteral3) {
     let cents = tokens.head.cents;
     let rest = tokens.tail;
-    return new Ok([new UsdLiteral(cents), rest]);
+    let $ = try_parse_binary_ops(rest);
+    if ($.isOk()) {
+      let op = $[0][0];
+      let rest$1 = $[0][1];
+      return new Ok([op(new UsdLiteral(cents)), rest$1]);
+    } else {
+      return new Ok([new UsdLiteral(cents), rest]);
+    }
+  } else if (tokens.atLeastLength(1) && tokens.head instanceof PercentLiteral3) {
+    let percent = tokens.head.percent;
+    let rest = tokens.tail;
+    let $ = try_parse_binary_ops(rest);
+    if ($.isOk()) {
+      let op = $[0][0];
+      let rest$1 = $[0][1];
+      return new Ok([op(new PercentLiteral(percent)), rest$1]);
+    } else {
+      return new Ok([new PercentLiteral(percent), rest]);
+    }
   } else if (tokens.atLeastLength(1) && tokens.head instanceof Minus) {
     let rest = tokens.tail;
     return try$(
@@ -6304,6 +6414,18 @@ function do_scan(loop$src, loop$acc) {
       let rest = src.slice(3);
       loop$src = trim_left2(rest);
       loop$acc = prepend(new BuiltinSum3(new None()), acc);
+    } else if (src.startsWith("$")) {
+      let rest = src.slice(1);
+      let $ = parse_usd_literal(rest);
+      if (!$.isOk()) {
+        let e = $[0];
+        return new Error(e);
+      } else {
+        let cents = $[0][0];
+        let rest$1 = $[0][1];
+        loop$src = trim_left2(rest$1);
+        loop$acc = prepend(new UsdLiteral3(cents), acc);
+      }
     } else {
       let $ = parse_integer(src, "");
       if ($.isOk()) {
@@ -6331,7 +6453,7 @@ function do_scan(loop$src, loop$acc) {
                 throw makeError(
                   "let_assert",
                   "squared_away/squared_away_lang/scanner",
-                  124,
+                  140,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $1 }
@@ -6344,6 +6466,10 @@ function do_scan(loop$src, loop$acc) {
               );
             }
           );
+        } else if (rest.startsWith("%") && (n >= 0 && n <= 100)) {
+          let rest$1 = rest.slice(1);
+          loop$src = trim_left2(rest$1);
+          loop$acc = prepend(new PercentLiteral3(n), acc);
         } else {
           loop$src = trim_left2(rest);
           loop$acc = prepend(new IntegerLiteral3(n), acc);
@@ -6411,16 +6537,38 @@ function scan(src) {
         let i = $2[0];
         return new Ok(toList([new IntegerLiteral3(i)]));
       } else {
-        let $3 = parse_identifier(txt, "");
-        if ($3.isOk() && $3[0][1] === "") {
-          let ident = $3[0][0];
-          return new Ok(toList([new LabelDef3(ident)]));
+        let $3 = ends_with2(txt, "%");
+        if ($3) {
+          let percent = drop_right(txt, 1);
+          let $4 = parse2(percent);
+          if ($4.isOk() && ($4[0] <= 100 && $4[0] >= 0)) {
+            let p2 = $4[0];
+            return new Ok(toList([new PercentLiteral3(p2)]));
+          } else if ($4.isOk()) {
+            return new Error(
+              new ScanError(
+                "Percent literal must be an integer b/w 0 and 100 inclusive."
+              )
+            );
+          } else {
+            return new Error(
+              new ScanError(
+                "Percent literal must be an integer b/w 0 and 100 inclusive."
+              )
+            );
+          }
         } else {
-          return new Error(
-            new ScanError(
-              "Not a label definition, boolean, float, or integer. Are you possibly missing an `=` sign?"
-            )
-          );
+          let $4 = parse_identifier(txt, "");
+          if ($4.isOk() && $4[0][1] === "") {
+            let ident = $4[0][0];
+            return new Ok(toList([new LabelDef3(ident)]));
+          } else {
+            return new Error(
+              new ScanError(
+                "Not a label definition, boolean, float, or integer. Are you possibly missing an `=` sign?"
+              )
+            );
+          }
         }
       }
     }
@@ -6550,11 +6698,13 @@ function typecheck(env, expr) {
               return new Ok(new BuiltinSum2(new TFloat(), keys2));
             } else if (types$1.hasLength(1) && types$1.head instanceof TInt) {
               return new Ok(new BuiltinSum2(new TInt(), keys2));
+            } else if (types$1.hasLength(1) && types$1.head instanceof TUsd) {
+              return new Ok(new BuiltinSum2(new TUsd(), keys2));
             } else {
               return new Error(
                 new TypeError2(
                   new TypeError(
-                    "sum function used on cells of multiple types"
+                    "sum function can only be used on floats, integers, and USD."
                   )
                 )
               );
@@ -6735,6 +6885,9 @@ function typecheck(env, expr) {
   } else if (expr instanceof UsdLiteral) {
     let cents = expr.cents;
     return new Ok(new UsdLiteral2(new TUsd(), cents));
+  } else if (expr instanceof PercentLiteral) {
+    let percent = expr.percent;
+    return new Ok(new PercentLiteral2(new TPercent(), percent));
   } else if (expr instanceof IntegerLiteral) {
     let n = expr.n;
     return new Ok(new IntegerLiteral2(new TInt(), n));
@@ -6826,6 +6979,28 @@ function typecheck(env, expr) {
               return new Ok(
                 new BinaryOp2(new TInt(), lhs2, op, rhs2)
               );
+            } else if ($ instanceof TUsd && op instanceof Multiply && $1 instanceof TInt) {
+              return new Ok(
+                new BinaryOp2(new TUsd(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TUsd && op instanceof Multiply && $1 instanceof TPercent) {
+              return new Ok(
+                new BinaryOp2(new TUsd(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TPercent && op instanceof Multiply && $1 instanceof TUsd) {
+              return new Ok(
+                new BinaryOp2(new TUsd(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TPercent && op instanceof Multiply && $1 instanceof TPercent) {
+              return new Ok(
+                new BinaryOp2(new TPercent(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TPercent && op instanceof Multiply) {
+              let some_type = $1;
+              return new Ok(new BinaryOp2(some_type, lhs2, op, rhs2));
+            } else if (op instanceof Multiply && $1 instanceof TPercent) {
+              let some_type = $;
+              return new Ok(new BinaryOp2(some_type, lhs2, op, rhs2));
             } else if ($ instanceof TFloat && op instanceof Divide && $1 instanceof TFloat) {
               return new Ok(
                 new BinaryOp2(new TFloat(), lhs2, op, rhs2)
@@ -6837,6 +7012,10 @@ function typecheck(env, expr) {
             } else if ($ instanceof TUsd && op instanceof Divide && $1 instanceof TUsd) {
               return new Ok(
                 new BinaryOp2(new TFloat(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TUsd && op instanceof Divide && $1 instanceof TInt) {
+              return new Ok(
+                new BinaryOp2(new TUsd(), lhs2, op, rhs2)
               );
             } else if ($ instanceof TFloat && op instanceof Power && $1 instanceof TFloat) {
               return new Ok(
@@ -6903,6 +7082,22 @@ function typecheck(env, expr) {
                 new BinaryOp2(new TBool(), lhs2, op, rhs2)
               );
             } else if ($ instanceof TString && op instanceof GreaterThanCheck && $1 instanceof TString) {
+              return new Ok(
+                new BinaryOp2(new TBool(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TUsd && op instanceof LessThanCheck && $1 instanceof TUsd) {
+              return new Ok(
+                new BinaryOp2(new TBool(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TUsd && op instanceof LessThanOrEqualCheck && $1 instanceof TUsd) {
+              return new Ok(
+                new BinaryOp2(new TBool(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TUsd && op instanceof GreaterThanOrEqualCheck && $1 instanceof TUsd) {
+              return new Ok(
+                new BinaryOp2(new TBool(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TUsd && op instanceof GreaterThanCheck && $1 instanceof TUsd) {
               return new Ok(
                 new BinaryOp2(new TBool(), lhs2, op, rhs2)
               );

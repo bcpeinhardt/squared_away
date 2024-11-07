@@ -9,6 +9,7 @@ pub type TypedExpr {
   Empty(type_: typ.Typ)
   FloatLiteral(type_: typ.Typ, f: Float)
   UsdLiteral(type_: typ.Typ, cents: Int)
+  PercentLiteral(type_: typ.Typ, percent: Int)
   Label(type_: typ.Typ, txt: String)
   CrossLabel(
     type_: typ.Typ,
@@ -66,6 +67,7 @@ pub fn to_string(te: TypedExpr) -> String {
     Empty(_) -> ""
     FloatLiteral(_, f) -> float.to_string(f)
     IntegerLiteral(_, i) -> int.to_string(i)
+    PercentLiteral(_, p) -> int.to_string(p) <> "%"
     Label(_, l) -> l
     LabelDef(_, l) -> l
     Group(_, t) -> "(" <> to_string(t) <> ")"

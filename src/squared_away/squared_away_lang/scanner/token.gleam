@@ -34,6 +34,8 @@ pub type Token {
   FloatLiteral(f: Float)
   // $34.20
   UsdLiteral(cents: Int)
+  // 34%
+  PercentLiteral(percent: Int)
   /// True
   TrueToken
   /// False

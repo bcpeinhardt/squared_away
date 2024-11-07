@@ -6,6 +6,7 @@ pub type Typ {
   TBool
   TTestResult
   TUsd
+  TPercent
 }
 
 pub fn to_string(typ: Typ) {
@@ -17,5 +18,7 @@ pub fn to_string(typ: Typ) {
     TBool -> "Boolean (True or False)"
     TTestResult -> "Test Result (Pass or Fail)"
     TUsd -> "Usd"
+    TPercent -> "Percent"
+    
   }
 }

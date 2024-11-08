@@ -2379,14 +2379,6 @@ function drop_left(string3, num_graphemes) {
     return slice(string3, num_graphemes, length2(string3) - num_graphemes);
   }
 }
-function drop_right(string3, num_graphemes) {
-  let $ = num_graphemes < 0;
-  if ($) {
-    return string3;
-  } else {
-    return slice(string3, 0, length2(string3) - num_graphemes);
-  }
-}
 function ends_with2(string3, suffix) {
   return ends_with(string3, suffix);
 }
@@ -3641,6 +3633,15 @@ function to_string7(bigint) {
 function zero() {
   return 0n;
 }
+function compare3(a, b) {
+  if (a < b) {
+    return new Lt();
+  } else if (a > b) {
+    return new Gt();
+  } else {
+    return new Eq();
+  }
+}
 function add2(a, b) {
   return a + b;
 }
@@ -3661,6 +3662,12 @@ function modulo(a, b) {
     return 0n;
   }
   return (a % b + b) % b;
+}
+function power4(a, b) {
+  if (b < 0) {
+    return new Error(void 0);
+  }
+  return new Ok(a ** b);
 }
 
 // build/dev/javascript/bigi/bigi.mjs
@@ -4323,9 +4330,10 @@ var UsdLiteral = class extends CustomType {
   }
 };
 var PercentLiteral = class extends CustomType {
-  constructor(percent) {
+  constructor(numerator, denominator) {
     super();
-    this.percent = percent;
+    this.numerator = numerator;
+    this.denominator = denominator;
   }
 };
 var LabelDef = class extends CustomType {
@@ -4632,9 +4640,10 @@ var Usd = class extends CustomType {
   }
 };
 var Percent = class extends CustomType {
-  constructor(percent) {
+  constructor(numerator, denominator) {
     super();
-    this.percent = percent;
+    this.numerator = numerator;
+    this.denominator = denominator;
   }
 };
 var Boolean = class extends CustomType {
@@ -4647,6 +4656,35 @@ var TestFail = class extends CustomType {
 };
 var TestPass = class extends CustomType {
 };
+function do_normalize_percent(loop$n, loop$d) {
+  while (true) {
+    let n = loop$n;
+    let d = loop$d;
+    let $ = (() => {
+      let _pipe = from2(100);
+      return compare3(_pipe, d);
+    })();
+    if ($ instanceof Eq) {
+      return n;
+    } else if ($ instanceof Gt) {
+      throw makeError(
+        "panic",
+        "squared_away/squared_away_lang/interpreter/value",
+        27,
+        "do_normalize_percent",
+        "shouldn't happen dawg check the typed_expr module",
+        {}
+      );
+    } else {
+      let next_n = modulo(d, from2(10));
+      loop$n = n + to_string7(next_n);
+      loop$d = divide(d, from2(10));
+    }
+  }
+}
+function normalize_percent(numerator, denominator) {
+  return do_normalize_percent(to_string7(numerator), denominator);
+}
 function value_to_string(fv) {
   if (fv instanceof Empty3) {
     return "";
@@ -4664,8 +4702,9 @@ function value_to_string(fv) {
     let f = fv.f;
     return to_string2(f);
   } else if (fv instanceof Percent) {
-    let p2 = fv.percent;
-    return to_string3(p2) + "%";
+    let n = fv.numerator;
+    let d = fv.denominator;
+    return normalize_percent(n, d) + "%";
   } else if (fv instanceof TestFail) {
     return "Test Failure";
   } else if (fv instanceof TestPass) {
@@ -4690,7 +4729,7 @@ function value_to_string(fv) {
         throw makeError(
           "panic",
           "squared_away/squared_away_lang/interpreter/value",
-          35,
+          51,
           "value_to_string",
           "This shit shouldn't happen",
           {}
@@ -4723,10 +4762,11 @@ var UsdLiteral2 = class extends CustomType {
   }
 };
 var PercentLiteral2 = class extends CustomType {
-  constructor(type_2, percent) {
+  constructor(type_2, numerator, denominator) {
     super();
     this.type_ = type_2;
-    this.percent = percent;
+    this.numerator = numerator;
+    this.denominator = denominator;
   }
 };
 var Label2 = class extends CustomType {
@@ -4832,6 +4872,35 @@ function visit_cross_labels(te, f) {
     return new Ok(te);
   }
 }
+function do_normalize_percent2(loop$n, loop$d) {
+  while (true) {
+    let n = loop$n;
+    let d = loop$d;
+    let $ = (() => {
+      let _pipe = from2(100);
+      return compare3(_pipe, d);
+    })();
+    if ($ instanceof Eq) {
+      return n;
+    } else if ($ instanceof Gt) {
+      throw makeError(
+        "panic",
+        "squared_away/squared_away_lang/typechecker/typed_expr",
+        67,
+        "do_normalize_percent",
+        "shouldn't happen dawg check the typed_expr module",
+        {}
+      );
+    } else {
+      let next_n = modulo(d, from2(10));
+      loop$n = n + to_string7(next_n);
+      loop$d = divide(d, from2(10));
+    }
+  }
+}
+function normalize_percent2(numerator, denominator) {
+  return do_normalize_percent2(to_string7(numerator), denominator);
+}
 function to_string10(te) {
   if (te instanceof BooleanLiteral2) {
     let b = te.b;
@@ -4853,8 +4922,14 @@ function to_string10(te) {
     let i = te.n;
     return to_string3(i);
   } else if (te instanceof PercentLiteral2) {
-    let p2 = te.percent;
-    return to_string3(p2) + "%";
+    let n = te.numerator;
+    let d = te.denominator;
+    let $ = isEqual(d, from2(100));
+    if (!$) {
+      return normalize_percent2(n, d) + "%";
+    } else {
+      return to_string7(n) + "%";
+    }
   } else if (te instanceof Label2) {
     let l = te.txt;
     return l;
@@ -4897,7 +4972,7 @@ function to_string10(te) {
         throw makeError(
           "panic",
           "squared_away/squared_away_lang/typechecker/typed_expr",
-          89,
+          108,
           "to_string",
           "This shit shouldn't happen",
           {}
@@ -4922,8 +4997,9 @@ function interpret(loop$env, loop$expr) {
       let cents = expr.cents;
       return new Ok(new Usd(cents));
     } else if (expr instanceof PercentLiteral2) {
-      let percent = expr.percent;
-      return new Ok(new Percent(percent));
+      let n = expr.numerator;
+      let d = expr.denominator;
+      return new Ok(new Percent(n, d));
     } else if (expr instanceof Group2) {
       let expr$1 = expr.expr;
       loop$env = env;
@@ -5197,20 +5273,33 @@ function interpret(loop$env, loop$expr) {
                 );
               } else if (lhs2 instanceof Usd && op instanceof Multiply && rhs2 instanceof Percent) {
                 let c = lhs2.cents;
-                let p2 = rhs2.percent;
+                let n = rhs2.numerator;
+                let d = rhs2.denominator;
                 let cents = (() => {
-                  let _pipe = multiply(c, from2(p2));
-                  return divide(_pipe, from2(100));
+                  let _pipe = multiply(c, n);
+                  return divide(_pipe, d);
                 })();
                 return new Ok(new Usd(cents));
               } else if (lhs2 instanceof Percent && op instanceof Multiply && rhs2 instanceof Usd) {
-                let p2 = lhs2.percent;
+                let n = lhs2.numerator;
+                let d = lhs2.denominator;
                 let c = rhs2.cents;
                 let cents = (() => {
-                  let _pipe = multiply(c, from2(p2));
-                  return divide(_pipe, from2(100));
+                  let _pipe = multiply(c, n);
+                  return divide(_pipe, d);
                 })();
                 return new Ok(new Usd(cents));
+              } else if (lhs2 instanceof Percent && op instanceof Multiply && rhs2 instanceof Percent) {
+                let n1 = lhs2.numerator;
+                let d1 = lhs2.denominator;
+                let n2 = rhs2.numerator;
+                let d2 = rhs2.denominator;
+                return new Ok(
+                  new Percent(
+                    multiply(n1, n2),
+                    multiply(d1, d2)
+                  )
+                );
               } else {
                 let lhs$1 = lhs2;
                 let op$1 = op;
@@ -5261,7 +5350,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                231,
+                238,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5282,7 +5371,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                239,
+                246,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5303,7 +5392,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                247,
+                254,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5375,9 +5464,10 @@ var UsdLiteral3 = class extends CustomType {
   }
 };
 var PercentLiteral3 = class extends CustomType {
-  constructor(percent) {
+  constructor(numerator, denominator) {
     super();
-    this.percent = percent;
+    this.numerator = numerator;
+    this.denominator = denominator;
   }
 };
 var TrueToken = class extends CustomType {
@@ -5918,15 +6008,16 @@ function do_parse2(tokens) {
       return new Ok([new UsdLiteral(cents), rest]);
     }
   } else if (tokens.atLeastLength(1) && tokens.head instanceof PercentLiteral3) {
-    let percent = tokens.head.percent;
+    let n = tokens.head.numerator;
+    let d = tokens.head.denominator;
     let rest = tokens.tail;
     let $ = try_parse_binary_ops(rest);
     if ($.isOk()) {
       let op = $[0][0];
       let rest$1 = $[0][1];
-      return new Ok([op(new PercentLiteral(percent)), rest$1]);
+      return new Ok([op(new PercentLiteral(n, d)), rest$1]);
     } else {
-      return new Ok([new PercentLiteral(percent), rest]);
+      return new Ok([new PercentLiteral(n, d), rest]);
     }
   } else if (tokens.atLeastLength(1) && tokens.head instanceof Minus) {
     let rest = tokens.tail;
@@ -6276,188 +6367,6 @@ function parse_identifier(loop$src, loop$acc) {
     }
   }
 }
-function parse_integer(loop$src, loop$acc) {
-  while (true) {
-    let src = loop$src;
-    let acc = loop$acc;
-    if (src.startsWith("1")) {
-      let rest = src.slice(1);
-      let x = "1";
-      loop$src = rest;
-      loop$acc = acc + x;
-    } else if (src.startsWith("2")) {
-      let rest = src.slice(1);
-      let x = "2";
-      loop$src = rest;
-      loop$acc = acc + x;
-    } else if (src.startsWith("3")) {
-      let rest = src.slice(1);
-      let x = "3";
-      loop$src = rest;
-      loop$acc = acc + x;
-    } else if (src.startsWith("4")) {
-      let rest = src.slice(1);
-      let x = "4";
-      loop$src = rest;
-      loop$acc = acc + x;
-    } else if (src.startsWith("5")) {
-      let rest = src.slice(1);
-      let x = "5";
-      loop$src = rest;
-      loop$acc = acc + x;
-    } else if (src.startsWith("6")) {
-      let rest = src.slice(1);
-      let x = "6";
-      loop$src = rest;
-      loop$acc = acc + x;
-    } else if (src.startsWith("7")) {
-      let rest = src.slice(1);
-      let x = "7";
-      loop$src = rest;
-      loop$acc = acc + x;
-    } else if (src.startsWith("8")) {
-      let rest = src.slice(1);
-      let x = "8";
-      loop$src = rest;
-      loop$acc = acc + x;
-    } else if (src.startsWith("9")) {
-      let rest = src.slice(1);
-      let x = "9";
-      loop$src = rest;
-      loop$acc = acc + x;
-    } else if (src.startsWith("0")) {
-      let rest = src.slice(1);
-      let x = "0";
-      loop$src = rest;
-      loop$acc = acc + x;
-    } else {
-      let _pipe = parse2(acc);
-      return map3(_pipe, (n) => {
-        return [n, src];
-      });
-    }
-  }
-}
-function parse_integer_text(loop$src, loop$acc) {
-  while (true) {
-    let src = loop$src;
-    let acc = loop$acc;
-    if (src.startsWith("1")) {
-      let rest = src.slice(1);
-      let x = "1";
-      loop$src = rest;
-      loop$acc = acc + x;
-    } else if (src.startsWith("2")) {
-      let rest = src.slice(1);
-      let x = "2";
-      loop$src = rest;
-      loop$acc = acc + x;
-    } else if (src.startsWith("3")) {
-      let rest = src.slice(1);
-      let x = "3";
-      loop$src = rest;
-      loop$acc = acc + x;
-    } else if (src.startsWith("4")) {
-      let rest = src.slice(1);
-      let x = "4";
-      loop$src = rest;
-      loop$acc = acc + x;
-    } else if (src.startsWith("5")) {
-      let rest = src.slice(1);
-      let x = "5";
-      loop$src = rest;
-      loop$acc = acc + x;
-    } else if (src.startsWith("6")) {
-      let rest = src.slice(1);
-      let x = "6";
-      loop$src = rest;
-      loop$acc = acc + x;
-    } else if (src.startsWith("7")) {
-      let rest = src.slice(1);
-      let x = "7";
-      loop$src = rest;
-      loop$acc = acc + x;
-    } else if (src.startsWith("8")) {
-      let rest = src.slice(1);
-      let x = "8";
-      loop$src = rest;
-      loop$acc = acc + x;
-    } else if (src.startsWith("9")) {
-      let rest = src.slice(1);
-      let x = "9";
-      loop$src = rest;
-      loop$acc = acc + x;
-    } else if (src.startsWith("0")) {
-      let rest = src.slice(1);
-      let x = "0";
-      loop$src = rest;
-      loop$acc = acc + x;
-    } else if (acc !== "") {
-      return new Ok([acc, src]);
-    } else {
-      return new Error(void 0);
-    }
-  }
-}
-function parse_usd_literal(src) {
-  let $ = parse_integer_text(src, "");
-  if (!$.isOk()) {
-    return new Error(
-      new ScanError(
-        "Expected usd literal (a $ optionally followed by a number with two decimal places)"
-      )
-    );
-  } else {
-    let dollars = $[0][0];
-    let rest = $[0][1];
-    let $1 = from_string2(dollars);
-    if (!$1.isOk()) {
-      throw makeError(
-        "let_assert",
-        "squared_away/squared_away_lang/scanner",
-        81,
-        "parse_usd_literal",
-        "Pattern match failed, no pattern matched the value.",
-        { value: $1 }
-      );
-    }
-    let dollars$1 = $1[0];
-    if (rest.startsWith(".")) {
-      let rest$1 = rest.slice(1);
-      let $2 = parse_integer(rest$1, "");
-      if (!$2.isOk()) {
-        return new Error(
-          new ScanError(
-            "Expected 2 decimal places following `.` character in usd literal"
-          )
-        );
-      } else if ($2.isOk() && ($2[0][0] > 0 && $2[0][0] < 100)) {
-        let cents = $2[0][0];
-        let rest$2 = $2[0][1];
-        return new Ok(
-          [
-            multiply(
-              dollars$1,
-              (() => {
-                let _pipe = from2(100);
-                return add2(_pipe, from2(cents));
-              })()
-            ),
-            rest$2
-          ]
-        );
-      } else {
-        return new Error(
-          new ScanError(
-            "Usd literal must have zero or two decimal places."
-          )
-        );
-      }
-    } else {
-      return new Ok([multiply(dollars$1, from2(100)), rest]);
-    }
-  }
-}
 function do_scan(loop$src, loop$acc) {
   while (true) {
     let src = loop$src;
@@ -6557,81 +6466,227 @@ function do_scan(loop$src, loop$acc) {
       let rest = src.slice(3);
       loop$src = trim_left2(rest);
       loop$acc = prepend(new BuiltinSum3(new None()), acc);
-    } else if (src.startsWith("$")) {
-      let rest = src.slice(1);
-      let $ = parse_usd_literal(rest);
-      if (!$.isOk()) {
-        let e = $[0];
-        return new Error(e);
-      } else {
-        let cents = $[0][0];
-        let rest$1 = $[0][1];
-        loop$src = trim_left2(rest$1);
-        loop$acc = prepend(new UsdLiteral3(cents), acc);
-      }
     } else {
-      let $ = parse_integer(src, "");
-      if ($.isOk()) {
-        let n = $[0][0];
+      let $ = parse_identifier(src, "");
+      if (!$.isOk() && !$[0]) {
+        return new Error(
+          new ScanError("Could not understand provided txt: " + src)
+        );
+      } else {
+        let ident = $[0][0];
         let rest = $[0][1];
-        if (rest.startsWith(".")) {
+        loop$src = trim_left2(rest);
+        loop$acc = prepend(new Label3(ident), acc);
+      }
+    }
+  }
+}
+function parse_integer_text(loop$src, loop$acc) {
+  while (true) {
+    let src = loop$src;
+    let acc = loop$acc;
+    if (src.startsWith("1")) {
+      let rest = src.slice(1);
+      let x = "1";
+      loop$src = rest;
+      loop$acc = acc + x;
+    } else if (src.startsWith("2")) {
+      let rest = src.slice(1);
+      let x = "2";
+      loop$src = rest;
+      loop$acc = acc + x;
+    } else if (src.startsWith("3")) {
+      let rest = src.slice(1);
+      let x = "3";
+      loop$src = rest;
+      loop$acc = acc + x;
+    } else if (src.startsWith("4")) {
+      let rest = src.slice(1);
+      let x = "4";
+      loop$src = rest;
+      loop$acc = acc + x;
+    } else if (src.startsWith("5")) {
+      let rest = src.slice(1);
+      let x = "5";
+      loop$src = rest;
+      loop$acc = acc + x;
+    } else if (src.startsWith("6")) {
+      let rest = src.slice(1);
+      let x = "6";
+      loop$src = rest;
+      loop$acc = acc + x;
+    } else if (src.startsWith("7")) {
+      let rest = src.slice(1);
+      let x = "7";
+      loop$src = rest;
+      loop$acc = acc + x;
+    } else if (src.startsWith("8")) {
+      let rest = src.slice(1);
+      let x = "8";
+      loop$src = rest;
+      loop$acc = acc + x;
+    } else if (src.startsWith("9")) {
+      let rest = src.slice(1);
+      let x = "9";
+      loop$src = rest;
+      loop$acc = acc + x;
+    } else if (src.startsWith("0")) {
+      let rest = src.slice(1);
+      let x = "0";
+      loop$src = rest;
+      loop$acc = acc + x;
+    } else if (acc !== "") {
+      return new Ok([acc, src]);
+    } else {
+      return new Error(void 0);
+    }
+  }
+}
+function parse_percent(src) {
+  let $ = parse_integer_text(src, "");
+  if (!$.isOk()) {
+    return new Error(
+      new ScanError("% literal must be an integer or decimal value")
+    );
+  } else {
+    let n_txt = $[0][0];
+    let rest = $[0][1];
+    return try$(
+      (() => {
+        let _pipe = from_string2(n_txt);
+        return replace_error(
+          _pipe,
+          new ScanError(
+            "Unable to create big integer from percent integer."
+          )
+        );
+      })(),
+      (n) => {
+        if (rest.startsWith("%")) {
           let rest$1 = rest.slice(1);
-          return try$(
-            (() => {
-              let _pipe = parse_integer(rest$1, "");
-              return replace_error(
-                _pipe,
+          return new Ok(
+            [new PercentLiteral3(n, from2(100)), rest$1]
+          );
+        } else if (rest.startsWith(".")) {
+          let rest$1 = rest.slice(1);
+          let $1 = parse_integer_text(rest$1, "");
+          if (!$1.isOk()) {
+            return new Error(
+              new ScanError(
+                "% literal must be an integer or decimal value"
+              )
+            );
+          } else {
+            let d_txt = $1[0][0];
+            let rest$2 = $1[0][1];
+            if (rest$2.startsWith("%")) {
+              let rest$3 = rest$2.slice(1);
+              return try$(
+                (() => {
+                  let _pipe = length2(d_txt);
+                  let _pipe$1 = from2(_pipe);
+                  let _pipe$2 = ((_capture) => {
+                    return power4(from2(100), _capture);
+                  })(_pipe$1);
+                  return replace_error(
+                    _pipe$2,
+                    new ScanError("some error")
+                  );
+                })(),
+                (denominator) => {
+                  return new Ok(
+                    [new PercentLiteral3(n, denominator), rest$3]
+                  );
+                }
+              );
+            } else {
+              return new Error(
                 new ScanError(
-                  "Expected more digits after the decimal."
+                  "% literal must be an integer or decimal value"
                 )
               );
-            })(),
-            (_use0) => {
-              let m = _use0[0];
-              let rest$2 = _use0[1];
-              let $1 = parse(
-                to_string3(n) + "." + to_string3(m)
-              );
-              if (!$1.isOk()) {
-                throw makeError(
-                  "let_assert",
-                  "squared_away/squared_away_lang/scanner",
-                  156,
-                  "",
-                  "Pattern match failed, no pattern matched the value.",
-                  { value: $1 }
-                );
-              }
-              let f = $1[0];
-              return do_scan(
-                trim_left2(rest$2),
-                prepend(new FloatLiteral3(f), acc)
-              );
             }
-          );
-        } else if (rest.startsWith("%") && (n >= 0 && n <= 100)) {
-          let rest$1 = rest.slice(1);
-          loop$src = trim_left2(rest$1);
-          loop$acc = prepend(new PercentLiteral3(n), acc);
+          }
         } else {
-          loop$src = trim_left2(rest);
-          loop$acc = prepend(new IntegerLiteral3(n), acc);
-        }
-      } else {
-        let $1 = parse_identifier(src, "");
-        if (!$1.isOk() && !$1[0]) {
           return new Error(
-            new ScanError(
-              "Could not understand provided txt: " + src
-            )
+            new ScanError("I don't know how this happened")
           );
-        } else {
-          let ident = $1[0][0];
-          let rest = $1[0][1];
-          loop$src = trim_left2(rest);
-          loop$acc = prepend(new Label3(ident), acc);
         }
       }
+    );
+  }
+}
+function parse_integer(src) {
+  return try$(
+    parse_integer_text(src, ""),
+    (_use0) => {
+      let n_txt = _use0[0];
+      let rest = _use0[1];
+      return try$(
+        parse2(n_txt),
+        (n) => {
+          return new Ok([n, rest]);
+        }
+      );
+    }
+  );
+}
+function parse_usd_literal(src) {
+  let $ = parse_integer_text(src, "");
+  if (!$.isOk()) {
+    return new Error(
+      new ScanError(
+        "Expected usd literal (a $ optionally followed by a number with two decimal places)"
+      )
+    );
+  } else {
+    let dollars = $[0][0];
+    let rest = $[0][1];
+    let $1 = from_string2(dollars);
+    if (!$1.isOk()) {
+      throw makeError(
+        "let_assert",
+        "squared_away/squared_away_lang/scanner",
+        125,
+        "parse_usd_literal",
+        "Pattern match failed, no pattern matched the value.",
+        { value: $1 }
+      );
+    }
+    let dollars$1 = $1[0];
+    if (rest.startsWith(".")) {
+      let rest$1 = rest.slice(1);
+      let $2 = parse_integer(rest$1);
+      if (!$2.isOk()) {
+        return new Error(
+          new ScanError(
+            "Expected 2 decimal places following `.` character in usd literal"
+          )
+        );
+      } else if ($2.isOk() && ($2[0][0] > 0 && $2[0][0] < 100)) {
+        let cents = $2[0][0];
+        let rest$2 = $2[0][1];
+        return new Ok(
+          [
+            multiply(
+              dollars$1,
+              (() => {
+                let _pipe = from2(100);
+                return add2(_pipe, from2(cents));
+              })()
+            ),
+            rest$2
+          ]
+        );
+      } else {
+        return new Error(
+          new ScanError(
+            "Usd literal must have zero or two decimal places."
+          )
+        );
+      }
+    } else {
+      return new Ok([multiply(dollars$1, from2(100)), rest]);
     }
   }
 }
@@ -6682,21 +6737,17 @@ function scan(src) {
       } else {
         let $3 = ends_with2(txt, "%");
         if ($3) {
-          let percent = drop_right(txt, 1);
-          let $4 = parse2(percent);
-          if ($4.isOk() && ($4[0] <= 100 && $4[0] >= 0)) {
-            let p2 = $4[0];
-            return new Ok(toList([new PercentLiteral3(p2)]));
-          } else if ($4.isOk()) {
-            return new Error(
-              new ScanError(
-                "Percent literal must be an integer b/w 0 and 100 inclusive."
-              )
-            );
+          let $4 = parse_percent(txt);
+          if (!$4.isOk()) {
+            let e = $4[0];
+            return new Error(e);
+          } else if ($4.isOk() && $4[0][1] === "") {
+            let percent = $4[0][0];
+            return new Ok(toList([percent]));
           } else {
             return new Error(
               new ScanError(
-                "Percent literal must be an integer b/w 0 and 100 inclusive."
+                "Found extra content after percent literal"
               )
             );
           }
@@ -6843,6 +6894,10 @@ function typecheck(env, expr) {
               return new Ok(new BuiltinSum2(new TInt(), keys2));
             } else if (types$1.hasLength(1) && types$1.head instanceof TUsd) {
               return new Ok(new BuiltinSum2(new TUsd(), keys2));
+            } else if (types$1.hasLength(1) && types$1.head instanceof TPercent) {
+              return new Ok(
+                new BuiltinSum2(new TPercent(), keys2)
+              );
             } else {
               return new Error(
                 new TypeError2(
@@ -7029,8 +7084,9 @@ function typecheck(env, expr) {
     let cents = expr.cents;
     return new Ok(new UsdLiteral2(new TUsd(), cents));
   } else if (expr instanceof PercentLiteral) {
-    let percent = expr.percent;
-    return new Ok(new PercentLiteral2(new TPercent(), percent));
+    let n = expr.numerator;
+    let d = expr.denominator;
+    return new Ok(new PercentLiteral2(new TPercent(), n, d));
   } else if (expr instanceof IntegerLiteral) {
     let n = expr.n;
     return new Ok(new IntegerLiteral2(new TInt(), n));
@@ -7092,6 +7148,10 @@ function typecheck(env, expr) {
               return new Ok(
                 new BinaryOp2(new TUsd(), lhs2, op, rhs2)
               );
+            } else if ($ instanceof TPercent && op instanceof Add && $1 instanceof TPercent) {
+              return new Ok(
+                new BinaryOp2(new TPercent(), lhs2, op, rhs2)
+              );
             } else if (op instanceof Add) {
               return new Error(
                 new TypeError2(
@@ -7114,6 +7174,10 @@ function typecheck(env, expr) {
               return new Ok(
                 new BinaryOp2(new TUsd(), lhs2, op, rhs2)
               );
+            } else if ($ instanceof TPercent && op instanceof Subtract && $1 instanceof TPercent) {
+              return new Ok(
+                new BinaryOp2(new TPercent(), lhs2, op, rhs2)
+              );
             } else if ($ instanceof TFloat && op instanceof Multiply && $1 instanceof TFloat) {
               return new Ok(
                 new BinaryOp2(new TFloat(), lhs2, op, rhs2)
@@ -7133,10 +7197,6 @@ function typecheck(env, expr) {
             } else if ($ instanceof TPercent && op instanceof Multiply && $1 instanceof TUsd) {
               return new Ok(
                 new BinaryOp2(new TUsd(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TPercent && op instanceof Multiply && $1 instanceof TPercent) {
-              return new Ok(
-                new BinaryOp2(new TPercent(), lhs2, op, rhs2)
               );
             } else if ($ instanceof TPercent && op instanceof Multiply) {
               let some_type = $1;
@@ -7160,6 +7220,12 @@ function typecheck(env, expr) {
               return new Ok(
                 new BinaryOp2(new TUsd(), lhs2, op, rhs2)
               );
+            } else if ($ instanceof TPercent && op instanceof Divide) {
+              let some_type = $1;
+              return new Ok(new BinaryOp2(some_type, lhs2, op, rhs2));
+            } else if (op instanceof Divide && $1 instanceof TPercent) {
+              let some_type = $;
+              return new Ok(new BinaryOp2(some_type, lhs2, op, rhs2));
             } else if ($ instanceof TFloat && op instanceof Power && $1 instanceof TFloat) {
               return new Ok(
                 new BinaryOp2(new TFloat(), lhs2, op, rhs2)
@@ -7241,6 +7307,22 @@ function typecheck(env, expr) {
                 new BinaryOp2(new TBool(), lhs2, op, rhs2)
               );
             } else if ($ instanceof TUsd && op instanceof GreaterThanCheck && $1 instanceof TUsd) {
+              return new Ok(
+                new BinaryOp2(new TBool(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TPercent && op instanceof LessThanCheck && $1 instanceof TPercent) {
+              return new Ok(
+                new BinaryOp2(new TBool(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TPercent && op instanceof LessThanOrEqualCheck && $1 instanceof TPercent) {
+              return new Ok(
+                new BinaryOp2(new TBool(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TPercent && op instanceof GreaterThanOrEqualCheck && $1 instanceof TPercent) {
+              return new Ok(
+                new BinaryOp2(new TBool(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TPercent && op instanceof GreaterThanCheck && $1 instanceof TPercent) {
               return new Ok(
                 new BinaryOp2(new TBool(), lhs2, op, rhs2)
               );

@@ -1,6 +1,7 @@
 import bigi
 import gleam/float
 import gleam/int
+import gleam/order
 import gleam/string
 import squared_away/squared_away_lang/grid
 import squared_away/squared_away_lang/parser/expr
@@ -10,7 +11,11 @@ pub type TypedExpr {
   Empty(type_: typ.Typ)
   FloatLiteral(type_: typ.Typ, f: Float)
   UsdLiteral(type_: typ.Typ, cents: bigi.BigInt)
-  PercentLiteral(type_: typ.Typ, percent: Int)
+  PercentLiteral(
+    type_: typ.Typ,
+    numerator: bigi.BigInt,
+    denominator: bigi.BigInt,
+  )
   Label(type_: typ.Typ, txt: String)
   CrossLabel(
     type_: typ.Typ,
@@ -56,6 +61,24 @@ pub fn visit_cross_labels(
   }
 }
 
+fn normalize_percent(numerator: bigi.BigInt, denominator: bigi.BigInt) -> String {
+  do_normalize_percent(bigi.to_string(numerator), denominator)
+}
+
+fn do_normalize_percent(n: String, d: bigi.BigInt) -> String {
+  case bigi.from_int(100) |> bigi.compare(d) {
+    order.Eq -> n
+    order.Gt -> panic as "shouldn't happen dawg check the typed_expr module"
+    order.Lt -> {
+      let next_n = bigi.modulo(d, bigi.from_int(10))
+      do_normalize_percent(
+        n <> bigi.to_string(next_n),
+        bigi.divide(d, bigi.from_int(10)),
+      )
+    }
+  }
+}
+
 pub fn to_string(te: TypedExpr) -> String {
   case te {
     BooleanLiteral(_, b) -> {
@@ -68,7 +91,11 @@ pub fn to_string(te: TypedExpr) -> String {
     Empty(_) -> ""
     FloatLiteral(_, f) -> float.to_string(f)
     IntegerLiteral(_, i) -> int.to_string(i)
-    PercentLiteral(_, p) -> int.to_string(p) <> "%"
+    PercentLiteral(_, n, d) ->
+      case d == bigi.from_int(100) {
+        False -> normalize_percent(n, d) <> "%"
+        True -> bigi.to_string(n) <> "%"
+      }
     Label(_, l) -> l
     LabelDef(_, l) -> l
     Group(_, t) -> "(" <> to_string(t) <> ")"

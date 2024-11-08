@@ -2,6 +2,7 @@ import bigi
 import gleam/bool
 import gleam/float
 import gleam/int
+import gleam/order
 import gleam/string
 
 pub type Value {
@@ -10,10 +11,28 @@ pub type Value {
   Integer(n: Int)
   FloatingPointNumber(f: Float)
   Usd(cents: bigi.BigInt)
-  Percent(percent: Int)
+  Percent(numerator: bigi.BigInt, denominator: bigi.BigInt)
   Boolean(b: Bool)
   TestFail
   TestPass
+}
+
+fn normalize_percent(numerator: bigi.BigInt, denominator: bigi.BigInt) -> String {
+  do_normalize_percent(bigi.to_string(numerator), denominator)
+}
+
+fn do_normalize_percent(n: String, d: bigi.BigInt) -> String {
+  case bigi.from_int(100) |> bigi.compare(d) {
+    order.Eq -> n
+    order.Gt -> panic as "shouldn't happen dawg check the typed_expr module"
+    order.Lt -> {
+      let next_n = bigi.modulo(d, bigi.from_int(10))
+      do_normalize_percent(
+        n <> bigi.to_string(next_n),
+        bigi.divide(d, bigi.from_int(10)),
+      )
+    }
+  }
 }
 
 pub fn value_to_string(fv: Value) -> String {
@@ -23,7 +42,7 @@ pub fn value_to_string(fv: Value) -> String {
     Integer(n) -> int.to_string(n)
     Boolean(b) -> bool.to_string(b) |> string.uppercase
     FloatingPointNumber(f) -> float.to_string(f)
-    Percent(p) -> int.to_string(p) <> "%"
+    Percent(n, d) -> normalize_percent(n, d) <> "%"
     TestFail -> "Test Failure"
     TestPass -> "Test Passing"
     Usd(cents) -> {

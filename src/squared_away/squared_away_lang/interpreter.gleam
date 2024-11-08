@@ -20,7 +20,7 @@ pub fn interpret(
     typed_expr.Empty(_) -> Ok(value.Empty)
     typed_expr.LabelDef(_, txt) -> Ok(value.Text(txt))
     typed_expr.UsdLiteral(_, cents) -> Ok(value.Usd(cents))
-    typed_expr.PercentLiteral(_, percent) -> Ok(value.Percent(percent))
+    typed_expr.PercentLiteral(_, n, d) -> Ok(value.Percent(n, d))
     typed_expr.Group(_, expr) -> interpret(env, expr)
     typed_expr.CrossLabel(_, key, _, _) -> {
       case grid.get(env, key) {
@@ -184,17 +184,22 @@ pub fn interpret(
           Ok(value.Usd(bigi.multiply(c, bigi.from_int(i))))
         value.Integer(i), expr.Multiply, value.Usd(c) ->
           Ok(value.Usd(bigi.multiply(c, bigi.from_int(i))))
-        value.Usd(c), expr.Multiply, value.Percent(p) -> {
+        value.Usd(c), expr.Multiply, value.Percent(n, d) -> {
           let cents =
-            bigi.multiply(c, bigi.from_int(p))
-            |> bigi.divide(bigi.from_int(100))
+            bigi.multiply(c, n)
+            |> bigi.divide(d)
           Ok(value.Usd(cents))
         }
-        value.Percent(p), expr.Multiply, value.Usd(c) -> {
+        value.Percent(n, d), expr.Multiply, value.Usd(c) -> {
           let cents =
-            bigi.multiply(c, bigi.from_int(p))
-            |> bigi.divide(bigi.from_int(100))
+            bigi.multiply(c, n)
+            |> bigi.divide(d)
           Ok(value.Usd(cents))
+        }
+
+        // Percent ops
+        value.Percent(n1, d1), expr.Multiply, value.Percent(n2, d2) -> {
+          Ok(value.Percent(bigi.multiply(n1, n2), bigi.multiply(d1, d2)))
         }
 
         lhs, op, rhs -> {
@@ -249,14 +254,6 @@ pub fn interpret(
           })
           |> bigi.sum
           |> value.Usd
-          |> Ok
-        typ.TPercent ->
-          list.map(values, fn(v) {
-            let assert value.Percent(p) = v
-            p
-          })
-          |> int.sum
-          |> value.Percent
           |> Ok
         _ ->
           Error(

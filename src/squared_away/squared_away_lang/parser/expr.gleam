@@ -6,7 +6,7 @@ pub type Expr {
   Empty
   FloatLiteral(f: Float)
   UsdLiteral(cents: bigi.BigInt)
-  PercentLiteral(percent: Int)
+  PercentLiteral(numerator: bigi.BigInt, denominator: bigi.BigInt)
   LabelDef(txt: String)
   Label(txt: String)
   CrossLabel(row: String, col: String)

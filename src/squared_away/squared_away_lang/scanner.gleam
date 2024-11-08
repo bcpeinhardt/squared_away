@@ -38,18 +38,15 @@ pub fn scan(src: String) -> Result(List(token.Token), scan_error.ScanError) {
           case int.parse(txt) {
             Ok(i) -> Ok([token.IntegerLiteral(i)])
 
-            // If it's not a Bool, Float, Int, Usd, or Percent Literal, and it doesn't
-            // start with a = sign, it's a LabelDef
             Error(_) -> {
               case string.ends_with(txt, "%") {
                 True -> {
-                  // There should be an integer between 0 and 100 inclusive in front
-                  let percent = string.drop_right(txt, 1)
-                  case int.parse(percent) {
-                    Ok(p) if p <= 100 && p >= 0 -> Ok([token.PercentLiteral(p)])
-                    Ok(_) | Error(_) ->
+                  case parse_percent(txt) {
+                    Error(e) -> Error(e)
+                    Ok(#(percent, "")) -> Ok([percent])
+                    Ok(#(_, _)) ->
                       Error(scan_error.ScanError(
-                        "Percent literal must be an integer b/w 0 and 100 inclusive.",
+                        "Found extra content after percent literal",
                       ))
                   }
                 }
@@ -69,6 +66,56 @@ pub fn scan(src: String) -> Result(List(token.Token), scan_error.ScanError) {
   }
 }
 
+fn parse_percent(
+  src: String,
+) -> Result(#(token.Token, String), scan_error.ScanError) {
+  case parse_integer_text(src, "") {
+    Error(_) ->
+      Error(scan_error.ScanError(
+        "% literal must be an integer or decimal value",
+      ))
+    Ok(#(n_txt, rest)) -> {
+      use n <- result.try(
+        bigi.from_string(n_txt)
+        |> result.replace_error(scan_error.ScanError(
+          "Unable to create big integer from percent integer.",
+        )),
+      )
+      case rest {
+        "%" <> rest -> {
+          Ok(#(token.PercentLiteral(n, bigi.from_int(100)), rest))
+        }
+        "." <> rest -> {
+          case parse_integer_text(rest, "") {
+            Error(_) ->
+              Error(scan_error.ScanError(
+                "% literal must be an integer or decimal value",
+              ))
+            Ok(#(d_txt, rest)) -> {
+              case rest {
+                "%" <> rest -> {
+                  use denominator <- result.try(
+                    string.length(d_txt)
+                    |> bigi.from_int
+                    |> bigi.power(bigi.from_int(100), _)
+                    |> result.replace_error(scan_error.ScanError("some error")),
+                  )
+                  Ok(#(token.PercentLiteral(n, denominator), rest))
+                }
+                _ ->
+                  Error(scan_error.ScanError(
+                    "% literal must be an integer or decimal value",
+                  ))
+              }
+            }
+          }
+        }
+        _ -> Error(scan_error.ScanError("I don't know how this happened"))
+      }
+    }
+  }
+}
+
 fn parse_usd_literal(
   src: String,
 ) -> Result(#(bigi.BigInt, String), scan_error.ScanError) {
@@ -81,7 +128,7 @@ fn parse_usd_literal(
       let assert Ok(dollars) = bigi.from_string(dollars)
       case rest {
         "." <> rest ->
-          case parse_integer(rest, "") {
+          case parse_integer(rest) {
             Error(_) ->
               Error(scan_error.ScanError(
                 "Expected 2 decimal places following `.` character in usd literal",
@@ -135,51 +182,15 @@ fn do_scan(
     "_" <> rest -> do_scan(string.trim_left(rest), [token.Underscore, ..acc])
     "sum" <> rest ->
       do_scan(string.trim_left(rest), [token.BuiltinSum(option.None), ..acc])
-    "$" <> rest ->
-      case parse_usd_literal(rest) {
-        Error(e) -> Error(e)
-        Ok(#(cents, rest)) ->
-          do_scan(string.trim_left(rest), [token.UsdLiteral(cents:), ..acc])
+    _ ->
+      case parse_identifier(src, "") {
+        Error(Nil) ->
+          Error(scan_error.ScanError(
+            "Could not understand provided txt: " <> src,
+          ))
+        Ok(#(ident, rest)) ->
+          do_scan(string.trim_left(rest), [token.Label(ident), ..acc])
       }
-    _ -> {
-      case parse_integer(src, "") {
-        Ok(#(n, rest)) -> {
-          // Might be a float
-          case rest {
-            "." <> rest -> {
-              use #(m, rest) <- result.try(
-                parse_integer(rest, "")
-                |> result.replace_error(scan_error.ScanError(
-                  "Expected more digits after the decimal.",
-                )),
-              )
-              let assert Ok(f) =
-                float.parse(int.to_string(n) <> "." <> int.to_string(m))
-              do_scan(string.trim_left(rest), [token.FloatLiteral(f), ..acc])
-            }
-            "%" <> rest if n >= 0 && n <= 100 -> {
-              do_scan(string.trim_left(rest), [
-                token.PercentLiteral(percent: n),
-                ..acc
-              ])
-            }
-            _ ->
-              do_scan(string.trim_left(rest), [token.IntegerLiteral(n), ..acc])
-          }
-        }
-
-        Error(_) -> {
-          case parse_identifier(src, "") {
-            Error(Nil) ->
-              Error(scan_error.ScanError(
-                "Could not understand provided txt: " <> src,
-              ))
-            Ok(#(ident, rest)) ->
-              do_scan(string.trim_left(rest), [token.Label(ident), ..acc])
-          }
-        }
-      }
-    }
   }
 }
 
@@ -249,20 +260,10 @@ fn parse_identifier(src: String, acc: String) -> Result(#(String, String), Nil) 
   }
 }
 
-fn parse_integer(src: String, acc: String) -> Result(#(Int, String), Nil) {
-  case src {
-    "1" as x <> rest
-    | "2" as x <> rest
-    | "3" as x <> rest
-    | "4" as x <> rest
-    | "5" as x <> rest
-    | "6" as x <> rest
-    | "7" as x <> rest
-    | "8" as x <> rest
-    | "9" as x <> rest
-    | "0" as x <> rest -> parse_integer(rest, acc <> x)
-    _ -> int.parse(acc) |> result.map(fn(n) { #(n, src) })
-  }
+fn parse_integer(src: String) -> Result(#(Int, String), Nil) {
+  use #(n_txt, rest) <- result.try(parse_integer_text(src, ""))
+  use n <- result.try(int.parse(n_txt))
+  Ok(#(n, rest))
 }
 
 fn parse_integer_text(

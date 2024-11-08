@@ -36,7 +36,7 @@ pub type Token {
   // $34.20
   UsdLiteral(cents: bigi.BigInt)
   // 34%
-  PercentLiteral(percent: Int)
+  PercentLiteral(numerator: bigi.BigInt, denominator: bigi.BigInt)
   /// True
   TrueToken
   /// False

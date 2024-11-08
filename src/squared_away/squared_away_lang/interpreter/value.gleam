@@ -1,39 +1,21 @@
-import bigi
 import gleam/bool
 import gleam/float
 import gleam/int
-import gleam/order
 import gleam/string
+import squared_away/squared_away_lang/util/rational
 
 pub type Value {
   Empty
   Text(inner: String)
   Integer(n: Int)
   FloatingPointNumber(f: Float)
-  Usd(cents: bigi.BigInt)
-  Percent(numerator: bigi.BigInt, denominator: bigi.BigInt)
+  Usd(cents: rational.Rat)
+  Percent(percent: rational.Rat)
   Boolean(b: Bool)
   TestFail
   TestPass
 }
-
-fn normalize_percent(numerator: bigi.BigInt, denominator: bigi.BigInt) -> String {
-  do_normalize_percent(bigi.to_string(numerator), denominator)
-}
-
-fn do_normalize_percent(n: String, d: bigi.BigInt) -> String {
-  case bigi.from_int(100) |> bigi.compare(d) {
-    order.Eq -> n
-    order.Gt -> panic as "shouldn't happen dawg check the typed_expr module"
-    order.Lt -> {
-      let next_n = bigi.modulo(d, bigi.from_int(10))
-      do_normalize_percent(
-        n <> bigi.to_string(next_n),
-        bigi.divide(d, bigi.from_int(10)),
-      )
-    }
-  }
-}
+ 
 
 pub fn value_to_string(fv: Value) -> String {
   case fv {
@@ -42,19 +24,13 @@ pub fn value_to_string(fv: Value) -> String {
     Integer(n) -> int.to_string(n)
     Boolean(b) -> bool.to_string(b) |> string.uppercase
     FloatingPointNumber(f) -> float.to_string(f)
-    Percent(n, d) -> normalize_percent(n, d) <> "%"
+    Percent(p) ->
+      rational.to_string(rational.multiply(p, rational.from_int(100)), 10)
+      <> "%"
     TestFail -> "Test Failure"
     TestPass -> "Test Passing"
     Usd(cents) -> {
-      let dollars = bigi.divide(cents, bigi.from_int(100)) |> bigi.to_string
-      let cents = bigi.modulo(cents, bigi.from_int(100)) |> bigi.to_string
-      let cents = case string.length(cents) {
-        1 -> cents <> "0"
-        2 -> cents
-        _ -> panic as "This shit shouldn't happen"
-      }
-
-      "$" <> dollars <> "." <> cents
+      "$" <> rational.to_string(cents, 2)
     }
   }
 }

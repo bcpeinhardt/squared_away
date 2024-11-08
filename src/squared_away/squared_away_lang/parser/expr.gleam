@@ -1,12 +1,12 @@
-import bigi
 import gleam/option
 import squared_away/squared_away_lang/grid
+import squared_away/squared_away_lang/util/rational
 
 pub type Expr {
   Empty
   FloatLiteral(f: Float)
-  UsdLiteral(cents: bigi.BigInt)
-  PercentLiteral(numerator: bigi.BigInt, denominator: bigi.BigInt)
+  UsdLiteral(cents: rational.Rat)
+  PercentLiteral(percent: rational.Rat)
   LabelDef(txt: String)
   Label(txt: String)
   CrossLabel(row: String, col: String)

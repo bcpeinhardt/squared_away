@@ -74,10 +74,10 @@ fn do_parse(
         Error(_) -> Ok(#(expr.UsdLiteral(cents:), rest))
       }
     }
-    [token.PercentLiteral(n, d), ..rest] -> {
+    [token.PercentLiteral(percent), ..rest] -> {
       case try_parse_binary_ops(rest) {
-        Ok(#(op, rest)) -> Ok(#(op(expr.PercentLiteral(n, d)), rest))
-        Error(_) -> Ok(#(expr.PercentLiteral(n, d), rest))
+        Ok(#(op, rest)) -> Ok(#(op(expr.PercentLiteral(percent)), rest))
+        Error(_) -> Ok(#(expr.PercentLiteral(percent), rest))
       }
     }
 

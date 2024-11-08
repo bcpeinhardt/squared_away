@@ -220,8 +220,7 @@ pub fn typecheck(
       Ok(typed_expr.BooleanLiteral(type_: typ.TBool, b:))
     expr.FloatLiteral(f) -> Ok(typed_expr.FloatLiteral(type_: typ.TFloat, f:))
     expr.UsdLiteral(cents) -> Ok(typed_expr.UsdLiteral(type_: typ.TUsd, cents:))
-    expr.PercentLiteral(n, d) ->
-      Ok(typed_expr.PercentLiteral(typ.TPercent, n, d))
+    expr.PercentLiteral(p) -> Ok(typed_expr.PercentLiteral(typ.TPercent, p))
     expr.IntegerLiteral(n) -> Ok(typed_expr.IntegerLiteral(type_: typ.TInt, n:))
     expr.Group(inner) -> {
       use expr <- result.try(typecheck(env, inner))
@@ -232,7 +231,7 @@ pub fn typecheck(
       case op, expr.type_ {
         expr.Negate, typ.TInt | expr.Negate, typ.TFloat | expr.Negate, typ.TUsd ->
           Ok(typed_expr.UnaryOp(type_: expr.type_, op:, expr:))
-        expr.Not, typ.TBool ->
+        expr.Not, typ.TBool | expr.Not, typ.TPercent ->
           Ok(typed_expr.UnaryOp(type_: expr.type_, op:, expr:))
         _, _ ->
           Error(
@@ -253,8 +252,6 @@ pub fn typecheck(
           Ok(typed_expr.BinaryOp(type_: typ.TInt, lhs:, op:, rhs:))
         typ.TUsd, expr.Add, typ.TUsd ->
           Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
-        typ.TPercent, expr.Add, typ.TPercent ->
-          Ok(typed_expr.BinaryOp(type_: typ.TPercent, lhs:, op:, rhs:))
 
         _, expr.Add, _ ->
           Error(
@@ -272,8 +269,6 @@ pub fn typecheck(
           Ok(typed_expr.BinaryOp(type_: typ.TInt, lhs:, op:, rhs:))
         typ.TUsd, expr.Subtract, typ.TUsd ->
           Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
-        typ.TPercent, expr.Subtract, typ.TPercent ->
-          Ok(typed_expr.BinaryOp(type_: typ.TPercent, lhs:, op:, rhs:))
 
         // Multiplication
         typ.TFloat, expr.Multiply, typ.TFloat ->

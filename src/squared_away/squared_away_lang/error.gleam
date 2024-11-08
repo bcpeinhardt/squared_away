@@ -1,4 +1,5 @@
 import gleam/option.{None}
+import gleam/string
 import squared_away/renderable_error
 import squared_away/squared_away_lang/interpreter/runtime_error
 import squared_away/squared_away_lang/parser/parse_error
@@ -22,7 +23,7 @@ pub fn to_renderable_error(ce: CompileError) -> renderable_error.RenderableError
     _ ->
       renderable_error.RenderableError(
         title: "Compiler error",
-        info: "Todo: implement this error description",
+        info: string.inspect(ce),
         hint: None,
       )
   }

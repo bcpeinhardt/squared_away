@@ -1,4 +1,3 @@
-import bigi
 import gleam/float
 import gleam/int
 import gleam/list.{Continue, Stop}
@@ -11,6 +10,7 @@ import squared_away/squared_away_lang/interpreter/value
 import squared_away/squared_away_lang/parser/expr
 import squared_away/squared_away_lang/typechecker/typ
 import squared_away/squared_away_lang/typechecker/typed_expr
+import squared_away/squared_away_lang/util/rational
 
 pub fn interpret(
   env: grid.Grid(Result(typed_expr.TypedExpr, error.CompileError)),
@@ -20,7 +20,7 @@ pub fn interpret(
     typed_expr.Empty(_) -> Ok(value.Empty)
     typed_expr.LabelDef(_, txt) -> Ok(value.Text(txt))
     typed_expr.UsdLiteral(_, cents) -> Ok(value.Usd(cents))
-    typed_expr.PercentLiteral(_, n, d) -> Ok(value.Percent(n, d))
+    typed_expr.PercentLiteral(_, r) -> Ok(value.Percent(r))
     typed_expr.Group(_, expr) -> interpret(env, expr)
     typed_expr.CrossLabel(_, key, _, _) -> {
       case grid.get(env, key) {
@@ -82,8 +82,9 @@ pub fn interpret(
         expr.Negate, value.FloatingPointNumber(f) ->
           Ok(value.FloatingPointNumber(float.negate(f)))
         expr.Not, value.Boolean(b) -> Ok(value.Boolean(!b))
+        expr.Not, value.Percent(p) -> Ok(value.Percent(rational.subtract(rational.from_int(1), p)))
         _, _ ->
-          panic as "These should be the only options if the typechecker is working"
+          Error(error.RuntimeError(runtime_error.RuntimeError("These should be the only options if the typechecker is working")))
       }
     }
     typed_expr.BinaryOp(_, lhs, op, rhs) -> {
@@ -177,29 +178,23 @@ pub fn interpret(
 
         // Money Operations
         value.Usd(c1), expr.Add, value.Usd(c2) ->
-          Ok(value.Usd(bigi.add(c1, c2)))
+          Ok(value.Usd(rational.add(c1, c2)))
         value.Usd(c1), expr.Subtract, value.Usd(c2) ->
-          Ok(value.Usd(bigi.subtract(c1, c2)))
+          Ok(value.Usd(rational.subtract(c1, c2)))
         value.Usd(c), expr.Multiply, value.Integer(i) ->
-          Ok(value.Usd(bigi.multiply(c, bigi.from_int(i))))
+          Ok(value.Usd(rational.multiply(c, rational.from_int(i))))
         value.Integer(i), expr.Multiply, value.Usd(c) ->
-          Ok(value.Usd(bigi.multiply(c, bigi.from_int(i))))
-        value.Usd(c), expr.Multiply, value.Percent(n, d) -> {
-          let cents =
-            bigi.multiply(c, n)
-            |> bigi.divide(d)
-          Ok(value.Usd(cents))
+          Ok(value.Usd(rational.multiply(c, rational.from_int(i))))
+        value.Usd(c), expr.Multiply, value.Percent(p) -> {
+          Ok(value.Usd(rational.multiply(c, p)))
         }
-        value.Percent(n, d), expr.Multiply, value.Usd(c) -> {
-          let cents =
-            bigi.multiply(c, n)
-            |> bigi.divide(d)
-          Ok(value.Usd(cents))
+        value.Percent(p), expr.Multiply, value.Usd(c) -> {
+          Ok(value.Usd(rational.multiply(p, c)))
         }
 
         // Percent ops
-        value.Percent(n1, d1), expr.Multiply, value.Percent(n2, d2) -> {
-          Ok(value.Percent(bigi.multiply(n1, n2), bigi.multiply(d1, d2)))
+        value.Percent(p1), expr.Multiply, value.Percent(p2) -> {
+          Ok(value.Percent(rational.multiply(p1, p2)))
         }
 
         lhs, op, rhs -> {
@@ -252,7 +247,7 @@ pub fn interpret(
             let assert value.Usd(c) = v
             c
           })
-          |> bigi.sum
+          |> rational.sum
           |> value.Usd
           |> Ok
         _ ->

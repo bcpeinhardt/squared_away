@@ -1,6 +1,6 @@
-import bigi
 import gleam/option
 import squared_away/squared_away_lang/grid
+import squared_away/squared_away_lang/util/rational
 
 pub type Token {
   /// +, addition op for integers
@@ -34,9 +34,9 @@ pub type Token {
   /// 1.0, 6.87
   FloatLiteral(f: Float)
   // $34.20
-  UsdLiteral(cents: bigi.BigInt)
+  UsdLiteral(dollars: rational.Rat)
   // 34%
-  PercentLiteral(numerator: bigi.BigInt, denominator: bigi.BigInt)
+  PercentLiteral(percent: rational.Rat)
   /// True
   TrueToken
   /// False

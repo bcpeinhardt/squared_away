@@ -1,21 +1,15 @@
-import bigi
 import gleam/float
 import gleam/int
-import gleam/order
-import gleam/string
 import squared_away/squared_away_lang/grid
 import squared_away/squared_away_lang/parser/expr
 import squared_away/squared_away_lang/typechecker/typ
+import squared_away/squared_away_lang/util/rational
 
 pub type TypedExpr {
   Empty(type_: typ.Typ)
   FloatLiteral(type_: typ.Typ, f: Float)
-  UsdLiteral(type_: typ.Typ, cents: bigi.BigInt)
-  PercentLiteral(
-    type_: typ.Typ,
-    numerator: bigi.BigInt,
-    denominator: bigi.BigInt,
-  )
+  UsdLiteral(type_: typ.Typ, cents: rational.Rat)
+  PercentLiteral(type_: typ.Typ, percent: rational.Rat)
   Label(type_: typ.Typ, txt: String)
   CrossLabel(
     type_: typ.Typ,
@@ -61,24 +55,6 @@ pub fn visit_cross_labels(
   }
 }
 
-fn normalize_percent(numerator: bigi.BigInt, denominator: bigi.BigInt) -> String {
-  do_normalize_percent(bigi.to_string(numerator), denominator)
-}
-
-fn do_normalize_percent(n: String, d: bigi.BigInt) -> String {
-  case bigi.from_int(100) |> bigi.compare(d) {
-    order.Eq -> n
-    order.Gt -> panic as "shouldn't happen dawg check the typed_expr module"
-    order.Lt -> {
-      let next_n = bigi.modulo(d, bigi.from_int(10))
-      do_normalize_percent(
-        n <> bigi.to_string(next_n),
-        bigi.divide(d, bigi.from_int(10)),
-      )
-    }
-  }
-}
-
 pub fn to_string(te: TypedExpr) -> String {
   case te {
     BooleanLiteral(_, b) -> {
@@ -91,11 +67,9 @@ pub fn to_string(te: TypedExpr) -> String {
     Empty(_) -> ""
     FloatLiteral(_, f) -> float.to_string(f)
     IntegerLiteral(_, i) -> int.to_string(i)
-    PercentLiteral(_, n, d) ->
-      case d == bigi.from_int(100) {
-        False -> normalize_percent(n, d) <> "%"
-        True -> bigi.to_string(n) <> "%"
-      }
+    PercentLiteral(_, p) ->
+      rational.to_string(rational.multiply(p, rational.from_int(100)), 10)
+      <> "%"
     Label(_, l) -> l
     LabelDef(_, l) -> l
     Group(_, t) -> "(" <> to_string(t) <> ")"
@@ -107,16 +81,8 @@ pub fn to_string(te: TypedExpr) -> String {
       <> " "
       <> to_string(rhs)
     BuiltinSum(_, _) -> "sum"
-    UsdLiteral(_, cents) -> {
-      let dollars = bigi.divide(cents, bigi.from_int(100)) |> bigi.to_string
-      let cents = bigi.modulo(cents, bigi.from_int(100)) |> bigi.to_string
-      let cents = case string.length(cents) {
-        1 -> cents <> "0"
-        2 -> cents
-        _ -> panic as "This shit shouldn't happen"
-      }
-
-      "$" <> dollars <> "." <> cents
+    UsdLiteral(_, dollars) -> {
+      "$" <> rational.to_string(dollars, 2)
     }
   }
 }

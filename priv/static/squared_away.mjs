@@ -4741,205 +4741,8 @@ function to_string10(typ) {
   }
 }
 
-// build/dev/javascript/squared_away/squared_away/squared_away_lang/typechecker/type_error.mjs
-var TypeError = class extends CustomType {
-  constructor(context) {
-    super();
-    this.context = context;
-  }
-};
-var IncorrectTypesForBinaryOp = class extends CustomType {
-  constructor(lhs, rhs, binary_op) {
-    super();
-    this.lhs = lhs;
-    this.rhs = rhs;
-    this.binary_op = binary_op;
-  }
-};
-function describe_binary_op_kind_for_err(bo) {
-  if (bo instanceof Add) {
-    return "Addition `+`";
-  } else if (bo instanceof And) {
-    return "Boolean And `&&`";
-  } else if (bo instanceof Divide) {
-    return "Division `/`";
-  } else if (bo instanceof EqualCheck) {
-    return "Equality Check `==`";
-  } else if (bo instanceof GreaterThanCheck) {
-    return "Greater Than Check `>`";
-  } else if (bo instanceof GreaterThanOrEqualCheck) {
-    return "Greater Than Or Equal Check `>=`";
-  } else if (bo instanceof LessThanCheck) {
-    return "Less Than Check `<`";
-  } else if (bo instanceof LessThanOrEqualCheck) {
-    return "Less Than or Equal Check `<=`";
-  } else if (bo instanceof Multiply) {
-    return "Multiplication `*`";
-  } else if (bo instanceof NotEqualCheck) {
-    return "Not Equal Check `!=`";
-  } else if (bo instanceof Or) {
-    return "Boolean Or `||`";
-  } else if (bo instanceof Power) {
-    return "To The Power Of `**`";
-  } else if (bo instanceof Subtract) {
-    return "Subtraction `-`";
-  } else {
-    return "MustBe `mustbe`";
-  }
-}
-function to_renderable_error(te) {
-  if (te instanceof IncorrectTypesForBinaryOp) {
-    let lhs = te.lhs;
-    let rhs = te.rhs;
-    let op = te.binary_op;
-    return new RenderableError(
-      "Unexpected arguments to binary operation " + describe_binary_op_kind_for_err(
-        op
-      ),
-      "Got " + to_string10(lhs) + " on the left and " + to_string10(
-        rhs
-      ) + " on the right",
-      new None()
-    );
-  } else {
-    let t2 = te.context;
-    return new RenderableError("Type Error", t2, new None());
-  }
-}
-
-// build/dev/javascript/squared_away/squared_away/squared_away_lang/error.mjs
-var ScanError2 = class extends CustomType {
-  constructor(x0) {
-    super();
-    this[0] = x0;
-  }
-};
-var ParseError2 = class extends CustomType {
-  constructor(x0) {
-    super();
-    this[0] = x0;
-  }
-};
-var TypeError2 = class extends CustomType {
-  constructor(x0) {
-    super();
-    this[0] = x0;
-  }
-};
-var RuntimeError2 = class extends CustomType {
-  constructor(x0) {
-    super();
-    this[0] = x0;
-  }
-};
-function to_renderable_error2(ce) {
-  if (ce instanceof TypeError2) {
-    let te = ce[0];
-    return to_renderable_error(te);
-  } else if (ce instanceof ParseError2) {
-    let pe = ce[0];
-    return new RenderableError("", pe.context, new None());
-  } else if (ce instanceof RuntimeError2) {
-    let re = ce[0];
-    return new RenderableError("", re.context, new None());
-  } else {
-    return new RenderableError(
-      "Compiler error",
-      inspect2(ce),
-      new None()
-    );
-  }
-}
-
-// build/dev/javascript/squared_away/squared_away/squared_away_lang/interpreter/value.mjs
-var Empty3 = class extends CustomType {
-};
-var Text2 = class extends CustomType {
-  constructor(inner) {
-    super();
-    this.inner = inner;
-  }
-};
-var Integer = class extends CustomType {
-  constructor(n) {
-    super();
-    this.n = n;
-  }
-};
-var FloatingPointNumber = class extends CustomType {
-  constructor(f) {
-    super();
-    this.f = f;
-  }
-};
-var Usd = class extends CustomType {
-  constructor(cents) {
-    super();
-    this.cents = cents;
-  }
-};
-var Percent = class extends CustomType {
-  constructor(percent) {
-    super();
-    this.percent = percent;
-  }
-};
-var Boolean = class extends CustomType {
-  constructor(b) {
-    super();
-    this.b = b;
-  }
-};
-var TestFail = class extends CustomType {
-};
-var TestPass = class extends CustomType {
-};
-function value_to_string(fv) {
-  if (fv instanceof Empty3) {
-    return "";
-  } else if (fv instanceof Text2) {
-    let t2 = fv.inner;
-    return t2;
-  } else if (fv instanceof Integer) {
-    let n = fv.n;
-    return to_string3(n);
-  } else if (fv instanceof Boolean) {
-    let b = fv.b;
-    let _pipe = to_string5(b);
-    return uppercase2(_pipe);
-  } else if (fv instanceof FloatingPointNumber) {
-    let f = fv.f;
-    return to_string2(f);
-  } else if (fv instanceof Percent) {
-    let p2 = fv.percent;
-    return to_string9(
-      multiply2(p2, from_int(100)),
-      100
-    ) + "%";
-  } else if (fv instanceof TestFail) {
-    return "Test Failure";
-  } else if (fv instanceof TestPass) {
-    return "Test Passing";
-  } else {
-    let dollars = fv.cents;
-    let str = "$" + to_string9(dollars, 100);
-    let $ = split_once2(str, ".");
-    if (!$.isOk() && !$[0]) {
-      return str + ".00";
-    } else {
-      let cents = $[0][1];
-      let $1 = length2(cents) === 1;
-      if (!$1) {
-        return str;
-      } else {
-        return str + "0";
-      }
-    }
-  }
-}
-
 // build/dev/javascript/squared_away/squared_away/squared_away_lang/typechecker/typed_expr.mjs
-var Empty4 = class extends CustomType {
+var Empty3 = class extends CustomType {
   constructor(type_2) {
     super();
     this.type_ = type_2;
@@ -5081,7 +4884,7 @@ function do_to_string2(te) {
     let rl = te.row_label;
     let cl = te.col_label;
     return rl + "_" + cl;
-  } else if (te instanceof Empty4) {
+  } else if (te instanceof Empty3) {
     return "";
   } else if (te instanceof FloatLiteral2) {
     let f = te.f;
@@ -5150,13 +4953,233 @@ function to_string11(te) {
   }
 }
 
+// build/dev/javascript/squared_away/squared_away/squared_away_lang/typechecker/type_error.mjs
+var TypeError = class extends CustomType {
+  constructor(context) {
+    super();
+    this.context = context;
+  }
+};
+var IncorrectTypesForBinaryOp = class extends CustomType {
+  constructor(lhs, rhs, binary_op) {
+    super();
+    this.lhs = lhs;
+    this.rhs = rhs;
+    this.binary_op = binary_op;
+  }
+};
+var CannotMultiplyUsdByUsd = class extends CustomType {
+  constructor(lhs, rhs) {
+    super();
+    this.lhs = lhs;
+    this.rhs = rhs;
+  }
+};
+function describe_binary_op_kind_for_err(bo) {
+  if (bo instanceof Add) {
+    return "Addition `+`";
+  } else if (bo instanceof And) {
+    return "Boolean And `&&`";
+  } else if (bo instanceof Divide) {
+    return "Division `/`";
+  } else if (bo instanceof EqualCheck) {
+    return "Equality Check `==`";
+  } else if (bo instanceof GreaterThanCheck) {
+    return "Greater Than Check `>`";
+  } else if (bo instanceof GreaterThanOrEqualCheck) {
+    return "Greater Than Or Equal Check `>=`";
+  } else if (bo instanceof LessThanCheck) {
+    return "Less Than Check `<`";
+  } else if (bo instanceof LessThanOrEqualCheck) {
+    return "Less Than or Equal Check `<=`";
+  } else if (bo instanceof Multiply) {
+    return "Multiplication `*`";
+  } else if (bo instanceof NotEqualCheck) {
+    return "Not Equal Check `!=`";
+  } else if (bo instanceof Or) {
+    return "Boolean Or `||`";
+  } else if (bo instanceof Power) {
+    return "To The Power Of `**`";
+  } else if (bo instanceof Subtract) {
+    return "Subtraction `-`";
+  } else {
+    return "MustBe `mustbe`";
+  }
+}
+function to_renderable_error(te) {
+  if (te instanceof IncorrectTypesForBinaryOp) {
+    let lhs = te.lhs;
+    let rhs = te.rhs;
+    let op = te.binary_op;
+    return new RenderableError(
+      "Unexpected arguments to binary operation " + describe_binary_op_kind_for_err(
+        op
+      ),
+      "Got " + to_string10(lhs) + " on the left and " + to_string10(
+        rhs
+      ) + " on the right",
+      new None()
+    );
+  } else if (te instanceof TypeError) {
+    let t2 = te.context;
+    return new RenderableError("Type Error", t2, new None());
+  } else {
+    let lhs = te.lhs;
+    let rhs = te.rhs;
+    return new RenderableError(
+      "Cannot multiply USD * USD",
+      "You're multiply two values that both represent United States Dollars. You have " + drop_left(
+        to_string11(lhs),
+        1
+      ) + " on the left and " + drop_left(
+        to_string11(rhs),
+        1
+      ) + " on the right.",
+      new Some(
+        `This is *probably* a mistake, as "dollars squared" doesn't make much sense as a unit`
+      )
+    );
+  }
+}
+
+// build/dev/javascript/squared_away/squared_away/squared_away_lang/error.mjs
+var ScanError2 = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
+var ParseError2 = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
+var TypeError2 = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
+var RuntimeError2 = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
+function to_renderable_error2(ce) {
+  if (ce instanceof TypeError2) {
+    let te = ce[0];
+    return to_renderable_error(te);
+  } else if (ce instanceof ParseError2) {
+    let pe = ce[0];
+    return new RenderableError("", pe.context, new None());
+  } else if (ce instanceof RuntimeError2) {
+    let re = ce[0];
+    return new RenderableError("", re.context, new None());
+  } else {
+    return new RenderableError(
+      "Compiler error",
+      inspect2(ce),
+      new None()
+    );
+  }
+}
+
+// build/dev/javascript/squared_away/squared_away/squared_away_lang/interpreter/value.mjs
+var Empty4 = class extends CustomType {
+};
+var Text2 = class extends CustomType {
+  constructor(inner) {
+    super();
+    this.inner = inner;
+  }
+};
+var Integer = class extends CustomType {
+  constructor(n) {
+    super();
+    this.n = n;
+  }
+};
+var FloatingPointNumber = class extends CustomType {
+  constructor(f) {
+    super();
+    this.f = f;
+  }
+};
+var Usd = class extends CustomType {
+  constructor(cents) {
+    super();
+    this.cents = cents;
+  }
+};
+var Percent = class extends CustomType {
+  constructor(percent) {
+    super();
+    this.percent = percent;
+  }
+};
+var Boolean = class extends CustomType {
+  constructor(b) {
+    super();
+    this.b = b;
+  }
+};
+var TestFail = class extends CustomType {
+};
+var TestPass = class extends CustomType {
+};
+function value_to_string(fv) {
+  if (fv instanceof Empty4) {
+    return "";
+  } else if (fv instanceof Text2) {
+    let t2 = fv.inner;
+    return t2;
+  } else if (fv instanceof Integer) {
+    let n = fv.n;
+    return to_string3(n);
+  } else if (fv instanceof Boolean) {
+    let b = fv.b;
+    let _pipe = to_string5(b);
+    return uppercase2(_pipe);
+  } else if (fv instanceof FloatingPointNumber) {
+    let f = fv.f;
+    return to_string2(f);
+  } else if (fv instanceof Percent) {
+    let p2 = fv.percent;
+    return to_string9(
+      multiply2(p2, from_int(100)),
+      100
+    ) + "%";
+  } else if (fv instanceof TestFail) {
+    return "Test Failure";
+  } else if (fv instanceof TestPass) {
+    return "Test Passing";
+  } else {
+    let dollars = fv.cents;
+    let str = "$" + to_string9(dollars, 100);
+    let $ = split_once2(str, ".");
+    if (!$.isOk() && !$[0]) {
+      return str + ".00";
+    } else {
+      let cents = $[0][1];
+      let $1 = length2(cents) === 1;
+      if (!$1) {
+        return str;
+      } else {
+        return str + "0";
+      }
+    }
+  }
+}
+
 // build/dev/javascript/squared_away/squared_away/squared_away_lang/interpreter.mjs
 function interpret(loop$env, loop$expr) {
   while (true) {
     let env = loop$env;
     let expr = loop$expr;
-    if (expr instanceof Empty4) {
-      return new Ok(new Empty3());
+    if (expr instanceof Empty3) {
+      return new Ok(new Empty4());
     } else if (expr instanceof LabelDef2) {
       let txt = expr.txt;
       return new Ok(new Text2(txt));
@@ -5178,7 +5201,7 @@ function interpret(loop$env, loop$expr) {
         loop$env = env;
         loop$expr = expr$1;
       } else {
-        return new Ok(new Empty3());
+        return new Ok(new Empty4());
       }
     } else if (expr instanceof Label2) {
       let txt = expr.txt;
@@ -6761,7 +6784,7 @@ function scan(src) {
 // build/dev/javascript/squared_away/squared_away/squared_away_lang/typechecker.mjs
 function typecheck(env, expr) {
   if (expr instanceof Empty2) {
-    return new Ok(new Empty4(new TNil()));
+    return new Ok(new Empty3(new TNil()));
   } else if (expr instanceof BuiltinSum) {
     let key = expr.key;
     if (!(key instanceof Some)) {
@@ -7179,6 +7202,12 @@ function typecheck(env, expr) {
             } else if ($ instanceof TUsd && op instanceof Divide && $1 instanceof TUsd) {
               return new Ok(
                 new BinaryOp2(new TPercent(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TUsd && op instanceof Multiply && $1 instanceof TUsd) {
+              return new Error(
+                new TypeError2(
+                  new CannotMultiplyUsdByUsd(lhs2, rhs2)
+                )
               );
             } else if ($ instanceof TPercent && op instanceof Multiply && $1 instanceof TUsd) {
               return new Ok(
@@ -7699,7 +7728,7 @@ function view(model) {
                       return "center";
                     } else if (v instanceof TestPass) {
                       return "center";
-                    } else if (v instanceof Empty3) {
+                    } else if (v instanceof Empty4) {
                       return "center";
                     } else {
                       return "left";
@@ -7867,7 +7896,7 @@ function init2(_) {
   let value_grid = new$4(
     initial_grid_width,
     initial_grid_height,
-    new Ok(new Empty3())
+    new Ok(new Empty4())
   );
   let model = (() => {
     let _pipe = new Model2(

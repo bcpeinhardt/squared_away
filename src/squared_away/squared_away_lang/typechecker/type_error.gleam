@@ -1,7 +1,9 @@
 import gleam/option.{None}
+import gleam/string
 import squared_away/renderable_error
 import squared_away/squared_away_lang/parser/expr
 import squared_away/squared_away_lang/typechecker/typ
+import squared_away/squared_away_lang/typechecker/typed_expr
 
 pub type TypeError {
   TypeError(context: String)
@@ -10,6 +12,7 @@ pub type TypeError {
     rhs: typ.Typ,
     binary_op: expr.BinaryOpKind,
   )
+  CannotMultiplyUsdByUsd(lhs: typed_expr.TypedExpr, rhs: typed_expr.TypedExpr)
 }
 
 pub fn to_renderable_error(te: TypeError) -> renderable_error.RenderableError {
@@ -27,17 +30,19 @@ pub fn to_renderable_error(te: TypeError) -> renderable_error.RenderableError {
       )
     TypeError(t) ->
       renderable_error.RenderableError(title: "Type Error", info: t, hint: None)
-  }
-}
-
-pub fn to_string(te: TypeError) -> String {
-  case te {
-    IncorrectTypesForBinaryOp(lhs:, rhs:, binary_op:) -> "Type Error:\n
-Incorrect arguments for the binary operation.\n
-Operation: " <> describe_binary_op_kind_for_err(binary_op) <> "\n
-Type on the left side: " <> typ.to_string(lhs) <> "\n
-Type on the right side: " <> typ.to_string(rhs)
-    TypeError(txt) -> txt
+    CannotMultiplyUsdByUsd(lhs, rhs) -> {
+      renderable_error.RenderableError(
+        title: "Cannot multiply USD * USD",
+        info: "You're multiplying two values that both represent United States Dollars. You have "
+          <> string.drop_left(typed_expr.to_string(lhs), 1)
+          <> " on the left and "
+          <> string.drop_left(typed_expr.to_string(rhs), 1)
+          <> " on the right.",
+        hint: option.Some(
+          "This is *probably* a mistake, as \"dollars squared\" doesn't make much sense as a unit.",
+        ),
+      )
+    }
   }
 }
 

@@ -289,6 +289,8 @@ pub fn typecheck(
           Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
         typ.TUsd, expr.Divide, typ.TUsd ->
           Ok(typed_expr.BinaryOp(type_: typ.TPercent, lhs:, op:, rhs:))
+        typ.TUsd, expr.Multiply, typ.TUsd ->
+          Error(error.TypeError(type_error.CannotMultiplyUsdByUsd(lhs:, rhs:)))
 
         // Percent x Usd
         typ.TPercent, expr.Multiply, typ.TUsd ->

@@ -1,5 +1,6 @@
 import gleam/bool
 import gleam/int
+import gleam/io
 import gleam/list.{Continue, Stop}
 import gleam/option.{None, Some}
 import gleam/result
@@ -52,6 +53,7 @@ pub fn typecheck(
           )),
         ),
       )
+
       let types =
         list.map(items_above_sum_call, fn(i) {
           let assert Ok(item) = i
@@ -68,12 +70,14 @@ pub fn typecheck(
           )),
         ),
       )
+
       let types =
         list.map(types, fn(t) {
           let assert Ok(texpr) = t
           texpr.type_
         })
         |> list.unique
+        |> list.filter(fn(t) { t != typ.TTestResult })
 
       case types {
         [typ.TFloat] -> Ok(typed_expr.BuiltinSum(typ.TFloat, keys))
@@ -346,7 +350,7 @@ pub fn typecheck(
         // A mustbe op will return the TestResult type, and must be called
         // with the same type on either side of the op
         lht, expr.MustBe, rht if rht == lht ->
-          Ok(typed_expr.BinaryOp(rht, lhs, expr.MustBe, rhs))
+          Ok(typed_expr.BinaryOp(type_: typ.TTestResult, lhs:, op:, rhs:))
 
         lht, binary_op, rht ->
           Error(

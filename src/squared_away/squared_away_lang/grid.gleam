@@ -4,7 +4,6 @@
 
 import gleam/dict
 import gleam/int
-import gleam/io
 import gleam/list
 import gleam/order
 import gsv
@@ -138,7 +137,7 @@ pub fn src_csv(grid: Grid(String)) -> String {
 
 pub fn from_src_csv(src: String, width: Int, height: Int) -> Grid(String) {
   // Filter down the content to just the appropriate rows and columns 
-  let assert Ok(src) = gsv.to_lists(src) |> io.debug
+  let assert Ok(src) = gsv.to_lists(src)
   let inner =
     list.take(src, height)
     |> list.map(list.take(_, width))

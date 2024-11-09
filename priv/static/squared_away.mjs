@@ -1131,6 +1131,16 @@ function contains_string(haystack, needle) {
 function ends_with(haystack, needle) {
   return haystack.endsWith(needle);
 }
+function split_once(haystack, needle) {
+  const index3 = haystack.indexOf(needle);
+  if (index3 >= 0) {
+    const before = haystack.slice(0, index3);
+    const after = haystack.slice(index3 + needle.length);
+    return new Ok([before, after]);
+  } else {
+    return new Error(Nil);
+  }
+}
 var unicode_whitespaces = [
   " ",
   // Space
@@ -1161,15 +1171,6 @@ function trim_left(string3) {
 }
 function trim_right(string3) {
   return string3.replace(right_trim_regex, "");
-}
-function print_debug(string3) {
-  if (typeof process === "object" && process.stderr?.write) {
-    process.stderr.write(string3 + "\n");
-  } else if (typeof Deno === "object") {
-    Deno.stderr.writeSync(new TextEncoder().encode(string3 + "\n"));
-  } else {
-    console.log(string3);
-  }
 }
 function ceiling(float3) {
   return Math.ceil(float3);
@@ -2409,6 +2410,9 @@ function drop_left(string3, num_graphemes) {
 function ends_with2(string3, suffix) {
   return ends_with(string3, suffix);
 }
+function split_once2(string3, substring) {
+  return split_once(string3, substring);
+}
 function join2(strings, separator) {
   return join(strings, separator);
 }
@@ -3643,14 +3647,6 @@ var ScanError = class extends CustomType {
   }
 };
 
-// build/dev/javascript/gleam_stdlib/gleam/io.mjs
-function debug(term) {
-  let _pipe = term;
-  let _pipe$1 = inspect2(_pipe);
-  print_debug(_pipe$1);
-  return term;
-}
-
 // build/dev/javascript/gsv/gsv_ffi.mjs
 function slice3(string3, start3, size) {
   return string3.slice(start3, start3 + size);
@@ -4145,7 +4141,7 @@ function get4(grid, key) {
     throw makeError(
       "let_assert",
       "squared_away/squared_away_lang/grid",
-      85,
+      84,
       "get",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -4241,15 +4237,12 @@ function src_csv(grid) {
   return from_lists(_pipe$3, ",", new Unix());
 }
 function from_src_csv(src, width, height) {
-  let $ = (() => {
-    let _pipe = to_lists(src);
-    return debug(_pipe);
-  })();
+  let $ = to_lists(src);
   if (!$.isOk()) {
     throw makeError(
       "let_assert",
       "squared_away/squared_away_lang/grid",
-      141,
+      140,
       "from_src_csv",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -4924,15 +4917,27 @@ function value_to_string(fv) {
     let p2 = fv.percent;
     return to_string9(
       multiply2(p2, from_int(100)),
-      10
+      100
     ) + "%";
   } else if (fv instanceof TestFail) {
     return "Test Failure";
   } else if (fv instanceof TestPass) {
     return "Test Passing";
   } else {
-    let cents = fv.cents;
-    return "$" + to_string9(cents, 2);
+    let dollars = fv.cents;
+    let str = "$" + to_string9(dollars, 100);
+    let $ = split_once2(str, ".");
+    if (!$.isOk() && !$[0]) {
+      return str + ".00";
+    } else {
+      let cents = $[0][1];
+      let $1 = length2(cents) === 1;
+      if (!$1) {
+        return str;
+      } else {
+        return str + "0";
+      }
+    }
   }
 }
 
@@ -5067,7 +5072,7 @@ function visit_cross_labels(te, f) {
     return new Ok(te);
   }
 }
-function to_string11(te) {
+function do_to_string2(te) {
   if (te instanceof BooleanLiteral2) {
     let b = te.b;
     if (!b) {
@@ -5091,7 +5096,7 @@ function to_string11(te) {
     let p2 = te.percent;
     return to_string9(
       multiply2(p2, from_int(100)),
-      10
+      100
     ) + "%";
   } else if (te instanceof Label2) {
     let l = te.txt;
@@ -5101,23 +5106,48 @@ function to_string11(te) {
     return l;
   } else if (te instanceof Group2) {
     let t2 = te.expr;
-    return "(" + to_string11(t2) + ")";
+    return "(" + do_to_string2(t2) + ")";
   } else if (te instanceof UnaryOp2) {
     let op = te.op;
     let te$1 = te.expr;
-    return unary_to_string(op) + to_string11(te$1);
+    return unary_to_string(op) + do_to_string2(te$1);
   } else if (te instanceof BinaryOp2) {
     let lhs = te.lhs;
     let bop = te.op;
     let rhs = te.rhs;
-    return to_string11(lhs) + " " + binary_to_string(bop) + " " + to_string11(
+    return do_to_string2(lhs) + " " + binary_to_string(bop) + " " + do_to_string2(
       rhs
     );
   } else if (te instanceof BuiltinSum2) {
     return "sum";
   } else {
     let dollars = te.cents;
-    return "$" + to_string9(dollars, 2);
+    let str = "$" + to_string9(dollars, 100);
+    let $ = split_once2(str, ".");
+    if (!$.isOk() && !$[0]) {
+      return str + ".00";
+    } else {
+      let cents = $[0][1];
+      let $1 = length2(cents) === 1;
+      if (!$1) {
+        return str;
+      } else {
+        return str + "0";
+      }
+    }
+  }
+}
+function to_string11(te) {
+  if (te instanceof Label2) {
+    return "=" + do_to_string2(te);
+  } else if (te instanceof UnaryOp2) {
+    return "=" + do_to_string2(te);
+  } else if (te instanceof BinaryOp2) {
+    return "=" + do_to_string2(te);
+  } else if (te instanceof BuiltinSum2) {
+    return "=" + do_to_string2(te);
+  } else {
+    return do_to_string2(te);
   }
 }
 
@@ -5343,7 +5373,7 @@ function interpret(loop$env, loop$expr) {
                   throw makeError(
                     "let_assert",
                     "squared_away/squared_away_lang/interpreter",
-                    155,
+                    156,
                     "",
                     "Pattern match failed, no pattern matched the value.",
                     { value: $ }
@@ -5359,7 +5389,7 @@ function interpret(loop$env, loop$expr) {
                   throw makeError(
                     "let_assert",
                     "squared_away/squared_away_lang/interpreter",
-                    159,
+                    160,
                     "",
                     "Pattern match failed, no pattern matched the value.",
                     { value: $ }
@@ -5420,6 +5450,10 @@ function interpret(loop$env, loop$expr) {
                 let p2 = lhs2.percent;
                 let c = rhs2.cents;
                 return new Ok(new Usd(multiply2(p2, c)));
+              } else if (lhs2 instanceof Usd && op instanceof Divide && rhs2 instanceof Percent) {
+                let d = lhs2.cents;
+                let p2 = rhs2.percent;
+                return new Ok(new Usd(divide2(d, p2)));
               } else if (lhs2 instanceof Percent && op instanceof Multiply && rhs2 instanceof Percent) {
                 let p1 = lhs2.percent;
                 let p2 = rhs2.percent;
@@ -5446,7 +5480,7 @@ function interpret(loop$env, loop$expr) {
       let keys2 = expr.keys;
       let values = (() => {
         let _pipe = to_list3(env);
-        return filter_map(
+        let _pipe$1 = filter_map(
           _pipe,
           (i) => {
             let gk = i[0];
@@ -5459,9 +5493,21 @@ function interpret(loop$env, loop$expr) {
                 return new Error(void 0);
               } else {
                 let x = item[0];
-                let _pipe$1 = interpret(env, x);
-                return nil_error(_pipe$1);
+                let _pipe$12 = interpret(env, x);
+                return nil_error(_pipe$12);
               }
+            }
+          }
+        );
+        return filter(
+          _pipe$1,
+          (v) => {
+            if (v instanceof TestFail) {
+              return false;
+            } else if (v instanceof TestPass) {
+              return false;
+            } else {
+              return true;
             }
           }
         );
@@ -5474,7 +5520,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                231,
+                239,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5495,7 +5541,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                239,
+                247,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5516,14 +5562,14 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                247,
+                255,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
               );
             }
-            let c = v.cents;
-            return c;
+            let d = v.cents;
+            return d;
           }
         );
         let _pipe$1 = sum3(_pipe);
@@ -6719,7 +6765,7 @@ function typecheck(env, expr) {
       throw makeError(
         "let_assert",
         "squared_away/squared_away_lang/typechecker",
-        20,
+        21,
         "typecheck",
         "Pattern match failed, no pattern matched the value.",
         { value: key }
@@ -6783,7 +6829,7 @@ function typecheck(env, expr) {
                 throw makeError(
                   "let_assert",
                   "squared_away/squared_away_lang/typechecker",
-                  57,
+                  59,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: i }
@@ -6816,7 +6862,7 @@ function typecheck(env, expr) {
                     throw makeError(
                       "let_assert",
                       "squared_away/squared_away_lang/typechecker",
-                      73,
+                      76,
                       "",
                       "Pattern match failed, no pattern matched the value.",
                       { value: t2 }
@@ -6826,7 +6872,13 @@ function typecheck(env, expr) {
                   return texpr.type_;
                 }
               );
-              return unique(_pipe);
+              let _pipe$1 = unique(_pipe);
+              return filter(
+                _pipe$1,
+                (t2) => {
+                  return !isEqual(t2, new TTestResult());
+                }
+              );
             })();
             if (types$1.hasLength(1) && types$1.head instanceof TFloat) {
               return new Ok(new BuiltinSum2(new TFloat(), keys2));
@@ -7281,7 +7333,7 @@ function typecheck(env, expr) {
               let lht = $;
               let rht = $1;
               return new Ok(
-                new BinaryOp2(rht, lhs2, new MustBe(), rhs2)
+                new BinaryOp2(new TTestResult(), lhs2, op, rhs2)
               );
             } else {
               let lht = $;
@@ -7624,6 +7676,38 @@ function view(model) {
                 })();
                 return value(_pipe$32);
               })();
+              let alignment = (() => {
+                let $2 = isEqual(model.active_cell, new Some(key));
+                if ($2) {
+                  return "left";
+                } else {
+                  let $12 = get4(model.value_grid, key);
+                  if (!$12.isOk()) {
+                    return "center";
+                  } else {
+                    let v = $12[0];
+                    if (v instanceof Percent) {
+                      return "right";
+                    } else if (v instanceof Integer) {
+                      return "right";
+                    } else if (v instanceof FloatingPointNumber) {
+                      return "right";
+                    } else if (v instanceof Usd) {
+                      return "right";
+                    } else if (v instanceof Boolean) {
+                      return "right";
+                    } else if (v instanceof TestFail) {
+                      return "center";
+                    } else if (v instanceof TestPass) {
+                      return "center";
+                    } else if (v instanceof Empty3) {
+                      return "center";
+                    } else {
+                      return "left";
+                    }
+                  }
+                }
+              })();
               let cell_is_errored = any(
                 model.errors_to_display,
                 (i) => {
@@ -7670,7 +7754,8 @@ function view(model) {
                   style(
                     toList([
                       ["background-color", background_color],
-                      ["color", color]
+                      ["color", color],
+                      ["text-align", alignment]
                     ])
                   )
                 ])
@@ -7942,7 +8027,7 @@ function update(model, msg) {
               return [model, none()];
             } else {
               let new_expr = expr_with_labels_updated[0];
-              let formula = "=" + to_string11(new_expr);
+              let formula = to_string11(new_expr);
               let src_grid = insert4(
                 model.src_grid,
                 cell_to_right,

@@ -15,7 +15,6 @@ pub type Value {
   TestFail
   TestPass
 }
- 
 
 pub fn value_to_string(fv: Value) -> String {
   case fv {
@@ -25,12 +24,21 @@ pub fn value_to_string(fv: Value) -> String {
     Boolean(b) -> bool.to_string(b) |> string.uppercase
     FloatingPointNumber(f) -> float.to_string(f)
     Percent(p) ->
-      rational.to_string(rational.multiply(p, rational.from_int(100)), 10)
+      rational.to_string(rational.multiply(p, rational.from_int(100)), 100)
       <> "%"
     TestFail -> "Test Failure"
     TestPass -> "Test Passing"
-    Usd(cents) -> {
-      "$" <> rational.to_string(cents, 2)
+    Usd(dollars) -> {
+      let str = "$" <> rational.to_string(dollars, 100)
+      case string.split_once(str, ".") {
+        Error(Nil) -> str <> ".00"
+        Ok(#(_, cents)) -> {
+          case string.length(cents) == 1 {
+            False -> str
+            True -> str <> "0"
+          }
+        }
+      }
     }
   }
 }

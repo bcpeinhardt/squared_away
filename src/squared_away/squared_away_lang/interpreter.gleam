@@ -1,5 +1,6 @@
 import gleam/float
 import gleam/int
+import gleam/io
 import gleam/list.{Continue, Stop}
 import gleam/option.{None, Some}
 import gleam/result
@@ -82,9 +83,14 @@ pub fn interpret(
         expr.Negate, value.FloatingPointNumber(f) ->
           Ok(value.FloatingPointNumber(float.negate(f)))
         expr.Not, value.Boolean(b) -> Ok(value.Boolean(!b))
-        expr.Not, value.Percent(p) -> Ok(value.Percent(rational.subtract(rational.from_int(1), p)))
+        expr.Not, value.Percent(p) ->
+          Ok(value.Percent(rational.subtract(rational.from_int(1), p)))
         _, _ ->
-          Error(error.RuntimeError(runtime_error.RuntimeError("These should be the only options if the typechecker is working")))
+          Error(
+            error.RuntimeError(runtime_error.RuntimeError(
+              "These should be the only options if the typechecker is working",
+            )),
+          )
       }
     }
     typed_expr.BinaryOp(_, lhs, op, rhs) -> {
@@ -191,6 +197,9 @@ pub fn interpret(
         value.Percent(p), expr.Multiply, value.Usd(c) -> {
           Ok(value.Usd(rational.multiply(p, c)))
         }
+        value.Usd(d), expr.Divide, value.Percent(p) -> {
+          Ok(value.Usd(rational.divide(d, p)))
+        }
 
         // Percent ops
         value.Percent(p1), expr.Multiply, value.Percent(p2) -> {
@@ -207,10 +216,7 @@ pub fn interpret(
         }
       }
     }
-    // This will get interpreted in the parent grid-aware func to have access to keys.
     typed_expr.BuiltinSum(type_:, keys:) -> {
-      // At this point, we've validated that the values to sum are either
-      // all ints or all floats, so we'll match on the type and sum them appropriately
       let values =
         grid.to_list(env)
         |> list.filter_map(fn(i) {
@@ -220,8 +226,16 @@ pub fn interpret(
             True ->
               case item {
                 Error(_) -> Error(Nil)
-                Ok(x) -> interpret(env, x) |> result.nil_error
+                Ok(x) -> {
+                  interpret(env, x) |> result.nil_error
+                }
               }
+          }
+        })
+        |> list.filter(fn(v) {
+          case v {
+            value.TestFail | value.TestPass -> False
+            _ -> True
           }
         })
 
@@ -244,8 +258,8 @@ pub fn interpret(
           |> Ok
         typ.TUsd ->
           list.map(values, fn(v) {
-            let assert value.Usd(c) = v
-            c
+            let assert value.Usd(d) = v
+            d
           })
           |> rational.sum
           |> value.Usd

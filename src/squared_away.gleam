@@ -205,7 +205,7 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
               case expr_with_labels_updated {
                 Error(_) -> #(model, effect.none())
                 Ok(new_expr) -> {
-                  let formula = "=" <> typed_expr.to_string(new_expr)
+                  let formula = typed_expr.to_string(new_expr)
                   let src_grid =
                     grid.insert(model.src_grid, cell_to_right, formula)
                   let id = grid.to_string(cell_to_right)
@@ -375,6 +375,24 @@ fn view(model: Model) -> element.Element(Msg) {
             }
             |> attribute.value
 
+          let alignment = case model.active_cell == Some(key) {
+            True -> "left"
+            False ->
+              case grid.get(model.value_grid, key) {
+                Error(_) -> "center"
+                Ok(v) ->
+                  case v {
+                    value.Percent(_)
+                    | value.Integer(_)
+                    | value.FloatingPointNumber(_)
+                    | value.Usd(_)
+                    | value.Boolean(_) -> "right"
+                    value.TestFail | value.TestPass | value.Empty -> "center"
+                    value.Text(_) -> "left"
+                  }
+              }
+          }
+
           let cell_is_errored =
             list.any(model.errors_to_display, fn(i) { i.0 == key })
           let error_class = case cell_is_errored {
@@ -409,6 +427,7 @@ fn view(model: Model) -> element.Element(Msg) {
               attribute.style([
                 #("background-color", background_color),
                 #("color", color),
+                #("text-align", alignment),
               ]),
             ])
 

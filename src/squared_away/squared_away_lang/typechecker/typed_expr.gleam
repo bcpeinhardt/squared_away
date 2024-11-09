@@ -1,5 +1,6 @@
 import gleam/float
 import gleam/int
+import gleam/string
 import squared_away/squared_away_lang/grid
 import squared_away/squared_away_lang/parser/expr
 import squared_away/squared_away_lang/typechecker/typ
@@ -57,6 +58,14 @@ pub fn visit_cross_labels(
 
 pub fn to_string(te: TypedExpr) -> String {
   case te {
+    Label(_, _) | UnaryOp(_, _, _) | BinaryOp(_, _, _, _) | BuiltinSum(_, _) ->
+      "=" <> do_to_string(te)
+    _ -> do_to_string(te)
+  }
+}
+
+fn do_to_string(te: TypedExpr) -> String {
+  case te {
     BooleanLiteral(_, b) -> {
       case b {
         False -> "FALSE"
@@ -68,21 +77,30 @@ pub fn to_string(te: TypedExpr) -> String {
     FloatLiteral(_, f) -> float.to_string(f)
     IntegerLiteral(_, i) -> int.to_string(i)
     PercentLiteral(_, p) ->
-      rational.to_string(rational.multiply(p, rational.from_int(100)), 10)
+      rational.to_string(rational.multiply(p, rational.from_int(100)), 100)
       <> "%"
     Label(_, l) -> l
     LabelDef(_, l) -> l
-    Group(_, t) -> "(" <> to_string(t) <> ")"
-    UnaryOp(_, op, te) -> expr.unary_to_string(op) <> to_string(te)
+    Group(_, t) -> "(" <> do_to_string(t) <> ")"
+    UnaryOp(_, op, te) -> expr.unary_to_string(op) <> do_to_string(te)
     BinaryOp(_, lhs, bop, rhs) ->
-      to_string(lhs)
+      do_to_string(lhs)
       <> " "
       <> expr.binary_to_string(bop)
       <> " "
-      <> to_string(rhs)
+      <> do_to_string(rhs)
     BuiltinSum(_, _) -> "sum"
     UsdLiteral(_, dollars) -> {
-      "$" <> rational.to_string(dollars, 2)
+      let str = "$" <> rational.to_string(dollars, 100)
+      case string.split_once(str, ".") {
+        Error(Nil) -> str <> ".00"
+        Ok(#(_, cents)) -> {
+          case string.length(cents) == 1 {
+            False -> str
+            True -> str <> "0"
+          }
+        }
+      }
     }
   }
 }

@@ -249,65 +249,104 @@ pub fn typecheck(
       use lhs <- result.try(typecheck(env, lhs))
       use rhs <- result.try(typecheck(env, rhs))
       case lhs.type_, op, rhs.type_ {
-        // Addition
+        // Float x Float
         typ.TFloat, expr.Add, typ.TFloat ->
           Ok(typed_expr.BinaryOp(type_: typ.TFloat, lhs:, op:, rhs:))
-        typ.TInt, expr.Add, typ.TInt ->
-          Ok(typed_expr.BinaryOp(type_: typ.TInt, lhs:, op:, rhs:))
-        typ.TUsd, expr.Add, typ.TUsd ->
-          Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
-
-        _, expr.Add, _ ->
-          Error(
-            error.TypeError(type_error.IncorrectTypesForBinaryOp(
-              lhs.type_,
-              rhs.type_,
-              op,
-            )),
-          )
-
-        // Subtraction 
         typ.TFloat, expr.Subtract, typ.TFloat ->
           Ok(typed_expr.BinaryOp(type_: typ.TFloat, lhs:, op:, rhs:))
-        typ.TInt, expr.Subtract, typ.TInt ->
-          Ok(typed_expr.BinaryOp(type_: typ.TInt, lhs:, op:, rhs:))
-        typ.TUsd, expr.Subtract, typ.TUsd ->
-          Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
-
-        // Multiplication
         typ.TFloat, expr.Multiply, typ.TFloat ->
           Ok(typed_expr.BinaryOp(type_: typ.TFloat, lhs:, op:, rhs:))
-        typ.TInt, expr.Multiply, typ.TInt ->
-          Ok(typed_expr.BinaryOp(type_: typ.TInt, lhs:, op:, rhs:))
-        typ.TUsd, expr.Multiply, typ.TInt ->
-          Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
-        typ.TUsd, expr.Multiply, typ.TPercent ->
-          Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
-        typ.TPercent, expr.Multiply, typ.TUsd ->
-          Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
-        typ.TPercent, expr.Multiply, some_type ->
-          Ok(typed_expr.BinaryOp(type_: some_type, lhs:, op:, rhs:))
-        some_type, expr.Multiply, typ.TPercent ->
-          Ok(typed_expr.BinaryOp(type_: some_type, lhs:, op:, rhs:))
-
-        // Division
         typ.TFloat, expr.Divide, typ.TFloat ->
           Ok(typed_expr.BinaryOp(type_: typ.TFloat, lhs:, op:, rhs:))
-        typ.TInt, expr.Divide, typ.TInt ->
-          Ok(typed_expr.BinaryOp(type_: typ.TInt, lhs:, op:, rhs:))
-        typ.TUsd, expr.Divide, typ.TUsd ->
+        typ.TFloat, expr.Power, typ.TFloat ->
           Ok(typed_expr.BinaryOp(type_: typ.TFloat, lhs:, op:, rhs:))
+
+        // USD x Float (None for now)
+        // Percent x Float (None for now)
+        // String x Float (None for now)
+        // Boolean x Float (None for now)
+        // Float x Int
+        typ.TFloat, expr.Power, typ.TInt ->
+          Ok(typed_expr.BinaryOp(type_: typ.TFloat, lhs:, op:, rhs:))
+
+        // USD x Int
+        typ.TUsd, expr.Multiply, typ.TInt ->
+          Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
         typ.TUsd, expr.Divide, typ.TInt ->
           Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
-        typ.TPercent, expr.Divide, some_type ->
-          Ok(typed_expr.BinaryOp(type_: some_type, lhs:, op:, rhs:))
-        some_type, expr.Divide, typ.TPercent ->
-          Ok(typed_expr.BinaryOp(type_: some_type, lhs:, op:, rhs:))
 
-        // Power
-        typ.TFloat, expr.Power, typ.TFloat | typ.TInt, expr.Power, typ.TFloat ->
+        // Percent x Int
+        typ.TPercent, expr.Power, typ.TInt ->
+          Ok(typed_expr.BinaryOp(type_: typ.TPercent, lhs:, op:, rhs:))
+
+        // String x Int (None for now)
+        // Boolean x Int (None for now)
+        // Float x Usd (None for now)
+        // Usd x Usd
+        typ.TUsd, expr.Add, typ.TUsd ->
+          Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
+        typ.TUsd, expr.Subtract, typ.TUsd ->
+          Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
+        typ.TUsd, expr.Divide, typ.TUsd ->
+          Ok(typed_expr.BinaryOp(type_: typ.TPercent, lhs:, op:, rhs:))
+
+        // Percent x Usd
+        typ.TPercent, expr.Multiply, typ.TUsd ->
+          Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
+
+        // String x Usd (None for now)
+        // Boolean x Usd (None for now)
+        // Float x Percent (None for now)
+        // Usd x Percent
+        typ.TUsd, expr.Multiply, typ.TPercent ->
+          Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
+        typ.TUsd, expr.Divide, typ.TPercent ->
+          Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
+
+        // Percent x Percent
+        typ.TPercent, expr.Divide, typ.TPercent ->
+          Ok(typed_expr.BinaryOp(type_: typ.TPercent, lhs:, op:, rhs:))
+        typ.TPercent, expr.Multiply, typ.TPercent ->
+          Ok(typed_expr.BinaryOp(type_: typ.TPercent, lhs:, op:, rhs:))
+        typ.TPercent, expr.Power, typ.TPercent ->
+          Ok(typed_expr.BinaryOp(type_: typ.TPercent, lhs:, op:, rhs:))
+
+        // String x Percent (None for now)
+        // Boolean x Percent (None for now)
+        // Float x String (None for now)
+        // Usd x String (None for now)
+        // Percent x String (None for now)
+        // String x String (None for now)
+        // Boolean x String (None for now)
+        // Float x Boolean (None for now)
+        // Usd x Boolean (None for now)
+        // Percent x Boolean (None for now)
+        // String x Boolean (None for now)
+        // Boolean x Boolean
+        typ.TBool, expr.And, typ.TBool | typ.TBool, expr.Or, typ.TBool ->
+          Ok(typed_expr.BinaryOp(type_: typ.TBool, lhs:, op:, rhs:))
+
+        // Int x Float 
+        typ.TInt, expr.Power, typ.TFloat ->
           Ok(typed_expr.BinaryOp(type_: typ.TFloat, lhs:, op:, rhs:))
 
+        // Int x Int
+        typ.TInt, expr.Add, typ.TInt ->
+          Ok(typed_expr.BinaryOp(type_: typ.TInt, lhs:, op:, rhs:))
+        typ.TInt, expr.Subtract, typ.TInt ->
+          Ok(typed_expr.BinaryOp(type_: typ.TInt, lhs:, op:, rhs:))
+        typ.TInt, expr.Multiply, typ.TInt ->
+          Ok(typed_expr.BinaryOp(type_: typ.TInt, lhs:, op:, rhs:))
+        typ.TInt, expr.Divide, typ.TInt ->
+          Ok(typed_expr.BinaryOp(type_: typ.TInt, lhs:, op:, rhs:))
+
+        // Int x Usd
+        typ.TInt, expr.Multiply, typ.TUsd ->
+          Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
+
+        // Int x Percent (Not for now)
+        // Int x String (Not for now)
+        // Int x Boolean (Not for now)
         // Equal and Not Equal Check 
         t1, expr.EqualCheck, t2 | t1, expr.NotEqualCheck, t2 if t1 == t2 ->
           Ok(typed_expr.BinaryOp(type_: typ.TBool, lhs:, op:, rhs:))
@@ -334,18 +373,6 @@ pub fn typecheck(
         | typ.TPercent, expr.GreaterThanOrEqualCheck, typ.TPercent
         | typ.TPercent, expr.GreaterThanCheck, typ.TPercent
         -> Ok(typed_expr.BinaryOp(type_: typ.TBool, lhs:, op:, rhs:))
-
-        // Boolean Operations
-        typ.TBool, expr.And, typ.TBool | typ.TBool, expr.Or, typ.TBool ->
-          Ok(typed_expr.BinaryOp(type_: typ.TBool, lhs:, op:, rhs:))
-        _, expr.And, _ ->
-          Error(
-            error.TypeError(type_error.IncorrectTypesForBinaryOp(
-              lhs.type_,
-              rhs.type_,
-              op,
-            )),
-          )
 
         // A mustbe op will return the TestResult type, and must be called
         // with the same type on either side of the op

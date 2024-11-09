@@ -194,6 +194,8 @@ pub fn interpret(
         value.Usd(c), expr.Multiply, value.Percent(p) -> {
           Ok(value.Usd(rational.multiply(c, p)))
         }
+        value.Usd(d1), expr.Divide, value.Usd(d2) ->
+          Ok(value.Percent(rational.divide(d1, d2)))
         value.Percent(p), expr.Multiply, value.Usd(c) -> {
           Ok(value.Usd(rational.multiply(p, c)))
         }

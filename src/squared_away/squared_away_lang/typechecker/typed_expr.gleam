@@ -58,8 +58,11 @@ pub fn visit_cross_labels(
 
 pub fn to_string(te: TypedExpr) -> String {
   case te {
-    Label(_, _) | UnaryOp(_, _, _) | BinaryOp(_, _, _, _) | BuiltinSum(_, _) | CrossLabel(_, _, _, _) ->
-      "=" <> do_to_string(te)
+    Label(_, _)
+    | UnaryOp(_, _, _)
+    | BinaryOp(_, _, _, _)
+    | BuiltinSum(_, _)
+    | CrossLabel(_, _, _, _) -> "=" <> do_to_string(te)
     _ -> do_to_string(te)
   }
 }

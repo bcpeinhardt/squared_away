@@ -7140,16 +7140,6 @@ function typecheck(env, expr) {
               return new Ok(
                 new BinaryOp2(new TUsd(), lhs2, op, rhs2)
               );
-            } else if (op instanceof Add) {
-              return new Error(
-                new TypeError2(
-                  new IncorrectTypesForBinaryOp(
-                    lhs2.type_,
-                    rhs2.type_,
-                    op
-                  )
-                )
-              );
             } else if ($ instanceof TFloat && op instanceof Subtract && $1 instanceof TFloat) {
               return new Ok(
                 new BinaryOp2(new TFloat(), lhs2, op, rhs2)
@@ -7182,12 +7172,6 @@ function typecheck(env, expr) {
               return new Ok(
                 new BinaryOp2(new TUsd(), lhs2, op, rhs2)
               );
-            } else if ($ instanceof TPercent && op instanceof Multiply) {
-              let some_type = $1;
-              return new Ok(new BinaryOp2(some_type, lhs2, op, rhs2));
-            } else if (op instanceof Multiply && $1 instanceof TPercent) {
-              let some_type = $;
-              return new Ok(new BinaryOp2(some_type, lhs2, op, rhs2));
             } else if ($ instanceof TFloat && op instanceof Divide && $1 instanceof TFloat) {
               return new Ok(
                 new BinaryOp2(new TFloat(), lhs2, op, rhs2)
@@ -7204,12 +7188,34 @@ function typecheck(env, expr) {
               return new Ok(
                 new BinaryOp2(new TUsd(), lhs2, op, rhs2)
               );
-            } else if ($ instanceof TPercent && op instanceof Divide) {
-              let some_type = $1;
-              return new Ok(new BinaryOp2(some_type, lhs2, op, rhs2));
-            } else if (op instanceof Divide && $1 instanceof TPercent) {
-              let some_type = $;
-              return new Ok(new BinaryOp2(some_type, lhs2, op, rhs2));
+            } else if ($ instanceof TPercent && op instanceof Divide && $1 instanceof TUsd) {
+              return new Ok(
+                new BinaryOp2(new TUsd(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TPercent && op instanceof Divide && $1 instanceof TPercent) {
+              return new Ok(
+                new BinaryOp2(new TPercent(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TPercent && op instanceof Divide && $1 instanceof TFloat) {
+              return new Ok(
+                new BinaryOp2(new TFloat(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TPercent && op instanceof Divide && $1 instanceof TInt) {
+              return new Ok(
+                new BinaryOp2(new TInt(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TUsd && op instanceof Divide && $1 instanceof TPercent) {
+              return new Ok(
+                new BinaryOp2(new TUsd(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TFloat && op instanceof Divide && $1 instanceof TPercent) {
+              return new Ok(
+                new BinaryOp2(new TFloat(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TInt && op instanceof Divide && $1 instanceof TPercent) {
+              return new Ok(
+                new BinaryOp2(new TInt(), lhs2, op, rhs2)
+              );
             } else if ($ instanceof TFloat && op instanceof Power && $1 instanceof TFloat) {
               return new Ok(
                 new BinaryOp2(new TFloat(), lhs2, op, rhs2)
@@ -7317,16 +7323,6 @@ function typecheck(env, expr) {
             } else if ($ instanceof TBool && op instanceof Or && $1 instanceof TBool) {
               return new Ok(
                 new BinaryOp2(new TBool(), lhs2, op, rhs2)
-              );
-            } else if (op instanceof And) {
-              return new Error(
-                new TypeError2(
-                  new IncorrectTypesForBinaryOp(
-                    lhs2.type_,
-                    rhs2.type_,
-                    op
-                  )
-                )
               );
             } else if (op instanceof MustBe && isEqual($1, $)) {
               let lht = $;
@@ -7676,7 +7672,7 @@ function view(model) {
                 return value(_pipe$32);
               })();
               let alignment = (() => {
-                let $2 = isEqual(model.active_cell, new Some(key));
+                let $2 = isEqual(model.active_cell, new Some(key)) || model.display_formulas;
                 if ($2) {
                   return "left";
                 } else {

@@ -375,7 +375,9 @@ fn view(model: Model) -> element.Element(Msg) {
             }
             |> attribute.value
 
-          let alignment = case model.active_cell == Some(key) {
+          let alignment = case
+            model.active_cell == Some(key) || model.display_formulas
+          {
             True -> "left"
             False ->
               case grid.get(model.value_grid, key) {

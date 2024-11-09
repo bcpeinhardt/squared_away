@@ -5445,6 +5445,10 @@ function interpret(loop$env, loop$expr) {
                 let c = lhs2.cents;
                 let p2 = rhs2.percent;
                 return new Ok(new Usd(multiply2(c, p2)));
+              } else if (lhs2 instanceof Usd && op instanceof Divide && rhs2 instanceof Usd) {
+                let d1 = lhs2.cents;
+                let d2 = rhs2.cents;
+                return new Ok(new Percent(divide2(d1, d2)));
               } else if (lhs2 instanceof Percent && op instanceof Multiply && rhs2 instanceof Usd) {
                 let p2 = lhs2.percent;
                 let c = rhs2.cents;
@@ -5519,7 +5523,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                245,
+                247,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5540,7 +5544,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                253,
+                255,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5561,7 +5565,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                261,
+                263,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -7132,35 +7136,51 @@ function typecheck(env, expr) {
               return new Ok(
                 new BinaryOp2(new TFloat(), lhs2, op, rhs2)
               );
-            } else if ($ instanceof TInt && op instanceof Add && $1 instanceof TInt) {
-              return new Ok(
-                new BinaryOp2(new TInt(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TUsd && op instanceof Add && $1 instanceof TUsd) {
-              return new Ok(
-                new BinaryOp2(new TUsd(), lhs2, op, rhs2)
-              );
             } else if ($ instanceof TFloat && op instanceof Subtract && $1 instanceof TFloat) {
               return new Ok(
                 new BinaryOp2(new TFloat(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TInt && op instanceof Subtract && $1 instanceof TInt) {
-              return new Ok(
-                new BinaryOp2(new TInt(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TUsd && op instanceof Subtract && $1 instanceof TUsd) {
-              return new Ok(
-                new BinaryOp2(new TUsd(), lhs2, op, rhs2)
               );
             } else if ($ instanceof TFloat && op instanceof Multiply && $1 instanceof TFloat) {
               return new Ok(
                 new BinaryOp2(new TFloat(), lhs2, op, rhs2)
               );
-            } else if ($ instanceof TInt && op instanceof Multiply && $1 instanceof TInt) {
+            } else if ($ instanceof TFloat && op instanceof Divide && $1 instanceof TFloat) {
               return new Ok(
-                new BinaryOp2(new TInt(), lhs2, op, rhs2)
+                new BinaryOp2(new TFloat(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TFloat && op instanceof Power && $1 instanceof TFloat) {
+              return new Ok(
+                new BinaryOp2(new TFloat(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TFloat && op instanceof Power && $1 instanceof TInt) {
+              return new Ok(
+                new BinaryOp2(new TFloat(), lhs2, op, rhs2)
               );
             } else if ($ instanceof TUsd && op instanceof Multiply && $1 instanceof TInt) {
+              return new Ok(
+                new BinaryOp2(new TUsd(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TUsd && op instanceof Divide && $1 instanceof TInt) {
+              return new Ok(
+                new BinaryOp2(new TUsd(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TPercent && op instanceof Power && $1 instanceof TInt) {
+              return new Ok(
+                new BinaryOp2(new TPercent(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TUsd && op instanceof Add && $1 instanceof TUsd) {
+              return new Ok(
+                new BinaryOp2(new TUsd(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TUsd && op instanceof Subtract && $1 instanceof TUsd) {
+              return new Ok(
+                new BinaryOp2(new TUsd(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TUsd && op instanceof Divide && $1 instanceof TUsd) {
+              return new Ok(
+                new BinaryOp2(new TPercent(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TPercent && op instanceof Multiply && $1 instanceof TUsd) {
               return new Ok(
                 new BinaryOp2(new TUsd(), lhs2, op, rhs2)
               );
@@ -7168,27 +7188,7 @@ function typecheck(env, expr) {
               return new Ok(
                 new BinaryOp2(new TUsd(), lhs2, op, rhs2)
               );
-            } else if ($ instanceof TPercent && op instanceof Multiply && $1 instanceof TUsd) {
-              return new Ok(
-                new BinaryOp2(new TUsd(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TFloat && op instanceof Divide && $1 instanceof TFloat) {
-              return new Ok(
-                new BinaryOp2(new TFloat(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TInt && op instanceof Divide && $1 instanceof TInt) {
-              return new Ok(
-                new BinaryOp2(new TInt(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TUsd && op instanceof Divide && $1 instanceof TUsd) {
-              return new Ok(
-                new BinaryOp2(new TFloat(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TUsd && op instanceof Divide && $1 instanceof TInt) {
-              return new Ok(
-                new BinaryOp2(new TUsd(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TPercent && op instanceof Divide && $1 instanceof TUsd) {
+            } else if ($ instanceof TUsd && op instanceof Divide && $1 instanceof TPercent) {
               return new Ok(
                 new BinaryOp2(new TUsd(), lhs2, op, rhs2)
               );
@@ -7196,33 +7196,45 @@ function typecheck(env, expr) {
               return new Ok(
                 new BinaryOp2(new TPercent(), lhs2, op, rhs2)
               );
-            } else if ($ instanceof TPercent && op instanceof Divide && $1 instanceof TFloat) {
+            } else if ($ instanceof TPercent && op instanceof Multiply && $1 instanceof TPercent) {
               return new Ok(
-                new BinaryOp2(new TFloat(), lhs2, op, rhs2)
+                new BinaryOp2(new TPercent(), lhs2, op, rhs2)
               );
-            } else if ($ instanceof TPercent && op instanceof Divide && $1 instanceof TInt) {
+            } else if ($ instanceof TPercent && op instanceof Power && $1 instanceof TPercent) {
               return new Ok(
-                new BinaryOp2(new TInt(), lhs2, op, rhs2)
+                new BinaryOp2(new TPercent(), lhs2, op, rhs2)
               );
-            } else if ($ instanceof TUsd && op instanceof Divide && $1 instanceof TPercent) {
+            } else if ($ instanceof TBool && op instanceof And && $1 instanceof TBool) {
               return new Ok(
-                new BinaryOp2(new TUsd(), lhs2, op, rhs2)
+                new BinaryOp2(new TBool(), lhs2, op, rhs2)
               );
-            } else if ($ instanceof TFloat && op instanceof Divide && $1 instanceof TPercent) {
+            } else if ($ instanceof TBool && op instanceof Or && $1 instanceof TBool) {
               return new Ok(
-                new BinaryOp2(new TFloat(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TInt && op instanceof Divide && $1 instanceof TPercent) {
-              return new Ok(
-                new BinaryOp2(new TInt(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TFloat && op instanceof Power && $1 instanceof TFloat) {
-              return new Ok(
-                new BinaryOp2(new TFloat(), lhs2, op, rhs2)
+                new BinaryOp2(new TBool(), lhs2, op, rhs2)
               );
             } else if ($ instanceof TInt && op instanceof Power && $1 instanceof TFloat) {
               return new Ok(
                 new BinaryOp2(new TFloat(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TInt && op instanceof Add && $1 instanceof TInt) {
+              return new Ok(
+                new BinaryOp2(new TInt(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TInt && op instanceof Subtract && $1 instanceof TInt) {
+              return new Ok(
+                new BinaryOp2(new TInt(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TInt && op instanceof Multiply && $1 instanceof TInt) {
+              return new Ok(
+                new BinaryOp2(new TInt(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TInt && op instanceof Divide && $1 instanceof TInt) {
+              return new Ok(
+                new BinaryOp2(new TInt(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TInt && op instanceof Multiply && $1 instanceof TUsd) {
+              return new Ok(
+                new BinaryOp2(new TUsd(), lhs2, op, rhs2)
               );
             } else if (op instanceof EqualCheck && isEqual($, $1)) {
               let t1 = $;
@@ -7313,14 +7325,6 @@ function typecheck(env, expr) {
                 new BinaryOp2(new TBool(), lhs2, op, rhs2)
               );
             } else if ($ instanceof TPercent && op instanceof GreaterThanCheck && $1 instanceof TPercent) {
-              return new Ok(
-                new BinaryOp2(new TBool(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TBool && op instanceof And && $1 instanceof TBool) {
-              return new Ok(
-                new BinaryOp2(new TBool(), lhs2, op, rhs2)
-              );
-            } else if ($ instanceof TBool && op instanceof Or && $1 instanceof TBool) {
               return new Ok(
                 new BinaryOp2(new TBool(), lhs2, op, rhs2)
               );

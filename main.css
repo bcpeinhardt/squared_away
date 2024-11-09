@@ -1,1 +1,11 @@
+table {
+    margin: auto;
+    padding-top: 20px;
+}
+
+.menu-item {
+    padding: 10px 20px;
+    display: inline;
+}
+
 

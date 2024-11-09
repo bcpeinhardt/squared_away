@@ -275,7 +275,7 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
               case expr_with_labels_updated {
                 Error(_) -> #(model, effect.none())
                 Ok(new_expr) -> {
-                  let formula = "=" <> typed_expr.to_string(new_expr)
+                  let formula = typed_expr.to_string(new_expr)
 
                   let src_grid =
                     grid.insert(model.src_grid, cell_below, formula)
@@ -379,7 +379,7 @@ fn view(model: Model) -> element.Element(Msg) {
             True -> "left"
             False ->
               case grid.get(model.value_grid, key) {
-                Error(_) -> "center"
+                Error(_) -> "left"
                 Ok(v) ->
                   case v {
                     value.Percent(_)
@@ -447,10 +447,7 @@ fn view(model: Model) -> element.Element(Msg) {
     |> list.sort(fn(r1, r2) { int.compare(r1.0, r2.0) })
     |> list.map(fn(e) { e.1 })
 
-  let grid =
-    html.div([class("table-container")], [
-      html.table([attribute.class("tg")], [html.tbody([], rows)]),
-    ])
+  let grid = html.table([attribute.class("tg")], [html.tbody([], rows)])
 
   let formula_mode_toggle =
     html.input([
@@ -473,7 +470,6 @@ fn view(model: Model) -> element.Element(Msg) {
     html.label([attribute.for("grid_mode")], t("Show grid coordinates"))
 
   let save_button = html.button([event.on_click(UserClickedSaveBtn)], t("Save"))
-  let load_label = html.label([], t("Load file"))
   let load_button =
     html.input([
       attribute.type_("file"),
@@ -481,18 +477,20 @@ fn view(model: Model) -> element.Element(Msg) {
       event.on_input(UserUploadedFile),
     ])
 
-  html.div([], [
-    formula_mode_toggle,
-    formula_mode_toggle_label,
-    grid_mode_toggle,
-    grid_mode_toggle_label,
-    save_button,
-    load_label,
-    load_button,
-    html.br([]),
-    html.br([]),
+  html.div([attribute.style([#("text-align", "center")])], [
+    html.div([], [
+      html.div([attribute.class("menu-item")], [
+        formula_mode_toggle,
+        formula_mode_toggle_label,
+      ]),
+      html.div([attribute.class("menu-item")], [
+        grid_mode_toggle,
+        grid_mode_toggle_label,
+      ]),
+      html.div([attribute.class("menu-item")], [load_button]),
+      html.div([attribute.class("menu-item")], [save_button]),
+    ]),
     grid,
-    html.br([]),
     error_to_display,
   ])
 }

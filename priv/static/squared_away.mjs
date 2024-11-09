@@ -3518,9 +3518,6 @@ function div(attrs, children2) {
 function p(attrs, children2) {
   return element("p", attrs, children2);
 }
-function br(attrs) {
-  return element("br", attrs, toList([]));
-}
 function table(attrs, children2) {
   return element("table", attrs, children2);
 }
@@ -5146,6 +5143,8 @@ function to_string11(te) {
     return "=" + do_to_string2(te);
   } else if (te instanceof BuiltinSum2) {
     return "=" + do_to_string2(te);
+  } else if (te instanceof CrossLabel2) {
+    return "=" + do_to_string2(te);
   } else {
     return do_to_string2(te);
   }
@@ -5373,7 +5372,7 @@ function interpret(loop$env, loop$expr) {
                   throw makeError(
                     "let_assert",
                     "squared_away/squared_away_lang/interpreter",
-                    156,
+                    161,
                     "",
                     "Pattern match failed, no pattern matched the value.",
                     { value: $ }
@@ -5389,7 +5388,7 @@ function interpret(loop$env, loop$expr) {
                   throw makeError(
                     "let_assert",
                     "squared_away/squared_away_lang/interpreter",
-                    160,
+                    165,
                     "",
                     "Pattern match failed, no pattern matched the value.",
                     { value: $ }
@@ -5520,7 +5519,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                239,
+                245,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5541,7 +5540,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                247,
+                253,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5562,7 +5561,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                255,
+                261,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -7683,7 +7682,7 @@ function view(model) {
                 } else {
                   let $12 = get4(model.value_grid, key);
                   if (!$12.isOk()) {
-                    return "center";
+                    return "left";
                   } else {
                     let v = $12[0];
                     if (v instanceof Percent) {
@@ -7789,14 +7788,9 @@ function view(model) {
       return e[1];
     });
   })();
-  let grid = div(
-    toList([class$("table-container")]),
-    toList([
-      table(
-        toList([class$("tg")]),
-        toList([tbody(toList([]), rows)])
-      )
-    ])
+  let grid = table(
+    toList([class$("tg")]),
+    toList([tbody(toList([]), rows)])
   );
   let formula_mode_toggle = input(
     toList([
@@ -7828,7 +7822,6 @@ function view(model) {
     toList([on_click(new UserClickedSaveBtn())]),
     t("Save")
   );
-  let load_label = label(toList([]), t("Load file"));
   let load_button = input(
     toList([
       type_("file"),
@@ -7839,19 +7832,30 @@ function view(model) {
     ])
   );
   return div(
-    toList([]),
+    toList([style(toList([["text-align", "center"]]))]),
     toList([
-      formula_mode_toggle,
-      formula_mode_toggle_label,
-      grid_mode_toggle,
-      grid_mode_toggle_label,
-      save_button,
-      load_label,
-      load_button,
-      br(toList([])),
-      br(toList([])),
+      div(
+        toList([]),
+        toList([
+          div(
+            toList([class$("menu-item")]),
+            toList([formula_mode_toggle, formula_mode_toggle_label])
+          ),
+          div(
+            toList([class$("menu-item")]),
+            toList([grid_mode_toggle, grid_mode_toggle_label])
+          ),
+          div(
+            toList([class$("menu-item")]),
+            toList([load_button])
+          ),
+          div(
+            toList([class$("menu-item")]),
+            toList([save_button])
+          )
+        ])
+      ),
       grid,
-      br(toList([])),
       error_to_display
     ])
   );
@@ -8135,7 +8139,7 @@ function update(model, msg) {
               return [model, none()];
             } else {
               let new_expr = expr_with_labels_updated[0];
-              let formula = "=" + to_string11(new_expr);
+              let formula = to_string11(new_expr);
               let src_grid = insert4(model.src_grid, cell_below, formula);
               let id2 = to_string7(cell_below);
               focus(id2);

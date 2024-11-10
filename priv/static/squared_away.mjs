@@ -3549,26 +3549,6 @@ function on_click(msg) {
     return new Ok(msg);
   });
 }
-function on_keydown(msg) {
-  return on2(
-    "keydown",
-    (event2) => {
-      let _pipe = event2;
-      let _pipe$1 = field("key", string)(_pipe);
-      return map3(_pipe$1, msg);
-    }
-  );
-}
-function on_keyup(msg) {
-  return on2(
-    "keyup",
-    (event2) => {
-      let _pipe = event2;
-      let _pipe$1 = field("key", string)(_pipe);
-      return map3(_pipe$1, msg);
-    }
-  );
-}
 function on_focus(msg) {
   return on2("focus", (_) => {
     return new Ok(msg);
@@ -5028,7 +5008,7 @@ function to_renderable_error(te) {
     let rhs = te.rhs;
     return new RenderableError(
       "Cannot multiply USD * USD",
-      "You're multiply two values that both represent United States Dollars. You have " + drop_left(
+      "You're multiplying two values that both represent United States Dollars. You have " + drop_left(
         to_string11(lhs),
         1
       ) + " on the left and " + drop_left(
@@ -5036,7 +5016,7 @@ function to_renderable_error(te) {
         1
       ) + " on the right.",
       new Some(
-        `This is *probably* a mistake, as "dollars squared" doesn't make much sense as a unit`
+        `This is *probably* a mistake, as "dollars squared" doesn't make much sense as a unit.`
       )
     );
   }
@@ -7528,19 +7508,6 @@ var UserFocusedOnCell = class extends CustomType {
 };
 var UserFocusedOffCell = class extends CustomType {
 };
-var UserHitKeyInCell = class extends CustomType {
-  constructor(key, keyboard_key) {
-    super();
-    this.key = key;
-    this.keyboard_key = keyboard_key;
-  }
-};
-var UserReleasedKeyInCell = class extends CustomType {
-  constructor(keyboard_key) {
-    super();
-    this.keyboard_key = keyboard_key;
-  }
-};
 var UserClickedSaveBtn = class extends CustomType {
 };
 var UserUploadedFile = class extends CustomType {
@@ -7555,6 +7522,53 @@ var FileUploadComplete = class extends CustomType {
     this.file_content = file_content;
   }
 };
+var UserPressedArrowUp = class extends CustomType {
+  constructor(cell) {
+    super();
+    this.cell = cell;
+  }
+};
+var UserPressedArrowLeft = class extends CustomType {
+  constructor(cell) {
+    super();
+    this.cell = cell;
+  }
+};
+var UserPressedArrowRight = class extends CustomType {
+  constructor(cell) {
+    super();
+    this.cell = cell;
+  }
+};
+var UserPressedArrowDown = class extends CustomType {
+  constructor(cell) {
+    super();
+    this.cell = cell;
+  }
+};
+var UserPressedEnter = class extends CustomType {
+  constructor(cell) {
+    super();
+    this.cell = cell;
+  }
+};
+var UserShiftPressedArrowRight = class extends CustomType {
+  constructor(cell) {
+    super();
+    this.cell = cell;
+  }
+};
+var UserShiftPressedArrowDown = class extends CustomType {
+  constructor(cell) {
+    super();
+    this.cell = cell;
+  }
+};
+function focus2(id2) {
+  return from((_) => {
+    return focus(id2);
+  });
+}
 function update_grid(model) {
   let scanned = scan_grid(model.src_grid);
   let parsed = parse_grid(scanned);
@@ -7577,14 +7591,42 @@ function update_grid(model) {
     errors_to_display
   });
 }
+function key_press_event(event2, cell) {
+  return try$(
+    field("key", string)(event2),
+    (key) => {
+      return try$(
+        field("shiftKey", bool)(event2),
+        (shift) => {
+          if (key === "ArrowUp") {
+            return new Ok(new UserPressedArrowUp(cell));
+          } else if (key === "ArrowLeft") {
+            return new Ok(new UserPressedArrowLeft(cell));
+          } else if (key === "ArrowRight" && shift) {
+            return new Ok(new UserShiftPressedArrowRight(cell));
+          } else if (key === "ArrowRight") {
+            return new Ok(new UserPressedArrowRight(cell));
+          } else if (key === "ArrowDown" && shift) {
+            return new Ok(new UserShiftPressedArrowDown(cell));
+          } else if (key === "ArrowDown") {
+            return new Ok(new UserPressedArrowDown(cell));
+          } else if (key === "Enter") {
+            return new Ok(new UserPressedEnter(cell));
+          } else {
+            return new Error(toList([]));
+          }
+        }
+      );
+    }
+  );
+}
 function set_active_cell_to(model, key) {
   if (!key.isOk()) {
     return [model, none()];
   } else {
     let key$1 = key[0];
     let id2 = to_string7(key$1);
-    focus(id2);
-    return [model.withFields({ active_cell: new Some(key$1) }), none()];
+    return [model.withFields({ active_cell: new Some(key$1) }), focus2(id2)];
   }
 }
 function t(input2) {
@@ -7666,14 +7708,10 @@ function view(model) {
           return map2(
             _pipe$22,
             (key) => {
-              let on_keydown2 = on_keydown(
+              let on_keydown = on2(
+                "keydown",
                 (_capture) => {
-                  return new UserHitKeyInCell(key, _capture);
-                }
-              );
-              let on_keyup2 = on_keyup(
-                (var0) => {
-                  return new UserReleasedKeyInCell(var0);
+                  return key_press_event(_capture, key);
                 }
               );
               let on_input2 = on_input(
@@ -7774,8 +7812,7 @@ function view(model) {
                   on_focus2,
                   out_of_focus,
                   value3,
-                  on_keydown2,
-                  on_keyup2,
+                  on_keydown,
                   id2,
                   type_("text"),
                   error_class,
@@ -7941,255 +7978,234 @@ function update(model, msg) {
     return [model.withFields({ active_cell: new Some(key) }), none()];
   } else if (msg instanceof UserFocusedOffCell) {
     return [model.withFields({ active_cell: new None() }), none()];
-  } else if (msg instanceof UserHitKeyInCell) {
-    let key = msg.key;
-    let keyboard_key = msg.keyboard_key;
-    let $ = model.holding_shift;
-    if (keyboard_key === "Shift" && !$) {
-      return [model.withFields({ holding_shift: true }), none()];
-    } else if (keyboard_key === "ArrowUp") {
-      return set_active_cell_to(model, cell_above(model.src_grid, key));
-    } else if (keyboard_key === "ArrowLeft") {
-      return set_active_cell_to(
-        model,
-        cell_to_the_left(model.src_grid, key)
-      );
-    } else if (keyboard_key === "Enter") {
-      return set_active_cell_to(
-        model,
-        cell_underneath(model.src_grid, key)
-      );
-    } else if (keyboard_key === "ArrowDown" && !$) {
-      return set_active_cell_to(
-        model,
-        cell_underneath(model.src_grid, key)
-      );
-    } else if (keyboard_key === "ArrowRight" && !$) {
-      return set_active_cell_to(
-        model,
-        cell_to_the_right(model.src_grid, key)
-      );
-    } else if (keyboard_key === "ArrowRight" && $) {
-      let maybe_cell_to_right = cell_to_the_right(model.src_grid, key);
-      if (!maybe_cell_to_right.isOk() && !maybe_cell_to_right[0]) {
-        return [model, none()];
-      } else {
-        let cell_to_right = maybe_cell_to_right[0];
-        let scanned = scan_grid(model.src_grid);
-        let parsed = parse_grid(scanned);
-        let typechecked = typecheck_grid(parsed);
-        let maybe_expr = get4(typechecked, key);
-        return guard(
-          (() => {
-            let _pipe = maybe_expr;
-            return is_error(_pipe);
-          })(),
-          [model, none()],
-          () => {
-            if (!maybe_expr.isOk()) {
-              throw makeError(
-                "let_assert",
-                "squared_away",
-                162,
-                "",
-                "Pattern match failed, no pattern matched the value.",
-                { value: maybe_expr }
-              );
-            }
-            let expr = maybe_expr[0];
-            let expr_with_labels_updated = visit_cross_labels(
-              expr,
-              (key2, row_label, col_label) => {
-                let $1 = find3(model.src_grid, col_label);
-                if (!$1.isOk()) {
-                  throw makeError(
-                    "let_assert",
-                    "squared_away",
-                    172,
-                    "",
-                    "Pattern match failed, no pattern matched the value.",
-                    { value: $1 }
-                  );
-                }
-                let key_for_col = $1[0];
-                return try$(
-                  cell_to_the_right(model.src_grid, key_for_col),
-                  (key_for_new_col) => {
-                    let maybe_new_label = get4(
-                      typechecked,
-                      key_for_new_col
-                    );
-                    let get_new_label = (l) => {
-                      if (l.isOk() && l[0] instanceof LabelDef2) {
-                        let txt = l[0].txt;
-                        return new Ok(txt);
-                      } else {
-                        return new Error(void 0);
-                      }
-                    };
-                    return try$(
-                      get_new_label(maybe_new_label),
-                      (new_label) => {
-                        let $2 = cell_to_the_right(model.src_grid, key2);
-                        if (!$2.isOk()) {
-                          throw makeError(
-                            "let_assert",
-                            "squared_away",
-                            193,
-                            "",
-                            "Pattern match failed, no pattern matched the value.",
-                            { value: $2 }
-                          );
-                        }
-                        let new_key = $2[0];
-                        return new Ok(
-                          new CrossLabel2(
-                            expr.type_,
-                            new_key,
-                            row_label,
-                            new_label
-                          )
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-            if (!expr_with_labels_updated.isOk()) {
-              return [model, none()];
-            } else {
-              let new_expr = expr_with_labels_updated[0];
-              let formula = to_string11(new_expr);
-              let src_grid = insert4(
-                model.src_grid,
-                cell_to_right,
-                formula
-              );
-              let id2 = to_string7(cell_to_right);
-              focus(id2);
-              let new_model = model.withFields({
-                src_grid,
-                active_cell: new Some(cell_to_right)
-              });
-              return [update_grid(new_model), none()];
-            }
-          }
-        );
-      }
-    } else if (keyboard_key === "ArrowDown" && $) {
-      let maybe_cell_below = cell_underneath(model.src_grid, key);
-      if (!maybe_cell_below.isOk() && !maybe_cell_below[0]) {
-        return [model, none()];
-      } else {
-        let cell_below = maybe_cell_below[0];
-        let scanned = scan_grid(model.src_grid);
-        let parsed = parse_grid(scanned);
-        let typechecked = typecheck_grid(parsed);
-        let maybe_expr = get4(typechecked, key);
-        return guard(
-          (() => {
-            let _pipe = maybe_expr;
-            return is_error(_pipe);
-          })(),
-          [model, none()],
-          () => {
-            if (!maybe_expr.isOk()) {
-              throw makeError(
-                "let_assert",
-                "squared_away",
-                236,
-                "",
-                "Pattern match failed, no pattern matched the value.",
-                { value: maybe_expr }
-              );
-            }
-            let expr = maybe_expr[0];
-            let expr_with_labels_updated = visit_cross_labels(
-              expr,
-              (key2, row_label, col_label) => {
-                let $1 = find3(model.src_grid, row_label);
-                if (!$1.isOk()) {
-                  throw makeError(
-                    "let_assert",
-                    "squared_away",
-                    243,
-                    "",
-                    "Pattern match failed, no pattern matched the value.",
-                    { value: $1 }
-                  );
-                }
-                let key_for_row = $1[0];
-                return try$(
-                  cell_underneath(model.src_grid, key_for_row),
-                  (key_for_new_row) => {
-                    let maybe_new_label = get4(
-                      typechecked,
-                      key_for_new_row
-                    );
-                    let get_new_label = (l) => {
-                      if (l.isOk() && l[0] instanceof LabelDef2) {
-                        let txt = l[0].txt;
-                        return new Ok(txt);
-                      } else {
-                        return new Error(void 0);
-                      }
-                    };
-                    return try$(
-                      get_new_label(maybe_new_label),
-                      (new_label) => {
-                        let $2 = cell_underneath(model.src_grid, key2);
-                        if (!$2.isOk()) {
-                          throw makeError(
-                            "let_assert",
-                            "squared_away",
-                            263,
-                            "",
-                            "Pattern match failed, no pattern matched the value.",
-                            { value: $2 }
-                          );
-                        }
-                        let new_key = $2[0];
-                        return new Ok(
-                          new CrossLabel2(
-                            expr.type_,
-                            new_key,
-                            new_label,
-                            col_label
-                          )
-                        );
-                      }
-                    );
-                  }
-                );
-              }
-            );
-            if (!expr_with_labels_updated.isOk()) {
-              return [model, none()];
-            } else {
-              let new_expr = expr_with_labels_updated[0];
-              let formula = to_string11(new_expr);
-              let src_grid = insert4(model.src_grid, cell_below, formula);
-              let id2 = to_string7(cell_below);
-              focus(id2);
-              let new_model = model.withFields({
-                src_grid,
-                active_cell: new Some(cell_below)
-              });
-              return [update_grid(new_model), none()];
-            }
-          }
-        );
-      }
-    } else {
+  } else if (msg instanceof UserPressedArrowUp) {
+    let cell = msg.cell;
+    return set_active_cell_to(model, cell_above(model.src_grid, cell));
+  } else if (msg instanceof UserPressedArrowLeft) {
+    let cell = msg.cell;
+    return set_active_cell_to(
+      model,
+      cell_to_the_left(model.src_grid, cell)
+    );
+  } else if (msg instanceof UserPressedArrowRight) {
+    let cell = msg.cell;
+    return set_active_cell_to(
+      model,
+      cell_to_the_right(model.src_grid, cell)
+    );
+  } else if (msg instanceof UserPressedArrowDown) {
+    let cell = msg.cell;
+    return set_active_cell_to(
+      model,
+      cell_underneath(model.src_grid, cell)
+    );
+  } else if (msg instanceof UserPressedEnter) {
+    let cell = msg.cell;
+    return set_active_cell_to(
+      model,
+      cell_underneath(model.src_grid, cell)
+    );
+  } else if (msg instanceof UserShiftPressedArrowRight) {
+    let cell = msg.cell;
+    let maybe_cell_to_right = cell_to_the_right(model.src_grid, cell);
+    if (!maybe_cell_to_right.isOk() && !maybe_cell_to_right[0]) {
       return [model, none()];
+    } else {
+      let cell_to_right = maybe_cell_to_right[0];
+      let scanned = scan_grid(model.src_grid);
+      let parsed = parse_grid(scanned);
+      let typechecked = typecheck_grid(parsed);
+      let maybe_expr = get4(typechecked, cell);
+      return guard(
+        (() => {
+          let _pipe = maybe_expr;
+          return is_error(_pipe);
+        })(),
+        [model, none()],
+        () => {
+          if (!maybe_expr.isOk()) {
+            throw makeError(
+              "let_assert",
+              "squared_away",
+              193,
+              "",
+              "Pattern match failed, no pattern matched the value.",
+              { value: maybe_expr }
+            );
+          }
+          let expr = maybe_expr[0];
+          let expr_with_labels_updated = visit_cross_labels(
+            expr,
+            (key, row_label, col_label) => {
+              let $ = find3(model.src_grid, col_label);
+              if (!$.isOk()) {
+                throw makeError(
+                  "let_assert",
+                  "squared_away",
+                  201,
+                  "",
+                  "Pattern match failed, no pattern matched the value.",
+                  { value: $ }
+                );
+              }
+              let key_for_col = $[0];
+              return try$(
+                cell_to_the_right(model.src_grid, key_for_col),
+                (key_for_new_col) => {
+                  let maybe_new_label = get4(typechecked, key_for_new_col);
+                  let get_new_label = (l) => {
+                    if (l.isOk() && l[0] instanceof LabelDef2) {
+                      let txt = l[0].txt;
+                      return new Ok(txt);
+                    } else {
+                      return new Error(void 0);
+                    }
+                  };
+                  return try$(
+                    get_new_label(maybe_new_label),
+                    (new_label) => {
+                      let $1 = cell_to_the_right(model.src_grid, key);
+                      if (!$1.isOk()) {
+                        throw makeError(
+                          "let_assert",
+                          "squared_away",
+                          221,
+                          "",
+                          "Pattern match failed, no pattern matched the value.",
+                          { value: $1 }
+                        );
+                      }
+                      let new_key = $1[0];
+                      return new Ok(
+                        new CrossLabel2(
+                          expr.type_,
+                          new_key,
+                          row_label,
+                          new_label
+                        )
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+          if (!expr_with_labels_updated.isOk()) {
+            return [model, none()];
+          } else {
+            let new_expr = expr_with_labels_updated[0];
+            let formula = to_string11(new_expr);
+            let src_grid = insert4(model.src_grid, cell_to_right, formula);
+            let id2 = to_string7(cell_to_right);
+            let new_model = model.withFields({
+              src_grid,
+              active_cell: new Some(cell_to_right)
+            });
+            return [update_grid(new_model), focus2(id2)];
+          }
+        }
+      );
     }
-  } else if (msg instanceof UserReleasedKeyInCell) {
-    let keyboard_key = msg.keyboard_key;
-    if (keyboard_key === "Shift") {
-      return [model.withFields({ holding_shift: false }), none()];
-    } else {
+  } else if (msg instanceof UserShiftPressedArrowDown) {
+    let cell = msg.cell;
+    let maybe_cell_below = cell_underneath(model.src_grid, cell);
+    if (!maybe_cell_below.isOk() && !maybe_cell_below[0]) {
       return [model, none()];
+    } else {
+      let cell_below = maybe_cell_below[0];
+      let scanned = scan_grid(model.src_grid);
+      let parsed = parse_grid(scanned);
+      let typechecked = typecheck_grid(parsed);
+      let maybe_expr = get4(typechecked, cell);
+      return guard(
+        (() => {
+          let _pipe = maybe_expr;
+          return is_error(_pipe);
+        })(),
+        [model, none()],
+        () => {
+          if (!maybe_expr.isOk()) {
+            throw makeError(
+              "let_assert",
+              "squared_away",
+              261,
+              "",
+              "Pattern match failed, no pattern matched the value.",
+              { value: maybe_expr }
+            );
+          }
+          let expr = maybe_expr[0];
+          let expr_with_labels_updated = visit_cross_labels(
+            expr,
+            (key, row_label, col_label) => {
+              let $ = find3(model.src_grid, row_label);
+              if (!$.isOk()) {
+                throw makeError(
+                  "let_assert",
+                  "squared_away",
+                  266,
+                  "",
+                  "Pattern match failed, no pattern matched the value.",
+                  { value: $ }
+                );
+              }
+              let key_for_row = $[0];
+              return try$(
+                cell_underneath(model.src_grid, key_for_row),
+                (key_for_new_row) => {
+                  let maybe_new_label = get4(typechecked, key_for_new_row);
+                  let get_new_label = (l) => {
+                    if (l.isOk() && l[0] instanceof LabelDef2) {
+                      let txt = l[0].txt;
+                      return new Ok(txt);
+                    } else {
+                      return new Error(void 0);
+                    }
+                  };
+                  return try$(
+                    get_new_label(maybe_new_label),
+                    (new_label) => {
+                      let $1 = cell_underneath(model.src_grid, key);
+                      if (!$1.isOk()) {
+                        throw makeError(
+                          "let_assert",
+                          "squared_away",
+                          285,
+                          "",
+                          "Pattern match failed, no pattern matched the value.",
+                          { value: $1 }
+                        );
+                      }
+                      let new_key = $1[0];
+                      return new Ok(
+                        new CrossLabel2(
+                          expr.type_,
+                          new_key,
+                          new_label,
+                          col_label
+                        )
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+          if (!expr_with_labels_updated.isOk()) {
+            return [model, none()];
+          } else {
+            let new_expr = expr_with_labels_updated[0];
+            let formula = to_string11(new_expr);
+            let src_grid = insert4(model.src_grid, cell_below, formula);
+            let id2 = to_string7(cell_below);
+            let new_model = model.withFields({
+              src_grid,
+              active_cell: new Some(cell_below)
+            });
+            return [update_grid(new_model), focus2(id2)];
+          }
+        }
+      );
     }
   } else if (msg instanceof UserClickedSaveBtn) {
     let content = src_csv(model.src_grid);
@@ -8233,7 +8249,7 @@ function main() {
     throw makeError(
       "let_assert",
       "squared_away",
-      27,
+      28,
       "main",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }

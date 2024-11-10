@@ -1,5 +1,6 @@
 import gleam/bool
 import gleam/dict
+import gleam/dynamic
 import gleam/int
 import gleam/javascript/promise
 import gleam/list
@@ -30,7 +31,14 @@ pub fn main() {
 }
 
 @external(javascript, "./squared_away_ffi.js", "focus")
-fn focus(id: String) -> Nil
+fn do_focus(_id: String) -> Nil {
+  Nil
+}
+
+fn focus(id: String) -> effect.Effect(msg) {
+  use _ <- effect.from
+  do_focus(id)
+}
 
 @external(javascript, "./squared_away_ffi.js", "saveFile")
 fn save_file(content: String, filename: String) -> Nil
@@ -82,11 +90,16 @@ type Msg {
   UserSetCellValue(key: grid.GridKey, val: String)
   UserFocusedOnCell(key: grid.GridKey)
   UserFocusedOffCell
-  UserHitKeyInCell(key: grid.GridKey, keyboard_key: String)
-  UserReleasedKeyInCell(keyboard_key: String)
   UserClickedSaveBtn
   UserUploadedFile(path: String)
   FileUploadComplete(file_content: String)
+  UserPressedArrowUp(cell: grid.GridKey)
+  UserPressedArrowLeft(cell: grid.GridKey)
+  UserPressedArrowRight(cell: grid.GridKey)
+  UserPressedArrowDown(cell: grid.GridKey)
+  UserPressedEnter(cell: grid.GridKey)
+  UserShiftPressedArrowRight(cell: grid.GridKey)
+  UserShiftPressedArrowDown(cell: grid.GridKey)
 }
 
 fn update_grid(model: Model) -> Model {
@@ -105,6 +118,25 @@ fn update_grid(model: Model) -> Model {
     })
 
   Model(..model, value_grid:, errors_to_display:)
+}
+
+// https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent#specifications
+fn key_press_event(event, cell) {
+  use key <- result.try(dynamic.field("key", dynamic.string)(event))
+  use shift <- result.try(dynamic.field("shiftKey", dynamic.bool)(event))
+
+  case key {
+    "ArrowUp" -> Ok(UserPressedArrowUp(cell))
+    "ArrowLeft" -> Ok(UserPressedArrowLeft(cell))
+    "ArrowRight" if shift -> Ok(UserShiftPressedArrowRight(cell))
+    "ArrowRight" -> Ok(UserPressedArrowRight(cell))
+    "ArrowDown" if shift -> Ok(UserShiftPressedArrowDown(cell))
+    "ArrowDown" -> Ok(UserPressedArrowDown(cell))
+    "Enter" -> Ok(UserPressedEnter(cell))
+
+    // Returning an empty error here means no message is dispatched at all.
+    _ -> Error([])
+  }
 }
 
 fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
@@ -127,175 +159,152 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
     UserFocusedOffCell -> {
       #(Model(..model, active_cell: None), effect.none())
     }
-    UserHitKeyInCell(key, keyboard_key) -> {
-      case keyboard_key, model.holding_shift {
-        "Shift", False -> #(Model(..model, holding_shift: True), effect.none())
-        "ArrowUp", _ ->
-          set_active_cell_to(model, grid.cell_above(model.src_grid, key))
-        "ArrowLeft", _ ->
-          set_active_cell_to(model, grid.cell_to_the_left(model.src_grid, key))
-        "Enter", _ | "ArrowDown", False ->
-          set_active_cell_to(model, grid.cell_underneath(model.src_grid, key))
-        "ArrowRight", False ->
-          set_active_cell_to(model, grid.cell_to_the_right(model.src_grid, key))
-        "ArrowRight", True -> {
-          let maybe_cell_to_right = grid.cell_to_the_right(model.src_grid, key)
-          case maybe_cell_to_right {
-            Error(Nil) -> #(model, effect.none())
-            Ok(cell_to_right) -> {
-              // Alright, this might be a slightly complex operation
-              // If the current formula is a cross label, we want to 
-              // produce the equivalent cross label but updated to the new
-              // column value.
+    UserPressedArrowUp(cell) ->
+      set_active_cell_to(model, grid.cell_above(model.src_grid, cell))
+    UserPressedArrowLeft(cell) ->
+      set_active_cell_to(model, grid.cell_to_the_left(model.src_grid, cell))
+    UserPressedArrowRight(cell) ->
+      set_active_cell_to(model, grid.cell_to_the_right(model.src_grid, cell))
+    UserPressedArrowDown(cell) ->
+      set_active_cell_to(model, grid.cell_underneath(model.src_grid, cell))
+    UserPressedEnter(cell) ->
+      set_active_cell_to(model, grid.cell_underneath(model.src_grid, cell))
+    UserShiftPressedArrowRight(cell) -> {
+      let maybe_cell_to_right = grid.cell_to_the_right(model.src_grid, cell)
+      case maybe_cell_to_right {
+        Error(Nil) -> #(model, effect.none())
+        Ok(cell_to_right) -> {
+          // Alright, this might be a slightly complex operation
+          // If the current formula is a cross label, we want to 
+          // produce the equivalent cross label but updated to the new
+          // column value.
 
-              let scanned = lang.scan_grid(model.src_grid)
-              let parsed = lang.parse_grid(scanned)
-              let typechecked = lang.typecheck_grid(parsed)
-              let maybe_expr = grid.get(typechecked, key)
+          let scanned = lang.scan_grid(model.src_grid)
+          let parsed = lang.parse_grid(scanned)
+          let typechecked = lang.typecheck_grid(parsed)
+          let maybe_expr = grid.get(typechecked, cell)
 
-              // if it doesn't typecheck, don't copy it over
-              use <- bool.guard(maybe_expr |> result.is_error, #(
-                model,
-                effect.none(),
+          // if it doesn't typecheck, don't copy it over
+          use <- bool.guard(maybe_expr |> result.is_error, #(
+            model,
+            effect.none(),
+          ))
+          // This assertion is safe because of the above bool.guard check
+          let assert Ok(expr) = maybe_expr
+
+          let expr_with_labels_updated =
+            typed_expr.visit_cross_labels(expr, fn(key, row_label, col_label) {
+              // For this case, we want to get the label directly to the right of the col label
+
+              // This assertion is safe because we know the label is present in the grid,
+              // because we got it from a typechecked cross_label
+              let assert Ok(key_for_col) = grid.find(model.src_grid, col_label)
+
+              use key_for_new_col <- result.try(grid.cell_to_the_right(
+                model.src_grid,
+                key_for_col,
               ))
-              // This assertion is safe because of the above bool.guard check
-              let assert Ok(expr) = maybe_expr
 
-              let expr_with_labels_updated =
-                typed_expr.visit_cross_labels(
-                  expr,
-                  fn(key, row_label, col_label) {
-                    // For this case, we want to get the label directly to the right of the col label
-
-                    // This assertion is safe because we know the label is present in the grid,
-                    // because we got it from a typechecked cross_label
-                    let assert Ok(key_for_col) =
-                      grid.find(model.src_grid, col_label)
-
-                    use key_for_new_col <- result.try(grid.cell_to_the_right(
-                      model.src_grid,
-                      key_for_col,
-                    ))
-
-                    let maybe_new_label = grid.get(typechecked, key_for_new_col)
-                    let get_new_label = fn(
-                      l: Result(typed_expr.TypedExpr, error.CompileError),
-                    ) {
-                      case l {
-                        Ok(typed_expr.LabelDef(_, txt)) -> Ok(txt)
-                        _ -> Error(Nil)
-                      }
-                    }
-                    use new_label <- result.try(get_new_label(maybe_new_label))
-
-                    // There was a cell to the right of the column label, so there 
-                    // must be a cell to the right of this one as well
-                    let assert Ok(new_key) =
-                      grid.cell_to_the_right(model.src_grid, key)
-
-                    Ok(typed_expr.CrossLabel(
-                      expr.type_,
-                      new_key,
-                      row_label,
-                      new_label,
-                    ))
-                  },
-                )
-
-              case expr_with_labels_updated {
-                Error(_) -> #(model, effect.none())
-                Ok(new_expr) -> {
-                  let formula = typed_expr.to_string(new_expr)
-                  let src_grid =
-                    grid.insert(model.src_grid, cell_to_right, formula)
-                  let id = grid.to_string(cell_to_right)
-                  focus(id)
-                  let new_model =
-                    Model(..model, src_grid:, active_cell: Some(cell_to_right))
-                  #(update_grid(new_model), effect.none())
+              let maybe_new_label = grid.get(typechecked, key_for_new_col)
+              let get_new_label = fn(
+                l: Result(typed_expr.TypedExpr, error.CompileError),
+              ) {
+                case l {
+                  Ok(typed_expr.LabelDef(_, txt)) -> Ok(txt)
+                  _ -> Error(Nil)
                 }
               }
+              use new_label <- result.try(get_new_label(maybe_new_label))
+
+              // There was a cell to the right of the column label, so there 
+              // must be a cell to the right of this one as well
+              let assert Ok(new_key) =
+                grid.cell_to_the_right(model.src_grid, key)
+
+              Ok(typed_expr.CrossLabel(
+                expr.type_,
+                new_key,
+                row_label,
+                new_label,
+              ))
+            })
+
+          case expr_with_labels_updated {
+            Error(_) -> #(model, effect.none())
+            Ok(new_expr) -> {
+              let formula = typed_expr.to_string(new_expr)
+              let src_grid = grid.insert(model.src_grid, cell_to_right, formula)
+              let id = grid.to_string(cell_to_right)
+              let new_model =
+                Model(..model, src_grid:, active_cell: Some(cell_to_right))
+              #(update_grid(new_model), focus(id))
             }
           }
         }
-        "ArrowDown", True -> {
-          let maybe_cell_below = grid.cell_underneath(model.src_grid, key)
-          case maybe_cell_below {
-            Error(Nil) -> #(model, effect.none())
-            Ok(cell_below) -> {
-              let scanned = lang.scan_grid(model.src_grid)
-              let parsed = lang.parse_grid(scanned)
-              let typechecked = lang.typecheck_grid(parsed)
-              let maybe_expr = grid.get(typechecked, key)
-
-              // if it doesn't typecheck, don't copy it over
-              use <- bool.guard(maybe_expr |> result.is_error, #(
-                model,
-                effect.none(),
-              ))
-              let assert Ok(expr) = maybe_expr
-
-              let expr_with_labels_updated =
-                typed_expr.visit_cross_labels(
-                  expr,
-                  fn(key, row_label, col_label) {
-                    // For this case, we want to get the label directly below the row label
-                    let assert Ok(key_for_row) =
-                      grid.find(model.src_grid, row_label)
-
-                    use key_for_new_row <- result.try(grid.cell_underneath(
-                      model.src_grid,
-                      key_for_row,
-                    ))
-
-                    let maybe_new_label = grid.get(typechecked, key_for_new_row)
-                    let get_new_label = fn(
-                      l: Result(typed_expr.TypedExpr, error.CompileError),
-                    ) {
-                      case l {
-                        Ok(typed_expr.LabelDef(_, txt)) -> Ok(txt)
-                        _ -> Error(Nil)
-                      }
-                    }
-                    use new_label <- result.try(get_new_label(maybe_new_label))
-
-                    // We know there's a cell underneath because there was a cell underneath the row label
-                    let assert Ok(new_key) =
-                      grid.cell_underneath(model.src_grid, key)
-
-                    Ok(typed_expr.CrossLabel(
-                      expr.type_,
-                      new_key,
-                      new_label,
-                      col_label,
-                    ))
-                  },
-                )
-
-              case expr_with_labels_updated {
-                Error(_) -> #(model, effect.none())
-                Ok(new_expr) -> {
-                  let formula = typed_expr.to_string(new_expr)
-
-                  let src_grid =
-                    grid.insert(model.src_grid, cell_below, formula)
-                  let id = grid.to_string(cell_below)
-                  focus(id)
-                  let new_model =
-                    Model(..model, src_grid:, active_cell: Some(cell_below))
-                  #(update_grid(new_model), effect.none())
-                }
-              }
-            }
-          }
-        }
-        _, _ -> #(model, effect.none())
       }
     }
-    UserReleasedKeyInCell(keyboard_key) -> {
-      case keyboard_key {
-        "Shift" -> #(Model(..model, holding_shift: False), effect.none())
-        _ -> #(model, effect.none())
+    UserShiftPressedArrowDown(cell) -> {
+      let maybe_cell_below = grid.cell_underneath(model.src_grid, cell)
+      case maybe_cell_below {
+        Error(Nil) -> #(model, effect.none())
+        Ok(cell_below) -> {
+          let scanned = lang.scan_grid(model.src_grid)
+          let parsed = lang.parse_grid(scanned)
+          let typechecked = lang.typecheck_grid(parsed)
+          let maybe_expr = grid.get(typechecked, cell)
+
+          // if it doesn't typecheck, don't copy it over
+          use <- bool.guard(maybe_expr |> result.is_error, #(
+            model,
+            effect.none(),
+          ))
+          let assert Ok(expr) = maybe_expr
+
+          let expr_with_labels_updated =
+            typed_expr.visit_cross_labels(expr, fn(key, row_label, col_label) {
+              // For this case, we want to get the label directly below the row label
+              let assert Ok(key_for_row) = grid.find(model.src_grid, row_label)
+
+              use key_for_new_row <- result.try(grid.cell_underneath(
+                model.src_grid,
+                key_for_row,
+              ))
+
+              let maybe_new_label = grid.get(typechecked, key_for_new_row)
+              let get_new_label = fn(
+                l: Result(typed_expr.TypedExpr, error.CompileError),
+              ) {
+                case l {
+                  Ok(typed_expr.LabelDef(_, txt)) -> Ok(txt)
+                  _ -> Error(Nil)
+                }
+              }
+              use new_label <- result.try(get_new_label(maybe_new_label))
+
+              // We know there's a cell underneath because there was a cell underneath the row label
+              let assert Ok(new_key) = grid.cell_underneath(model.src_grid, key)
+
+              Ok(typed_expr.CrossLabel(
+                expr.type_,
+                new_key,
+                new_label,
+                col_label,
+              ))
+            })
+
+          case expr_with_labels_updated {
+            Error(_) -> #(model, effect.none())
+            Ok(new_expr) -> {
+              let formula = typed_expr.to_string(new_expr)
+
+              let src_grid = grid.insert(model.src_grid, cell_below, formula)
+              let id = grid.to_string(cell_below)
+              let new_model =
+                Model(..model, src_grid:, active_cell: Some(cell_below))
+              #(update_grid(new_model), focus(id))
+            }
+          }
+        }
       }
     }
     UserClickedSaveBtn -> {
@@ -333,8 +342,7 @@ fn set_active_cell_to(model, key: Result(grid.GridKey, Nil)) {
     Error(_) -> #(model, effect.none())
     Ok(key) -> {
       let id = grid.to_string(key)
-      focus(id)
-      #(Model(..model, active_cell: Some(key)), effect.none())
+      #(Model(..model, active_cell: Some(key)), focus(id))
     }
   }
 }
@@ -358,8 +366,7 @@ fn view(model: Model) -> element.Element(Msg) {
           int.compare(k1 |> grid.col(), k2 |> grid.col())
         })
         |> list.map(fn(key) {
-          let on_keydown = event.on_keydown(UserHitKeyInCell(key, _))
-          let on_keyup = event.on_keyup(UserReleasedKeyInCell)
+          let on_keydown = event.on("keydown", key_press_event(_, key))
           let on_input = event.on_input(UserSetCellValue(key:, val: _))
           let out_of_focus = event.on_blur(UserFocusedOffCell)
           let on_focus = event.on_focus(UserFocusedOnCell(key))
@@ -422,7 +429,6 @@ fn view(model: Model) -> element.Element(Msg) {
               out_of_focus,
               value,
               on_keydown,
-              on_keyup,
               id,
               attribute.type_("text"),
               error_class,

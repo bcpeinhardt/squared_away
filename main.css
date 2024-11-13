@@ -8,4 +8,8 @@ table {
     display: inline;
 }
 
+.tg input {
+    font-family: monospace;
+}
+
 

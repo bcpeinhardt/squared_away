@@ -1580,6 +1580,12 @@ function map_values(dict, fun) {
   return do_map_values(fun, dict);
 }
 
+// build/dev/javascript/gleam_stdlib/gleam/pair.mjs
+function second(pair) {
+  let a = pair[1];
+  return a;
+}
+
 // build/dev/javascript/gleam_stdlib/gleam/list.mjs
 var Continue = class extends CustomType {
   constructor(x0) {
@@ -7666,8 +7672,8 @@ function view(model) {
     let _pipe = find_map(
       model.errors_to_display,
       (e) => {
-        let $ = isEqual(new Some(e[0]), model.active_cell);
-        if (!$) {
+        let $2 = isEqual(new Some(e[0]), model.active_cell);
+        if (!$2) {
           return new Error(void 0);
         } else {
           return new Ok(
@@ -7724,11 +7730,11 @@ function view(model) {
               let id2 = id(to_string7(key));
               let value3 = (() => {
                 let _pipe$32 = (() => {
-                  let $2 = model.display_formulas;
-                  let $12 = isEqual(model.active_cell, new Some(key));
-                  if ($2) {
+                  let $3 = model.display_formulas;
+                  let $13 = isEqual(model.active_cell, new Some(key));
+                  if ($3) {
                     return get4(model.src_grid, key);
-                  } else if (!$2 && $12) {
+                  } else if (!$3 && $13) {
                     return get4(model.src_grid, key);
                   } else {
                     let $22 = get4(model.value_grid, key);
@@ -7743,15 +7749,15 @@ function view(model) {
                 return value(_pipe$32);
               })();
               let alignment = (() => {
-                let $2 = isEqual(model.active_cell, new Some(key)) || model.display_formulas;
-                if ($2) {
+                let $3 = isEqual(model.active_cell, new Some(key)) || model.display_formulas;
+                if ($3) {
                   return "left";
                 } else {
-                  let $12 = get4(model.value_grid, key);
-                  if (!$12.isOk()) {
+                  let $13 = get4(model.value_grid, key);
+                  if (!$13.isOk()) {
                     return "left";
                   } else {
-                    let v = $12[0];
+                    let v = $13[0];
                     if (v instanceof Percent) {
                       return "right";
                     } else if (v instanceof Integer) {
@@ -7787,12 +7793,12 @@ function view(model) {
                   return class$("errorcell");
                 }
               })();
-              let $ = (() => {
-                let $12 = get4(model.value_grid, key);
-                if (!$12.isOk()) {
+              let $2 = (() => {
+                let $13 = get4(model.value_grid, key);
+                if (!$13.isOk()) {
                   return ["#b30000", "#ffe6e6"];
                 } else {
-                  let v = $12[0];
+                  let v = $13[0];
                   if (v instanceof Text2) {
                     return ["#4a4a4a", "#f2f2f2"];
                   } else if (v instanceof TestPass) {
@@ -7804,8 +7810,8 @@ function view(model) {
                   }
                 }
               })();
-              let color = $[0];
-              let background_color = $[1];
+              let color = $2[0];
+              let background_color = $2[1];
               let input2 = input(
                 toList([
                   on_input2,
@@ -7825,8 +7831,8 @@ function view(model) {
                   )
                 ])
               );
-              let $1 = model.display_coords;
-              if (!$1) {
+              let $12 = model.display_coords;
+              if (!$12) {
                 return td(toList([]), toList([input2]));
               } else {
                 return td(
@@ -7897,6 +7903,51 @@ function view(model) {
       })
     ])
   );
+  let $ = (() => {
+    let _pipe = model.value_grid;
+    let _pipe$1 = to_list3(_pipe);
+    let _pipe$2 = map2(_pipe$1, second);
+    return fold2(
+      _pipe$2,
+      [0, 0],
+      (acc, x) => {
+        let passed2 = acc[0];
+        let total2 = acc[1];
+        if (x.isOk() && x[0] instanceof TestPass) {
+          return [passed2 + 1, total2 + 1];
+        } else if (x.isOk() && x[0] instanceof TestFail) {
+          return [passed2, total2 + 1];
+        } else {
+          return [passed2, total2];
+        }
+      }
+    );
+  })();
+  let passed = $[0];
+  let total = $[1];
+  let $1 = (() => {
+    let $2 = passed === total;
+    if ($2) {
+      return ["#006400", "#e6ffe6"];
+    } else {
+      return ["#b30000", "#ffe6e6"];
+    }
+  })();
+  let test_count_color = $1[0];
+  let test_count_bg_color = $1[1];
+  let test_count_html = label(
+    toList([
+      style(
+        toList([
+          ["color", test_count_color],
+          ["background-color", test_count_bg_color]
+        ])
+      )
+    ]),
+    t(
+      to_string3(passed) + "/" + to_string3(total) + " tests passing"
+    )
+  );
   return div(
     toList([style(toList([["text-align", "center"]]))]),
     toList([
@@ -7918,6 +7969,10 @@ function view(model) {
           div(
             toList([class$("menu-item")]),
             toList([save_button])
+          ),
+          div(
+            toList([class$("menu-item")]),
+            toList([test_count_html])
           )
         ])
       ),
@@ -8027,7 +8082,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              193,
+              194,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8042,7 +8097,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  201,
+                  202,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8069,7 +8124,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          221,
+                          222,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -8128,7 +8183,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              261,
+              262,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8143,7 +8198,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  266,
+                  267,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8170,7 +8225,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          285,
+                          286,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -8249,7 +8304,7 @@ function main() {
     throw makeError(
       "let_assert",
       "squared_away",
-      28,
+      29,
       "main",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }

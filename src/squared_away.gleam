@@ -5,6 +5,7 @@ import gleam/int
 import gleam/javascript/promise
 import gleam/list
 import gleam/option.{type Option, None, Some}
+import gleam/pair
 import gleam/result
 import lustre
 import lustre/attribute.{class}
@@ -485,6 +486,35 @@ fn view(model: Model) -> element.Element(Msg) {
       event.on_input(UserUploadedFile),
     ])
 
+  let #(passed, total) =
+    model.value_grid
+    |> grid.to_list
+    |> list.map(pair.second)
+    |> list.fold(#(0, 0), fn(acc, x) {
+      let #(passed, total) = acc
+      case x {
+        Ok(value.TestPass) -> #(passed + 1, total + 1)
+        Ok(value.TestFail) -> #(passed, total + 1)
+        _ -> #(passed, total)
+      }
+    })
+  let #(test_count_color, test_count_bg_color) = case passed == total {
+    True -> #("#006400", "#e6ffe6")
+    False -> #("#b30000", "#ffe6e6")
+  }
+  let test_count_html =
+    html.label(
+      [
+        attribute.style([
+          #("color", test_count_color),
+          #("background-color", test_count_bg_color),
+        ]),
+      ],
+      t(
+        int.to_string(passed) <> "/" <> int.to_string(total) <> " tests passing",
+      ),
+    )
+
   html.div([attribute.style([#("text-align", "center")])], [
     html.div([], [
       html.div([attribute.class("menu-item")], [
@@ -497,6 +527,7 @@ fn view(model: Model) -> element.Element(Msg) {
       ]),
       html.div([attribute.class("menu-item")], [load_button]),
       html.div([attribute.class("menu-item")], [save_button]),
+      html.div([attribute.class("menu-item")], [test_count_html]),
     ]),
     grid,
     error_to_display,

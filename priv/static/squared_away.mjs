@@ -1767,6 +1767,23 @@ function do_take(loop$list, loop$n, loop$acc) {
 function take(list, n) {
   return do_take(list, n, toList([]));
 }
+function do_append(loop$first, loop$second) {
+  while (true) {
+    let first2 = loop$first;
+    let second2 = loop$second;
+    if (first2.hasLength(0)) {
+      return second2;
+    } else {
+      let item = first2.head;
+      let rest$1 = first2.tail;
+      loop$first = rest$1;
+      loop$second = prepend(item, second2);
+    }
+  }
+}
+function append(first2, second2) {
+  return do_append(reverse(first2), second2);
+}
 function reverse_and_prepend(loop$prefix, loop$suffix) {
   while (true) {
     let prefix = loop$prefix;
@@ -4756,9 +4773,10 @@ var PercentLiteral2 = class extends CustomType {
   }
 };
 var Label2 = class extends CustomType {
-  constructor(type_2, txt) {
+  constructor(type_2, key, txt) {
     super();
     this.type_ = type_2;
+    this.key = key;
     this.txt = txt;
   }
 };
@@ -4856,6 +4874,48 @@ function visit_cross_labels(te, f) {
     }
   } else {
     return new Ok(te);
+  }
+}
+function dependency_list(te, acc) {
+  if (te instanceof BinaryOp2) {
+    let lhs = te.lhs;
+    let rhs = te.rhs;
+    return flatten2(
+      toList([
+        dependency_list(lhs, toList([])),
+        dependency_list(rhs, toList([])),
+        acc
+      ])
+    );
+  } else if (te instanceof BooleanLiteral2) {
+    return acc;
+  } else if (te instanceof BuiltinSum2) {
+    let keys2 = te.keys;
+    return flatten2(toList([keys2, acc]));
+  } else if (te instanceof CrossLabel2) {
+    let key = te.key;
+    return prepend(key, acc);
+  } else if (te instanceof Empty3) {
+    return acc;
+  } else if (te instanceof FloatLiteral2) {
+    return acc;
+  } else if (te instanceof Group2) {
+    let inner = te.expr;
+    return flatten2(toList([dependency_list(inner, toList([])), acc]));
+  } else if (te instanceof IntegerLiteral2) {
+    return acc;
+  } else if (te instanceof Label2) {
+    let key = te.key;
+    return prepend(key, acc);
+  } else if (te instanceof LabelDef2) {
+    return acc;
+  } else if (te instanceof PercentLiteral2) {
+    return acc;
+  } else if (te instanceof UnaryOp2) {
+    let inner = te.expr;
+    return flatten2(toList([dependency_list(inner, toList([])), acc]));
+  } else {
+    return acc;
   }
 }
 function do_to_string2(te) {
@@ -5190,57 +5250,24 @@ function interpret(loop$env, loop$expr) {
         return new Ok(new Empty4());
       }
     } else if (expr instanceof Label2) {
+      let key = expr.key;
       let txt = expr.txt;
-      let key = (() => {
-        let _pipe = env;
-        let _pipe$1 = to_list3(_pipe);
-        let _pipe$2 = fold_until(
-          _pipe$1,
-          new None(),
-          (_, i) => {
-            if (i[1].isOk() && i[1][0] instanceof LabelDef2 && i[1][0].txt === txt) {
-              let cell_ref = i[0];
-              let label_txt = i[1][0].txt;
-              return new Stop(new Some(cell_ref));
-            } else {
-              return new Continue(new None());
-            }
-          }
-        );
-        let _pipe$3 = map(
-          _pipe$2,
-          (_capture) => {
-            return cell_to_the_right(env, _capture);
-          }
-        );
-        let _pipe$4 = map(_pipe$3, from_result);
-        return flatten(_pipe$4);
-      })();
-      if (key instanceof None) {
-        return new Error(
-          new RuntimeError2(
-            new RuntimeError("Label doesn't point to anything")
-          )
-        );
+      let $ = get4(env, key);
+      if (!$.isOk()) {
+        let e = $[0];
+        return new Error(e);
       } else {
-        let key$1 = key[0];
-        let $ = get4(env, key$1);
-        if (!$.isOk()) {
-          let e = $[0];
-          return new Error(e);
+        let te = $[0];
+        if (te instanceof Label2 && te.txt === txt) {
+          let ltxt = te.txt;
+          return new Error(
+            new RuntimeError2(
+              new RuntimeError("Label points to itself")
+            )
+          );
         } else {
-          let te = $[0];
-          if (te instanceof Label2 && te.txt === txt) {
-            let ltxt = te.txt;
-            return new Error(
-              new RuntimeError2(
-                new RuntimeError("Label points to itself")
-              )
-            );
-          } else {
-            loop$env = env;
-            loop$expr = te;
-          }
+          loop$env = env;
+          loop$expr = te;
         }
       }
     } else if (expr instanceof BooleanLiteral2) {
@@ -5381,7 +5408,7 @@ function interpret(loop$env, loop$expr) {
                   throw makeError(
                     "let_assert",
                     "squared_away/squared_away_lang/interpreter",
-                    161,
+                    135,
                     "",
                     "Pattern match failed, no pattern matched the value.",
                     { value: $ }
@@ -5397,7 +5424,7 @@ function interpret(loop$env, loop$expr) {
                   throw makeError(
                     "let_assert",
                     "squared_away/squared_away_lang/interpreter",
-                    165,
+                    139,
                     "",
                     "Pattern match failed, no pattern matched the value.",
                     { value: $ }
@@ -5532,7 +5559,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                247,
+                221,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5553,7 +5580,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                255,
+                229,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5574,7 +5601,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                263,
+                237,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -6970,7 +6997,11 @@ function typecheck(env, expr) {
       return flatten(_pipe$4);
     })();
     if (key instanceof None) {
-      return new Ok(new Label2(new TNil(), txt));
+      return new Error(
+        new TypeError2(
+          new TypeError("Label doesn't point to anything")
+        )
+      );
     } else {
       let key$1 = key[0];
       let x = get4(env, key$1);
@@ -6989,7 +7020,7 @@ function typecheck(env, expr) {
         let $ = typecheck(env, expr$1);
         if ($.isOk()) {
           let te = $[0];
-          return new Ok(new Label2(te.type_, txt));
+          return new Ok(new Label2(te.type_, key$1, txt));
         } else {
           let e = $[0];
           return new Error(e);
@@ -7395,6 +7426,26 @@ function typecheck_grid(input2) {
     }
   );
 }
+function dependency_list2(input2, key, acc) {
+  let $ = get4(input2, key);
+  if (!$.isOk()) {
+    return acc;
+  } else {
+    let te = $[0];
+    let deps = dependency_list(te, toList([]));
+    let double_deps = (() => {
+      let _pipe = map2(
+        deps,
+        (_capture) => {
+          return dependency_list2(input2, _capture, toList([]));
+        }
+      );
+      let _pipe$1 = flatten2(_pipe);
+      return append(_pipe$1, deps);
+    })();
+    return double_deps;
+  }
+}
 function parse_grid(input2) {
   return map_values2(
     input2,
@@ -7472,7 +7523,7 @@ function uploadFile() {
 
 // build/dev/javascript/squared_away/squared_away.mjs
 var Model2 = class extends CustomType {
-  constructor(holding_shift, grid_width, grid_height, display_formulas, display_coords, active_cell, src_grid, value_grid, errors_to_display) {
+  constructor(holding_shift, grid_width, grid_height, display_formulas, display_coords, active_cell, src_grid, type_checked_grid, value_grid, errors_to_display) {
     super();
     this.holding_shift = holding_shift;
     this.grid_width = grid_width;
@@ -7481,6 +7532,7 @@ var Model2 = class extends CustomType {
     this.display_coords = display_coords;
     this.active_cell = active_cell;
     this.src_grid = src_grid;
+    this.type_checked_grid = type_checked_grid;
     this.value_grid = value_grid;
     this.errors_to_display = errors_to_display;
   }
@@ -7578,8 +7630,8 @@ function focus2(id2) {
 function update_grid(model) {
   let scanned = scan_grid(model.src_grid);
   let parsed = parse_grid(scanned);
-  let typechecked = typecheck_grid(parsed);
-  let value_grid = interpret_grid(typechecked);
+  let type_checked_grid = typecheck_grid(parsed);
+  let value_grid = interpret_grid(type_checked_grid);
   let errors_to_display = fold4(
     value_grid,
     toList([]),
@@ -7594,6 +7646,7 @@ function update_grid(model) {
   );
   return model.withFields({
     value_grid,
+    type_checked_grid,
     errors_to_display
   });
 }
@@ -7793,12 +7846,12 @@ function view(model) {
                   return class$("errorcell");
                 }
               })();
-              let $2 = (() => {
-                let $13 = get4(model.value_grid, key);
-                if (!$13.isOk()) {
+              let colors = (() => {
+                let $3 = get4(model.value_grid, key);
+                if (!$3.isOk()) {
                   return ["#b30000", "#ffe6e6"];
                 } else {
-                  let v = $13[0];
+                  let v = $3[0];
                   if (v instanceof Text2) {
                     return ["#4a4a4a", "#f2f2f2"];
                   } else if (v instanceof TestPass) {
@@ -7807,6 +7860,43 @@ function view(model) {
                     return ["#b30000", "#ffe6e6"];
                   } else {
                     return ["black", "white"];
+                  }
+                }
+              })();
+              let $2 = (() => {
+                let $13 = model.active_cell;
+                if ($13 instanceof None) {
+                  return colors;
+                } else {
+                  let active_cell = $13[0];
+                  let $22 = get4(model.type_checked_grid, active_cell);
+                  if (!$22.isOk()) {
+                    return colors;
+                  } else {
+                    let typed_expr = $22[0];
+                    let $3 = typed_expr.type_;
+                    if ($3 instanceof TTestResult) {
+                      let $4 = get4(model.value_grid, active_cell);
+                      if ($4.isOk() && $4[0] instanceof TestPass) {
+                        let $5 = (() => {
+                          let _pipe$32 = dependency_list2(
+                            model.type_checked_grid,
+                            active_cell,
+                            toList([])
+                          );
+                          return contains(_pipe$32, key);
+                        })();
+                        if (!$5) {
+                          return colors;
+                        } else {
+                          return ["#006400", "#e6ffe6"];
+                        }
+                      } else {
+                        return colors;
+                      }
+                    } else {
+                      return colors;
+                    }
                   }
                 }
               })();
@@ -7985,6 +8075,11 @@ var initial_grid_width = 7;
 var initial_grid_height = 20;
 function init2(_) {
   let src_grid = new$4(initial_grid_width, initial_grid_height, "");
+  let type_checked_grid = new$4(
+    initial_grid_width,
+    initial_grid_height,
+    new Ok(new Empty3(new TNil()))
+  );
   let value_grid = new$4(
     initial_grid_width,
     initial_grid_height,
@@ -7999,6 +8094,7 @@ function init2(_) {
       false,
       new None(),
       src_grid,
+      type_checked_grid,
       value_grid,
       toList([])
     );
@@ -8082,7 +8178,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              194,
+              201,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8097,7 +8193,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  202,
+                  209,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8124,7 +8220,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          222,
+                          229,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -8183,7 +8279,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              262,
+              269,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8198,7 +8294,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  267,
+                  274,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8225,7 +8321,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          286,
+                          293,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -8304,7 +8400,7 @@ function main() {
     throw makeError(
       "let_assert",
       "squared_away",
-      29,
+      32,
       "main",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }

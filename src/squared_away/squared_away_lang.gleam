@@ -32,6 +32,23 @@ pub fn typecheck_grid(
   }
 }
 
+pub fn dependency_list(
+  input: grid.Grid(Result(typed_expr.TypedExpr, error.CompileError)),
+  key: grid.GridKey,
+  acc: List(grid.GridKey),
+) -> List(grid.GridKey) {
+  case grid.get(input, key) {
+    Error(_) -> acc
+    Ok(te) -> {
+      let deps = typed_expr.dependency_list(te, [])
+      let double_deps =
+        list.map(deps, dependency_list(input, _, []))
+        |> list.flatten
+        |> list.append(deps)
+    }
+  }
+}
+
 pub fn parse_grid(
   input: grid.Grid(Result(List(token.Token), error.CompileError)),
 ) -> grid.Grid(Result(expr.Expr, error.CompileError)) {

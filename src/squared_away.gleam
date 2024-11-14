@@ -7,6 +7,7 @@ import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/pair
 import gleam/result
+import gleam/string
 import lustre
 import lustre/attribute.{class}
 import lustre/effect
@@ -14,10 +15,12 @@ import lustre/element
 import lustre/element/html
 import lustre/event
 import squared_away/renderable_error
+import squared_away/squared_away_lang
 import squared_away/squared_away_lang as lang
 import squared_away/squared_away_lang/error
 import squared_away/squared_away_lang/grid
 import squared_away/squared_away_lang/interpreter/value
+import squared_away/squared_away_lang/typechecker/typ
 import squared_away/squared_away_lang/typechecker/typed_expr
 
 const initial_grid_width = 7
@@ -57,6 +60,9 @@ type Model {
     display_coords: Bool,
     active_cell: Option(grid.GridKey),
     src_grid: grid.Grid(String),
+    type_checked_grid: grid.Grid(
+      Result(typed_expr.TypedExpr, error.CompileError),
+    ),
     value_grid: grid.Grid(Result(value.Value, error.CompileError)),
     errors_to_display: List(#(grid.GridKey, error.CompileError)),
   )
@@ -64,6 +70,12 @@ type Model {
 
 fn init(_flags) -> #(Model, effect.Effect(Msg)) {
   let src_grid = grid.new(initial_grid_width, initial_grid_height, "")
+  let type_checked_grid =
+    grid.new(
+      initial_grid_width,
+      initial_grid_height,
+      Ok(typed_expr.Empty(typ.TNil)),
+    )
   let value_grid =
     grid.new(initial_grid_width, initial_grid_height, Ok(value.Empty))
 
@@ -77,6 +89,7 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
       active_cell: None,
       src_grid:,
       value_grid:,
+      type_checked_grid:,
       errors_to_display: [],
     )
     |> update_grid
@@ -106,8 +119,8 @@ type Msg {
 fn update_grid(model: Model) -> Model {
   let scanned = lang.scan_grid(model.src_grid)
   let parsed = lang.parse_grid(scanned)
-  let typechecked = lang.typecheck_grid(parsed)
-  let value_grid = lang.interpret_grid(typechecked)
+  let type_checked_grid = lang.typecheck_grid(parsed)
+  let value_grid = lang.interpret_grid(type_checked_grid)
 
   // Loop over the grid to see if there's any errors to display
   let errors_to_display =
@@ -118,7 +131,7 @@ fn update_grid(model: Model) -> Model {
       }
     })
 
-  Model(..model, value_grid:, errors_to_display:)
+  Model(..model, value_grid:, type_checked_grid:, errors_to_display:)
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent#specifications
@@ -410,9 +423,7 @@ fn view(model: Model) -> element.Element(Msg) {
             True -> attribute.class("errorcell")
           }
 
-          let #(color, background_color) = case
-            grid.get(model.value_grid, key)
-          {
+          let colors = case grid.get(model.value_grid, key) {
             Error(_) -> #("#b30000", "#ffe6e6")
             Ok(v) ->
               case v {
@@ -420,6 +431,34 @@ fn view(model: Model) -> element.Element(Msg) {
                 value.TestPass -> #("#006400", "#e6ffe6")
                 value.TestFail -> #("#b30000", "#ffe6e6")
                 _ -> #("black", "white")
+              }
+          }
+
+          let #(color, background_color) = case model.active_cell {
+            None -> colors
+            Some(active_cell) ->
+              case grid.get(model.type_checked_grid, active_cell) {
+                Error(_) -> colors
+                Ok(typed_expr) ->
+                  case typed_expr.type_ {
+                    typ.TTestResult ->
+                      case grid.get(model.value_grid, active_cell) {
+                        Ok(value.TestPass) ->
+                          case
+                            squared_away_lang.dependency_list(
+                              model.type_checked_grid,
+                              active_cell,
+                              [],
+                            )
+                            |> list.contains(key)
+                          {
+                            False -> colors
+                            True -> #("#006400", "#e6ffe6")
+                          }
+                        _ -> colors
+                      }
+                    _ -> colors
+                  }
               }
           }
 

@@ -29,46 +29,19 @@ pub fn interpret(
         Error(_) -> Ok(value.Empty)
       }
     }
-    typed_expr.Label(_, txt) -> {
-      let key =
-        env
-        |> grid.to_list
-        |> list.fold_until(None, fn(_, i) {
-          case i {
-            #(cell_ref, Ok(typed_expr.LabelDef(_, label_txt)))
-              if label_txt == txt
-            -> {
-              Stop(Some(cell_ref))
+    typed_expr.Label(_, key, txt) -> {
+      case grid.get(env, key) {
+        Error(e) -> Error(e)
+        Ok(te) -> {
+          case te {
+            typed_expr.Label(_, _, ltxt) if ltxt == txt -> {
+              Error(
+                error.RuntimeError(runtime_error.RuntimeError(
+                  "Label points to itself",
+                )),
+              )
             }
-            _ -> Continue(None)
-          }
-        })
-        |> option.map(grid.cell_to_the_right(env, _))
-        |> option.map(option.from_result)
-        |> option.flatten
-
-      case key {
-        None ->
-          Error(
-            error.RuntimeError(runtime_error.RuntimeError(
-              "Label doesn't point to anything",
-            )),
-          )
-        Some(key) -> {
-          case grid.get(env, key) {
-            Error(e) -> Error(e)
-            Ok(te) -> {
-              case te {
-                typed_expr.Label(_, ltxt) if ltxt == txt -> {
-                  Error(
-                    error.RuntimeError(runtime_error.RuntimeError(
-                      "Label points to itself",
-                    )),
-                  )
-                }
-                _ -> interpret(env, te)
-              }
-            }
+            _ -> interpret(env, te)
           }
         }
       }

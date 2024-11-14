@@ -131,7 +131,12 @@ pub fn typecheck(
         |> option.flatten
 
       case key {
-        None -> Ok(typed_expr.Label(typ.TNil, txt))
+        None ->
+          Error(
+            error.TypeError(type_error.TypeError(
+              "Label doesn't point to anything",
+            )),
+          )
         Some(key) -> {
           let x = grid.get(env, key)
           case x {
@@ -143,7 +148,7 @@ pub fn typecheck(
             }
             Ok(expr) -> {
               case typecheck(env, expr) {
-                Ok(te) -> Ok(typed_expr.Label(type_: te.type_, txt:))
+                Ok(te) -> Ok(typed_expr.Label(type_: te.type_, key:, txt:))
                 Error(e) -> Error(e)
               }
             }

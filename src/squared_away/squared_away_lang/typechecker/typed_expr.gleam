@@ -1,5 +1,6 @@
 import gleam/float
 import gleam/int
+import gleam/list
 import gleam/string
 import squared_away/squared_away_lang/grid
 import squared_away/squared_away_lang/parser/expr
@@ -11,7 +12,7 @@ pub type TypedExpr {
   FloatLiteral(type_: typ.Typ, f: Float)
   UsdLiteral(type_: typ.Typ, cents: rational.Rat)
   PercentLiteral(type_: typ.Typ, percent: rational.Rat)
-  Label(type_: typ.Typ, txt: String)
+  Label(type_: typ.Typ, key: grid.GridKey, txt: String)
   CrossLabel(
     type_: typ.Typ,
     key: grid.GridKey,
@@ -56,9 +57,31 @@ pub fn visit_cross_labels(
   }
 }
 
+pub fn dependency_list(
+  te: TypedExpr,
+  acc: List(grid.GridKey),
+) -> List(grid.GridKey) {
+  case te {
+    BinaryOp(_, lhs:, op: _, rhs:) ->
+      list.flatten([dependency_list(lhs, []), dependency_list(rhs, []), acc])
+    BooleanLiteral(_, _) -> acc
+    BuiltinSum(_, keys) -> list.flatten([keys, acc])
+    CrossLabel(_, key, _, _) -> [key, ..acc]
+    Empty(_) -> acc
+    FloatLiteral(_, _) -> acc
+    Group(_, inner) -> list.flatten([dependency_list(inner, []), acc])
+    IntegerLiteral(_, _) -> acc
+    Label(_, key:, txt: _) -> [key, ..acc]
+    LabelDef(_, _) -> acc
+    PercentLiteral(_, _) -> acc
+    UnaryOp(_, _, inner) -> list.flatten([dependency_list(inner, []), acc])
+    UsdLiteral(_, _) -> acc
+  }
+}
+
 pub fn to_string(te: TypedExpr) -> String {
   case te {
-    Label(_, _)
+    Label(_, _, _)
     | UnaryOp(_, _, _)
     | BinaryOp(_, _, _, _)
     | BuiltinSum(_, _)
@@ -82,7 +105,7 @@ fn do_to_string(te: TypedExpr) -> String {
     PercentLiteral(_, p) ->
       rational.to_string(rational.multiply(p, rational.from_int(100)), 100)
       <> "%"
-    Label(_, l) -> l
+    Label(_, _, l) -> l
     LabelDef(_, l) -> l
     Group(_, t) -> "(" <> do_to_string(t) <> ")"
     UnaryOp(_, op, te) -> expr.unary_to_string(op) <> do_to_string(te)

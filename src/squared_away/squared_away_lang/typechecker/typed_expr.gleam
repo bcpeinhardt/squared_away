@@ -1,6 +1,7 @@
 import gleam/float
 import gleam/int
 import gleam/list
+import gleam/set
 import gleam/string
 import squared_away/squared_away_lang/grid
 import squared_away/squared_away_lang/parser/expr
@@ -54,28 +55,6 @@ pub fn visit_cross_labels(
     }
 
     _ -> Ok(te)
-  }
-}
-
-pub fn dependency_list(
-  te: TypedExpr,
-  acc: List(grid.GridKey),
-) -> List(grid.GridKey) {
-  case te {
-    BinaryOp(_, lhs:, op: _, rhs:) ->
-      list.flatten([dependency_list(lhs, []), dependency_list(rhs, []), acc])
-    BooleanLiteral(_, _) -> acc
-    BuiltinSum(_, keys) -> list.flatten([keys, acc])
-    CrossLabel(_, key, _, _) -> [key, ..acc]
-    Empty(_) -> acc
-    FloatLiteral(_, _) -> acc
-    Group(_, inner) -> list.flatten([dependency_list(inner, []), acc])
-    IntegerLiteral(_, _) -> acc
-    Label(_, key:, txt: _) -> [key, ..acc]
-    LabelDef(_, _) -> acc
-    PercentLiteral(_, _) -> acc
-    UnaryOp(_, _, inner) -> list.flatten([dependency_list(inner, []), acc])
-    UsdLiteral(_, _) -> acc
   }
 }
 

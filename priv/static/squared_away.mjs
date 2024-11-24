@@ -1181,8 +1181,14 @@ function power(base, exponent) {
 function new_map() {
   return Dict.new();
 }
+function map_size(map6) {
+  return map6.size;
+}
 function map_to_list(map6) {
   return List.fromArray(map6.entries());
+}
+function map_remove(key, map6) {
+  return map6.delete(key);
 }
 function map_get(map6, key) {
   const value3 = map6.get(key, NOT_FOUND);
@@ -1523,6 +1529,37 @@ function do_keys(dict) {
 function keys(dict) {
   return do_keys(dict);
 }
+function insert_taken(loop$dict, loop$desired_keys, loop$acc) {
+  while (true) {
+    let dict = loop$dict;
+    let desired_keys = loop$desired_keys;
+    let acc = loop$acc;
+    let insert$1 = (taken, key) => {
+      let $ = get(dict, key);
+      if ($.isOk()) {
+        let value3 = $[0];
+        return insert(taken, key, value3);
+      } else {
+        return taken;
+      }
+    };
+    if (desired_keys.hasLength(0)) {
+      return acc;
+    } else {
+      let first2 = desired_keys.head;
+      let rest = desired_keys.tail;
+      loop$dict = dict;
+      loop$desired_keys = rest;
+      loop$acc = insert$1(acc, first2);
+    }
+  }
+}
+function do_take(desired_keys, dict) {
+  return insert_taken(dict, desired_keys, new$());
+}
+function take(dict, desired_keys) {
+  return do_take(desired_keys, dict);
+}
 function insert_pair(dict, pair) {
   return insert(dict, pair[0], pair[1]);
 }
@@ -1547,6 +1584,9 @@ function do_merge(dict, new_entries) {
 }
 function merge(dict, new_entries) {
   return do_merge(dict, new_entries);
+}
+function delete$(dict, key) {
+  return map_remove(key, dict);
 }
 function do_fold(loop$list, loop$initial, loop$fun) {
   while (true) {
@@ -1743,7 +1783,7 @@ function do_index_map(loop$list, loop$fun, loop$index, loop$acc) {
 function index_map(list, fun) {
   return do_index_map(list, fun, 0, toList([]));
 }
-function do_take(loop$list, loop$n, loop$acc) {
+function do_take2(loop$list, loop$n, loop$acc) {
   while (true) {
     let list = loop$list;
     let n = loop$n;
@@ -1764,8 +1804,8 @@ function do_take(loop$list, loop$n, loop$acc) {
     }
   }
 }
-function take(list, n) {
-  return do_take(list, n, toList([]));
+function take2(list, n) {
+  return do_take2(list, n, toList([]));
 }
 function do_append(loop$first, loop$second) {
   while (true) {
@@ -2843,6 +2883,63 @@ var Set2 = class extends CustomType {
 };
 function new$3() {
   return new Set2(new$());
+}
+function delete$2(set2, member) {
+  return new Set2(delete$(set2.dict, member));
+}
+function to_list2(set2) {
+  return keys(set2.dict);
+}
+function fold3(set2, initial, reducer) {
+  return fold(set2.dict, initial, (a, k, _) => {
+    return reducer(a, k);
+  });
+}
+function drop(set2, disallowed) {
+  return fold2(disallowed, set2, delete$2);
+}
+function take3(set2, desired) {
+  return new Set2(take(set2.dict, desired));
+}
+function order(first2, second2) {
+  let $ = map_size(first2.dict) > map_size(second2.dict);
+  if ($) {
+    return [first2, second2];
+  } else {
+    return [second2, first2];
+  }
+}
+function intersection(first2, second2) {
+  let $ = order(first2, second2);
+  let larger = $[0];
+  let smaller = $[1];
+  return take3(larger, to_list2(smaller));
+}
+function difference(first2, second2) {
+  return drop(first2, to_list2(second2));
+}
+var token = void 0;
+function insert2(set2, member) {
+  return new Set2(insert(set2.dict, member, token));
+}
+function from_list2(members) {
+  let dict = fold2(
+    members,
+    new$(),
+    (m, k) => {
+      return insert(m, k, token);
+    }
+  );
+  return new Set2(dict);
+}
+function union(first2, second2) {
+  let $ = order(first2, second2);
+  let larger = $[0];
+  let smaller = $[1];
+  return fold3(smaller, larger, insert2);
+}
+function symmetric_difference(first2, second2) {
+  return difference(union(first2, second2), intersection(first2, second2));
 }
 
 // build/dev/javascript/lustre/lustre/internals/patch.mjs
@@ -4250,11 +4347,11 @@ function from_src_csv(src, width, height) {
   }
   let src$1 = $[0];
   let inner = (() => {
-    let _pipe = take(src$1, height);
+    let _pipe = take2(src$1, height);
     let _pipe$1 = map2(
       _pipe,
       (_capture) => {
-        return take(_capture, width);
+        return take2(_capture, width);
       }
     );
     let _pipe$2 = index_map(
@@ -4876,48 +4973,6 @@ function visit_cross_labels(te, f) {
     return new Ok(te);
   }
 }
-function dependency_list(te, acc) {
-  if (te instanceof BinaryOp2) {
-    let lhs = te.lhs;
-    let rhs = te.rhs;
-    return flatten2(
-      toList([
-        dependency_list(lhs, toList([])),
-        dependency_list(rhs, toList([])),
-        acc
-      ])
-    );
-  } else if (te instanceof BooleanLiteral2) {
-    return acc;
-  } else if (te instanceof BuiltinSum2) {
-    let keys2 = te.keys;
-    return flatten2(toList([keys2, acc]));
-  } else if (te instanceof CrossLabel2) {
-    let key = te.key;
-    return prepend(key, acc);
-  } else if (te instanceof Empty3) {
-    return acc;
-  } else if (te instanceof FloatLiteral2) {
-    return acc;
-  } else if (te instanceof Group2) {
-    let inner = te.expr;
-    return flatten2(toList([dependency_list(inner, toList([])), acc]));
-  } else if (te instanceof IntegerLiteral2) {
-    return acc;
-  } else if (te instanceof Label2) {
-    let key = te.key;
-    return prepend(key, acc);
-  } else if (te instanceof LabelDef2) {
-    return acc;
-  } else if (te instanceof PercentLiteral2) {
-    return acc;
-  } else if (te instanceof UnaryOp2) {
-    let inner = te.expr;
-    return flatten2(toList([dependency_list(inner, toList([])), acc]));
-  } else {
-    return acc;
-  }
-}
 function do_to_string2(te) {
   if (te instanceof BooleanLiteral2) {
     let b = te.b;
@@ -5408,7 +5463,7 @@ function interpret(loop$env, loop$expr) {
                   throw makeError(
                     "let_assert",
                     "squared_away/squared_away_lang/interpreter",
-                    135,
+                    134,
                     "",
                     "Pattern match failed, no pattern matched the value.",
                     { value: $ }
@@ -5424,7 +5479,7 @@ function interpret(loop$env, loop$expr) {
                   throw makeError(
                     "let_assert",
                     "squared_away/squared_away_lang/interpreter",
-                    139,
+                    138,
                     "",
                     "Pattern match failed, no pattern matched the value.",
                     { value: $ }
@@ -5559,7 +5614,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                221,
+                220,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5580,7 +5635,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                229,
+                228,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5601,7 +5656,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                237,
+                236,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -7426,24 +7481,87 @@ function typecheck_grid(input2) {
     }
   );
 }
-function dependency_list2(input2, key, acc) {
-  let $ = get4(input2, key);
-  if (!$.isOk()) {
-    return acc;
-  } else {
-    let te = $[0];
-    let deps = dependency_list(te, toList([]));
-    let double_deps = (() => {
+function dependency_list(loop$input, loop$te, loop$acc) {
+  while (true) {
+    let input2 = loop$input;
+    let te = loop$te;
+    let acc = loop$acc;
+    if (te instanceof BinaryOp2) {
+      let lhs = te.lhs;
+      let rhs = te.rhs;
+      let lhs$1 = dependency_list(input2, lhs, toList([]));
+      let rhs$1 = dependency_list(input2, rhs, toList([]));
+      let deps = (() => {
+        let _pipe = symmetric_difference(
+          from_list2(lhs$1),
+          from_list2(rhs$1)
+        );
+        return to_list2(_pipe);
+      })();
+      return flatten2(toList([deps, acc]));
+    } else if (te instanceof BooleanLiteral2) {
+      return acc;
+    } else if (te instanceof BuiltinSum2) {
+      let keys2 = te.keys;
       let _pipe = map2(
-        deps,
-        (_capture) => {
-          return dependency_list2(input2, _capture, toList([]));
+        keys2,
+        (k) => {
+          let $ = get4(input2, k);
+          if (!$.isOk()) {
+            return toList([k]);
+          } else {
+            let te$1 = $[0];
+            return dependency_list(input2, te$1, toList([k]));
+          }
         }
       );
       let _pipe$1 = flatten2(_pipe);
-      return append(_pipe$1, deps);
-    })();
-    return double_deps;
+      return append(_pipe$1, acc);
+    } else if (te instanceof CrossLabel2) {
+      let key = te.key;
+      let $ = get4(input2, key);
+      if (!$.isOk()) {
+        return prepend(key, acc);
+      } else {
+        let te$1 = $[0];
+        loop$input = input2;
+        loop$te = te$1;
+        loop$acc = prepend(key, acc);
+      }
+    } else if (te instanceof Empty3) {
+      return acc;
+    } else if (te instanceof FloatLiteral2) {
+      return acc;
+    } else if (te instanceof Group2) {
+      let inner = te.expr;
+      loop$input = input2;
+      loop$te = inner;
+      loop$acc = acc;
+    } else if (te instanceof IntegerLiteral2) {
+      return acc;
+    } else if (te instanceof Label2) {
+      let key = te.key;
+      let $ = get4(input2, key);
+      if (!$.isOk()) {
+        return prepend(key, acc);
+      } else {
+        let te$1 = $[0];
+        loop$input = input2;
+        loop$te = te$1;
+        loop$acc = prepend(key, acc);
+      }
+    } else if (te instanceof LabelDef2) {
+      return acc;
+    } else if (te instanceof PercentLiteral2) {
+      return acc;
+    } else if (te instanceof UnaryOp2) {
+      let inner = te.expr;
+      loop$input = input2;
+      loop$te = inner;
+      loop$acc = acc;
+    } else {
+      return acc;
+    }
   }
 }
 function parse_grid(input2) {
@@ -7879,9 +7997,9 @@ function view(model) {
                       let $4 = get4(model.value_grid, active_cell);
                       if ($4.isOk() && $4[0] instanceof TestPass) {
                         let $5 = (() => {
-                          let _pipe$32 = dependency_list2(
+                          let _pipe$32 = dependency_list(
                             model.type_checked_grid,
-                            active_cell,
+                            typed_expr,
                             toList([])
                           );
                           return contains(_pipe$32, key);
@@ -8178,7 +8296,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              201,
+              207,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8193,7 +8311,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  209,
+                  215,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8220,7 +8338,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          229,
+                          235,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -8279,7 +8397,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              269,
+              275,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8294,7 +8412,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  274,
+                  280,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8321,7 +8439,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          293,
+                          299,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }

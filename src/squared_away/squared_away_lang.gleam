@@ -1,6 +1,7 @@
 import gleam/list
 import gleam/option
 import gleam/result
+import gleam/set
 import squared_away/squared_away_lang/error
 import squared_away/squared_away_lang/grid
 import squared_away/squared_away_lang/interpreter
@@ -34,18 +35,46 @@ pub fn typecheck_grid(
 
 pub fn dependency_list(
   input: grid.Grid(Result(typed_expr.TypedExpr, error.CompileError)),
-  key: grid.GridKey,
+  te: typed_expr.TypedExpr,
   acc: List(grid.GridKey),
 ) -> List(grid.GridKey) {
-  case grid.get(input, key) {
-    Error(_) -> acc
-    Ok(te) -> {
-      let deps = typed_expr.dependency_list(te, [])
-      let double_deps =
-        list.map(deps, dependency_list(input, _, []))
-        |> list.flatten
-        |> list.append(deps)
+  case te {
+    typed_expr.BinaryOp(_, lhs:, op: _, rhs:) -> {
+      let lhs = dependency_list(input, lhs, [])
+      let rhs = dependency_list(input, rhs, [])
+      let deps =
+        set.symmetric_difference(set.from_list(lhs), set.from_list(rhs))
+        |> set.to_list
+      list.flatten([deps, acc])
     }
+    typed_expr.BooleanLiteral(_, _) -> acc
+    typed_expr.BuiltinSum(_, keys) ->
+      list.map(keys, fn(k) {
+        case grid.get(input, k) {
+          Error(_) -> [k]
+          Ok(te) -> dependency_list(input, te, [k])
+        }
+      })
+      |> list.flatten
+      |> list.append(acc)
+    typed_expr.CrossLabel(_, key, _, _) ->
+      case grid.get(input, key) {
+        Error(_) -> [key, ..acc]
+        Ok(te) -> dependency_list(input, te, [key, ..acc])
+      }
+    typed_expr.Empty(_) -> acc
+    typed_expr.FloatLiteral(_, _) -> acc
+    typed_expr.Group(_, inner) -> dependency_list(input, inner, acc)
+    typed_expr.IntegerLiteral(_, _) -> acc
+    typed_expr.Label(_, key:, txt: _) ->
+      case grid.get(input, key) {
+        Error(_) -> [key, ..acc]
+        Ok(te) -> dependency_list(input, te, [key, ..acc])
+      }
+    typed_expr.LabelDef(_, _) -> acc
+    typed_expr.PercentLiteral(_, _) -> acc
+    typed_expr.UnaryOp(_, _, inner) -> dependency_list(input, inner, acc)
+    typed_expr.UsdLiteral(_, _) -> acc
   }
 }
 

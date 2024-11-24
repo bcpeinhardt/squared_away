@@ -447,7 +447,7 @@ fn view(model: Model) -> element.Element(Msg) {
                           case
                             squared_away_lang.dependency_list(
                               model.type_checked_grid,
-                              active_cell,
+                              typed_expr,
                               [],
                             )
                             |> list.contains(key)

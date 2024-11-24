@@ -203,7 +203,10 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
       )
     }
     UserToggledFormulaMode(display_formulas) -> {
-      #(Model(..model, display_formulas:), effect.none())
+      let new_model =
+        list.range(1, initial_grid_width)
+        |> list.fold(Model(..model, display_formulas:), recalculate_col_width)
+      #(new_model, effect.none())
     }
     UserFocusedOnCell(key) -> {
       let old_col = model.active_cell |> option.map(grid.col)
@@ -407,6 +410,9 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
         file_content
         |> grid.from_src_csv(initial_grid_width, initial_grid_height)
       let new_model = Model(..model, src_grid:) |> update_grid
+      let new_model =
+        list.range(1, initial_grid_width)
+        |> list.fold(new_model, recalculate_col_width)
       #(new_model, effect.none())
     }
   }

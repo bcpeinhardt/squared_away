@@ -8333,10 +8333,15 @@ function update(model, msg) {
     ];
   } else if (msg instanceof UserToggledFormulaMode) {
     let display_formulas = msg.to;
-    return [
-      model.withFields({ display_formulas }),
-      none()
-    ];
+    let new_model = (() => {
+      let _pipe = range(1, initial_grid_width);
+      return fold2(
+        _pipe,
+        model.withFields({ display_formulas }),
+        recalculate_col_width
+      );
+    })();
+    return [new_model, none()];
   } else if (msg instanceof UserFocusedOnCell) {
     let key = msg.key;
     let old_col = (() => {
@@ -8426,7 +8431,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              259,
+              262,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8441,7 +8446,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  267,
+                  270,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8468,7 +8473,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          287,
+                          290,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -8546,7 +8551,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              332,
+              335,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8561,7 +8566,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  337,
+                  340,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8588,7 +8593,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          356,
+                          359,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -8669,7 +8674,11 @@ function update(model, msg) {
       let _pipe = model.withFields({ src_grid });
       return update_grid(_pipe);
     })();
-    return [new_model, none()];
+    let new_model$1 = (() => {
+      let _pipe = range(1, initial_grid_width);
+      return fold2(_pipe, new_model, recalculate_col_width);
+    })();
+    return [new_model$1, none()];
   }
 }
 function main() {

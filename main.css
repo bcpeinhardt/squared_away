@@ -8,8 +8,17 @@ table {
     display: inline;
 }
 
-.tg input {
+input {
     font-family: monospace;
+}
+
+input + input {
+    border-left: none;
+    border-top: none;
+}
+
+input:focus {
+    outline: none;
 }
 
 

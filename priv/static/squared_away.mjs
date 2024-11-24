@@ -8020,6 +8020,14 @@ function view(model) {
               })();
               let color = $2[0];
               let background_color = $2[1];
+              let border = (() => {
+                let $13 = isEqual(model.active_cell, new Some(key));
+                if (!$13) {
+                  return "1px solid gray";
+                } else {
+                  return "1px solid DeepSkyBlue";
+                }
+              })();
               let input2 = input(
                 toList([
                   on_input2,
@@ -8034,17 +8042,32 @@ function view(model) {
                     toList([
                       ["background-color", background_color],
                       ["color", color],
-                      ["text-align", alignment]
+                      ["text-align", alignment],
+                      ["margin", "0px"],
+                      ["box-sizing", "border-box"],
+                      ["width", "7rem"],
+                      ["border", border]
                     ])
                   )
                 ])
               );
               let $12 = model.display_coords;
               if (!$12) {
-                return td(toList([]), toList([input2]));
+                return td(
+                  toList([
+                    style(
+                      toList([["padding", "0px"], ["margin", "0px"]])
+                    )
+                  ]),
+                  toList([input2])
+                );
               } else {
                 return td(
-                  toList([]),
+                  toList([
+                    style(
+                      toList([["padding", "0px"], ["margin", "0px"]])
+                    )
+                  ]),
                   toList([
                     label(toList([]), t(to_string7(key) + ": ")),
                     input2
@@ -8069,7 +8092,18 @@ function view(model) {
     });
   })();
   let grid = table(
-    toList([class$("tg")]),
+    toList([
+      style(
+        toList([
+          ["height", "70vh"],
+          ["width", "90vw"],
+          ["overflow-y", "auto"],
+          ["overflow-x", "auto"],
+          ["display", "block"],
+          ["border-collapse", "collapse"]
+        ])
+      )
+    ]),
     toList([tbody(toList([]), rows)])
   );
   let formula_mode_toggle = input(
@@ -8189,8 +8223,8 @@ function view(model) {
     ])
   );
 }
-var initial_grid_width = 7;
-var initial_grid_height = 20;
+var initial_grid_width = 30;
+var initial_grid_height = 40;
 function init2(_) {
   let src_grid = new$4(initial_grid_width, initial_grid_height, "");
   let type_checked_grid = new$4(

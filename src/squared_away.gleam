@@ -22,9 +22,9 @@ import squared_away/squared_away_lang/interpreter/value
 import squared_away/squared_away_lang/typechecker/typ
 import squared_away/squared_away_lang/typechecker/typed_expr
 
-const initial_grid_width = 7
+const initial_grid_width = 30
 
-const initial_grid_height = 20
+const initial_grid_height = 40
 
 pub fn main() {
   let app = lustre.application(init, update, view)
@@ -461,6 +461,11 @@ fn view(model: Model) -> element.Element(Msg) {
               }
           }
 
+          let border = case model.active_cell == Some(key) {
+            False -> "1px solid gray"
+            True -> "1px solid DeepSkyBlue"
+          }
+
           let input =
             html.input([
               on_input,
@@ -475,16 +480,24 @@ fn view(model: Model) -> element.Element(Msg) {
                 #("background-color", background_color),
                 #("color", color),
                 #("text-align", alignment),
+                #("margin", "0px"),
+                #("box-sizing", "border-box"),
+                #("width", "7rem"),
+                #("border", border),
               ]),
             ])
 
           case model.display_coords {
-            False -> html.td([], [input])
+            False ->
+              html.td(
+                [attribute.style([#("padding", "0px"), #("margin", "0px")])],
+                [input],
+              )
             True ->
-              html.td([], [
-                html.label([], t(grid.to_string(key) <> ": ")),
-                input,
-              ])
+              html.td(
+                [attribute.style([#("padding", "0px"), #("margin", "0px")])],
+                [html.label([], t(grid.to_string(key) <> ": ")), input],
+              )
           }
         })
 
@@ -494,7 +507,20 @@ fn view(model: Model) -> element.Element(Msg) {
     |> list.sort(fn(r1, r2) { int.compare(r1.0, r2.0) })
     |> list.map(fn(e) { e.1 })
 
-  let grid = html.table([attribute.class("tg")], [html.tbody([], rows)])
+  let grid =
+    html.table(
+      [
+        attribute.style([
+          #("height", "70vh"),
+          #("width", "90vw"),
+          #("overflow-y", "auto"),
+          #("overflow-x", "auto"),
+          #("display", "block"),
+          #("border-collapse", "collapse"),
+        ]),
+      ],
+      [html.tbody([], rows)],
+    )
 
   let formula_mode_toggle =
     html.input([

@@ -1474,6 +1474,9 @@ function sum2(numbers) {
   let _pipe = numbers;
   return do_sum2(_pipe, 0);
 }
+function add(a, b) {
+  return a + b;
+}
 
 // build/dev/javascript/gleam_stdlib/gleam/dict.mjs
 function new$() {
@@ -4397,7 +4400,7 @@ function to_string8(bigint) {
 function zero() {
   return 0n;
 }
-function add2(a, b) {
+function add3(a, b) {
   return a + b;
 }
 function subtract(a, b) {
@@ -4596,7 +4599,7 @@ function from_string3(input2) {
                           [
                             simplify(
                               new Rat(
-                                add2(
+                                add3(
                                   multiply(whole2, multiplier),
                                   decimal2
                                 ),
@@ -4620,14 +4623,14 @@ function from_string3(input2) {
     }
   );
 }
-function add3(lhs, rhs) {
+function add4(lhs, rhs) {
   let n1 = lhs.numerator;
   let d1 = lhs.denominator;
   let n2 = rhs.numerator;
   let d2 = rhs.denominator;
   return simplify(
     new Rat(
-      add2(multiply(n1, d2), multiply(n2, d1)),
+      add3(multiply(n1, d2), multiply(n2, d1)),
       multiply(d1, d2)
     )
   );
@@ -4659,7 +4662,7 @@ function divide2(lhs, rhs) {
   return simplify(new Rat(multiply(n1, d2), multiply(d1, n2)));
 }
 function sum3(rats) {
-  return fold2(rats, from_int(0), add3);
+  return fold2(rats, from_int(0), add4);
 }
 
 // build/dev/javascript/squared_away/squared_away/squared_away_lang/parser/expr.mjs
@@ -5523,7 +5526,7 @@ function interpret(loop$env, loop$expr) {
               } else if (lhs2 instanceof Usd && op instanceof Add && rhs2 instanceof Usd) {
                 let c1 = lhs2.cents;
                 let c2 = rhs2.cents;
-                return new Ok(new Usd(add3(c1, c2)));
+                return new Ok(new Usd(add4(c1, c2)));
               } else if (lhs2 instanceof Usd && op instanceof Subtract && rhs2 instanceof Usd) {
                 let c1 = lhs2.cents;
                 let c2 = rhs2.cents;
@@ -7938,7 +7941,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              240,
+              238,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -7953,7 +7956,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  248,
+                  246,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -7980,7 +7983,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          268,
+                          266,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -8039,7 +8042,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              311,
+              306,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8054,7 +8057,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  316,
+                  311,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8081,7 +8084,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          335,
+                          330,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -8159,14 +8162,14 @@ function recalculate_col_width(model, col2) {
     let $ = model.display_formulas;
     if (!$) {
       let _pipe2 = to_list3(model.value_grid);
-      let _pipe$1 = filter_map(
+      let _pipe$12 = filter_map(
         _pipe2,
         (c) => {
           let k = c[0];
           let v = c[1];
           let $1 = (() => {
-            let _pipe$12 = k;
-            return col(_pipe$12);
+            let _pipe$13 = k;
+            return col(_pipe$13);
           })() === col2;
           if (!$1) {
             return new Error(void 0);
@@ -8185,7 +8188,7 @@ function recalculate_col_width(model, col2) {
           }
         }
       );
-      return map2(_pipe$1, length2);
+      return map2(_pipe$12, length2);
     } else {
       let _pipe2 = to_list3(model.src_grid);
       return filter_map(
@@ -8194,8 +8197,8 @@ function recalculate_col_width(model, col2) {
           let k = c[0];
           let v = c[1];
           let $1 = (() => {
-            let _pipe$1 = k;
-            return col(_pipe$1);
+            let _pipe$12 = k;
+            return col(_pipe$12);
           })() === col2;
           if (!$1) {
             return new Error(void 0);
@@ -8206,7 +8209,8 @@ function recalculate_col_width(model, col2) {
       );
     }
   })();
-  return fold2(_pipe, min_cell_size_ch, max);
+  let _pipe$1 = fold2(_pipe, min_cell_size_ch - 1, max);
+  return add(_pipe$1, 1);
 }
 function view(model) {
   let error_to_display = (() => {
@@ -8584,7 +8588,7 @@ function main() {
     throw makeError(
       "let_assert",
       "squared_away",
-      32,
+      34,
       "main",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }

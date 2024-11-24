@@ -131,7 +131,7 @@ fn recalculate_col_width(model: Model, col: Int) -> Int {
       })
     }
   }
-  |> list.fold(min_cell_size_ch, int.max)
+  |> list.fold(min_cell_size_ch - 1, int.max) |> int.add(1)
 }
 
 type Msg {

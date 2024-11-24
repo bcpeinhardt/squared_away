@@ -7,6 +7,7 @@ import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/pair
 import gleam/result
+import gleam/string
 import lustre
 import lustre/attribute
 import lustre/effect
@@ -55,6 +56,7 @@ type Model {
     holding_shift: Bool,
     grid_width: Int,
     grid_height: Int,
+    col_widths: dict.Dict(Int, Int),
     display_formulas: Bool,
     active_cell: Option(grid.GridKey),
     src_grid: grid.Grid(String),
@@ -82,6 +84,7 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
       holding_shift: False,
       grid_width: initial_grid_width,
       grid_height: initial_grid_height,
+      col_widths: dict.new(),
       display_formulas: False,
       active_cell: None,
       src_grid:,
@@ -92,6 +95,45 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
     |> update_grid
 
   #(model, effect.none())
+}
+
+fn recalculate_col_width(model: Model, col: Int) -> Model {
+  let new_width =
+    case model.display_formulas {
+      False -> {
+        // Based on value grid 
+        grid.to_list(model.value_grid)
+        |> list.filter_map(fn(c) {
+          let #(k, v) = c
+          case k |> grid.col == col {
+            False -> Error(Nil)
+            True ->
+              case v {
+                Error(_) -> Ok(grid.get(model.src_grid, k))
+                Ok(v) ->
+                  case model.active_cell == Some(k) {
+                    False -> Ok(value.value_to_string(v))
+                    True -> Ok(grid.get(model.src_grid, k))
+                  }
+              }
+          }
+        })
+        |> list.map(string.length)
+      }
+      True -> {
+        // based on the src grid 
+        grid.to_list(model.src_grid)
+        |> list.filter_map(fn(c) {
+          let #(k, v) = c
+          case k |> grid.col == col {
+            False -> Error(Nil)
+            True -> Ok(string.length(v))
+          }
+        })
+      }
+    }
+    |> list.fold(7, int.max)
+  Model(..model, col_widths: dict.insert(model.col_widths, col, new_width))
 }
 
 type Msg {
@@ -155,16 +197,33 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
     UserSetCellValue(key, val) -> {
       let model =
         Model(..model, src_grid: grid.insert(model.src_grid, key, val))
-      #(update_grid(model), effect.none())
+      #(
+        update_grid(model) |> recalculate_col_width(key |> grid.col),
+        effect.none(),
+      )
     }
     UserToggledFormulaMode(display_formulas) -> {
       #(Model(..model, display_formulas:), effect.none())
     }
     UserFocusedOnCell(key) -> {
-      #(Model(..model, active_cell: Some(key)), effect.none())
+      let old_col = model.active_cell |> option.map(grid.col)
+      let new_model =
+        case old_col {
+          option.None -> Model(..model, active_cell: Some(key))
+          option.Some(c) ->
+            Model(..model, active_cell: Some(key)) |> recalculate_col_width(c)
+        }
+        |> recalculate_col_width(key |> grid.col)
+      #(new_model, effect.none())
     }
     UserFocusedOffCell -> {
-      #(Model(..model, active_cell: None), effect.none())
+      let old_col = model.active_cell |> option.map(grid.col)
+      let new_model = case old_col {
+        option.None -> Model(..model, active_cell: None)
+        option.Some(c) ->
+          Model(..model, active_cell: None) |> recalculate_col_width(c)
+      }
+      #(new_model, effect.none())
     }
     UserPressedArrowUp(cell) ->
       set_active_cell_to(model, grid.cell_above(model.src_grid, cell))
@@ -244,7 +303,12 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
               let id = grid.to_string(cell_to_right)
               let new_model =
                 Model(..model, src_grid:, active_cell: Some(cell_to_right))
-              #(update_grid(new_model), focus(id))
+              #(
+                update_grid(new_model)
+                  |> recalculate_col_width(cell |> grid.col)
+                  |> recalculate_col_width(cell_to_right |> grid.col),
+                focus(id),
+              )
             }
           }
         }
@@ -308,7 +372,11 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
               let id = grid.to_string(cell_below)
               let new_model =
                 Model(..model, src_grid:, active_cell: Some(cell_below))
-              #(update_grid(new_model), focus(id))
+              #(
+                update_grid(new_model)
+                  |> recalculate_col_width(cell |> grid.col),
+                focus(id),
+              )
             }
           }
         }
@@ -344,12 +412,21 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
   }
 }
 
-fn set_active_cell_to(model, key: Result(grid.GridKey, Nil)) {
+fn set_active_cell_to(model: Model, key: Result(grid.GridKey, Nil)) {
   case key {
     Error(_) -> #(model, effect.none())
     Ok(key) -> {
       let id = grid.to_string(key)
-      #(Model(..model, active_cell: Some(key)), focus(id))
+      let old_col = model.active_cell |> option.map(grid.col)
+      let new_model =
+        case old_col {
+          option.None -> Model(..model, active_cell: Some(key))
+          option.Some(c) ->
+            Model(..model, active_cell: Some(key))
+            |> recalculate_col_width(c)
+        }
+        |> recalculate_col_width(key |> grid.col)
+      #(new_model, focus(id))
     }
   }
 }
@@ -469,6 +546,14 @@ fn view(model: Model) -> element.Element(Msg) {
                 #("background-color", background_color),
                 #("color", color),
                 #("text-align", alignment),
+                #(
+                  "width",
+                  model.col_widths
+                  |> dict.get(key |> grid.col())
+                  |> result.unwrap(or: 7)
+                  |> int.to_string
+                    <> "ch",
+                ),
               ]),
             ])
 

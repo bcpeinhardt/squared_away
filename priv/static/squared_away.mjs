@@ -1448,6 +1448,14 @@ function compare(a, b) {
     }
   }
 }
+function max(a, b) {
+  let $ = a > b;
+  if ($) {
+    return a;
+  } else {
+    return b;
+  }
+}
 function do_sum2(loop$numbers, loop$initial) {
   while (true) {
     let numbers = loop$numbers;
@@ -7641,11 +7649,12 @@ function uploadFile() {
 
 // build/dev/javascript/squared_away/squared_away.mjs
 var Model2 = class extends CustomType {
-  constructor(holding_shift, grid_width, grid_height, display_formulas, active_cell, src_grid, type_checked_grid, value_grid, errors_to_display) {
+  constructor(holding_shift, grid_width, grid_height, col_widths, display_formulas, active_cell, src_grid, type_checked_grid, value_grid, errors_to_display) {
     super();
     this.holding_shift = holding_shift;
     this.grid_width = grid_width;
     this.grid_height = grid_height;
+    this.col_widths = col_widths;
     this.display_formulas = display_formulas;
     this.active_cell = active_cell;
     this.src_grid = src_grid;
@@ -7738,6 +7747,65 @@ function focus2(id2) {
     return focus(id2);
   });
 }
+function recalculate_col_width(model, col2) {
+  let new_width = (() => {
+    let _pipe = (() => {
+      let $ = model.display_formulas;
+      if (!$) {
+        let _pipe2 = to_list3(model.value_grid);
+        let _pipe$1 = filter_map(
+          _pipe2,
+          (c) => {
+            let k = c[0];
+            let v = c[1];
+            let $1 = (() => {
+              let _pipe$12 = k;
+              return col(_pipe$12);
+            })() === col2;
+            if (!$1) {
+              return new Error(void 0);
+            } else {
+              if (!v.isOk()) {
+                return new Ok(get4(model.src_grid, k));
+              } else {
+                let v$1 = v[0];
+                let $2 = isEqual(model.active_cell, new Some(k));
+                if (!$2) {
+                  return new Ok(value_to_string(v$1));
+                } else {
+                  return new Ok(get4(model.src_grid, k));
+                }
+              }
+            }
+          }
+        );
+        return map2(_pipe$1, length2);
+      } else {
+        let _pipe2 = to_list3(model.src_grid);
+        return filter_map(
+          _pipe2,
+          (c) => {
+            let k = c[0];
+            let v = c[1];
+            let $1 = (() => {
+              let _pipe$1 = k;
+              return col(_pipe$1);
+            })() === col2;
+            if (!$1) {
+              return new Error(void 0);
+            } else {
+              return new Ok(length2(v));
+            }
+          }
+        );
+      }
+    })();
+    return fold2(_pipe, 7, max);
+  })();
+  return model.withFields({
+    col_widths: insert(model.col_widths, col2, new_width)
+  });
+}
 function update_grid(model) {
   let scanned = scan_grid(model.src_grid);
   let parsed = parse_grid(scanned);
@@ -7796,7 +7864,29 @@ function set_active_cell_to(model, key) {
   } else {
     let key$1 = key[0];
     let id2 = to_string7(key$1);
-    return [model.withFields({ active_cell: new Some(key$1) }), focus2(id2)];
+    let old_col = (() => {
+      let _pipe = model.active_cell;
+      return map(_pipe, col);
+    })();
+    let new_model = (() => {
+      let _pipe = (() => {
+        if (old_col instanceof None) {
+          return model.withFields({ active_cell: new Some(key$1) });
+        } else {
+          let c = old_col[0];
+          let _pipe2 = model.withFields({ active_cell: new Some(key$1) });
+          return recalculate_col_width(_pipe2, c);
+        }
+      })();
+      return recalculate_col_width(
+        _pipe,
+        (() => {
+          let _pipe$1 = key$1;
+          return col(_pipe$1);
+        })()
+      );
+    })();
+    return [new_model, focus2(id2)];
   }
 }
 function t(input2) {
@@ -8027,7 +8117,22 @@ function view(model) {
                     toList([
                       ["background-color", background_color],
                       ["color", color],
-                      ["text-align", alignment]
+                      ["text-align", alignment],
+                      [
+                        "width",
+                        (() => {
+                          let _pipe$32 = model.col_widths;
+                          let _pipe$42 = get(
+                            _pipe$32,
+                            (() => {
+                              let _pipe$43 = key;
+                              return col(_pipe$43);
+                            })()
+                          );
+                          let _pipe$5 = unwrap(_pipe$42, 7);
+                          return to_string3(_pipe$5);
+                        })() + "ch"
+                      ]
                     ])
                   )
                 ])
@@ -8192,6 +8297,7 @@ function init2(_) {
       false,
       initial_grid_width,
       initial_grid_height,
+      new$(),
       false,
       new None(),
       src_grid,
@@ -8212,7 +8318,19 @@ function update(model, msg) {
     let model$1 = model.withFields({
       src_grid: insert4(model.src_grid, key, val)
     });
-    return [update_grid(model$1), none()];
+    return [
+      (() => {
+        let _pipe = update_grid(model$1);
+        return recalculate_col_width(
+          _pipe,
+          (() => {
+            let _pipe$1 = key;
+            return col(_pipe$1);
+          })()
+        );
+      })(),
+      none()
+    ];
   } else if (msg instanceof UserToggledFormulaMode) {
     let display_formulas = msg.to;
     return [
@@ -8221,9 +8339,44 @@ function update(model, msg) {
     ];
   } else if (msg instanceof UserFocusedOnCell) {
     let key = msg.key;
-    return [model.withFields({ active_cell: new Some(key) }), none()];
+    let old_col = (() => {
+      let _pipe = model.active_cell;
+      return map(_pipe, col);
+    })();
+    let new_model = (() => {
+      let _pipe = (() => {
+        if (old_col instanceof None) {
+          return model.withFields({ active_cell: new Some(key) });
+        } else {
+          let c = old_col[0];
+          let _pipe2 = model.withFields({ active_cell: new Some(key) });
+          return recalculate_col_width(_pipe2, c);
+        }
+      })();
+      return recalculate_col_width(
+        _pipe,
+        (() => {
+          let _pipe$1 = key;
+          return col(_pipe$1);
+        })()
+      );
+    })();
+    return [new_model, none()];
   } else if (msg instanceof UserFocusedOffCell) {
-    return [model.withFields({ active_cell: new None() }), none()];
+    let old_col = (() => {
+      let _pipe = model.active_cell;
+      return map(_pipe, col);
+    })();
+    let new_model = (() => {
+      if (old_col instanceof None) {
+        return model.withFields({ active_cell: new None() });
+      } else {
+        let c = old_col[0];
+        let _pipe = model.withFields({ active_cell: new None() });
+        return recalculate_col_width(_pipe, c);
+      }
+    })();
+    return [new_model, none()];
   } else if (msg instanceof UserPressedArrowUp) {
     let cell = msg.cell;
     return set_active_cell_to(model, cell_above(model.src_grid, cell));
@@ -8273,7 +8426,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              200,
+              259,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8288,7 +8441,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  208,
+                  267,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8315,7 +8468,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          228,
+                          287,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -8347,7 +8500,26 @@ function update(model, msg) {
               src_grid,
               active_cell: new Some(cell_to_right)
             });
-            return [update_grid(new_model), focus2(id2)];
+            return [
+              (() => {
+                let _pipe = update_grid(new_model);
+                let _pipe$1 = recalculate_col_width(
+                  _pipe,
+                  (() => {
+                    let _pipe$12 = cell;
+                    return col(_pipe$12);
+                  })()
+                );
+                return recalculate_col_width(
+                  _pipe$1,
+                  (() => {
+                    let _pipe$2 = cell_to_right;
+                    return col(_pipe$2);
+                  })()
+                );
+              })(),
+              focus2(id2)
+            ];
           }
         }
       );
@@ -8374,7 +8546,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              268,
+              332,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8389,7 +8561,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  273,
+                  337,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8416,7 +8588,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          292,
+                          356,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -8448,7 +8620,19 @@ function update(model, msg) {
               src_grid,
               active_cell: new Some(cell_below)
             });
-            return [update_grid(new_model), focus2(id2)];
+            return [
+              (() => {
+                let _pipe = update_grid(new_model);
+                return recalculate_col_width(
+                  _pipe,
+                  (() => {
+                    let _pipe$1 = cell;
+                    return col(_pipe$1);
+                  })()
+                );
+              })(),
+              focus2(id2)
+            ];
           }
         }
       );
@@ -8495,7 +8679,7 @@ function main() {
     throw makeError(
       "let_assert",
       "squared_away",
-      31,
+      32,
       "main",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }

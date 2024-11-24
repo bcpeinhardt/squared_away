@@ -137,7 +137,6 @@ fn recalculate_col_width(model: Model, col: Int) -> Model {
 }
 
 type Msg {
-  Noop
   UserToggledFormulaMode(to: Bool)
   UserSetCellValue(key: grid.GridKey, val: String)
   UserFocusedOnCell(key: grid.GridKey)
@@ -193,7 +192,6 @@ fn key_press_event(event, cell) {
 
 fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
   case msg {
-    Noop -> #(model, effect.none())
     UserSetCellValue(key, val) -> {
       let model =
         Model(..model, src_grid: grid.insert(model.src_grid, key, val))
@@ -655,8 +653,11 @@ fn error_view(re: renderable_error.RenderableError) {
       attribute.style([
         #("background-color", "#ffe6e6"),
         #("color", "#b30000"),
+        #("margin-top", "10px"),
+        #("margin", "auto"),
+        #("width", "90vw"),
         #("padding", "20px"),
-        #("border-radius", "20px"),
+        #("box-sizing", "border-box"),
       ]),
     ],
     [

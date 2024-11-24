@@ -7663,8 +7663,6 @@ var Model2 = class extends CustomType {
     this.errors_to_display = errors_to_display;
   }
 };
-var Noop = class extends CustomType {
-};
 var UserToggledFormulaMode = class extends CustomType {
   constructor(to2) {
     super();
@@ -7899,8 +7897,11 @@ function error_view(re) {
         toList([
           ["background-color", "#ffe6e6"],
           ["color", "#b30000"],
+          ["margin-top", "10px"],
+          ["margin", "auto"],
+          ["width", "90vw"],
           ["padding", "20px"],
-          ["border-radius", "20px"]
+          ["box-sizing", "border-box"]
         ])
       )
     ]),
@@ -8310,9 +8311,7 @@ function init2(_) {
   return [model, none()];
 }
 function update(model, msg) {
-  if (msg instanceof Noop) {
-    return [model, none()];
-  } else if (msg instanceof UserSetCellValue) {
+  if (msg instanceof UserSetCellValue) {
     let key = msg.key;
     let val = msg.val;
     let model$1 = model.withFields({
@@ -8431,7 +8430,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              262,
+              260,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8446,7 +8445,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  270,
+                  268,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8473,7 +8472,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          290,
+                          288,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -8551,7 +8550,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              335,
+              333,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8566,7 +8565,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  340,
+                  338,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8593,7 +8592,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          359,
+                          357,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }

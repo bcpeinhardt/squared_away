@@ -7649,12 +7649,11 @@ function uploadFile() {
 
 // build/dev/javascript/squared_away/squared_away.mjs
 var Model2 = class extends CustomType {
-  constructor(holding_shift, grid_width, grid_height, col_widths, display_formulas, active_cell, src_grid, type_checked_grid, value_grid, errors_to_display) {
+  constructor(holding_shift, grid_width, grid_height, display_formulas, active_cell, src_grid, type_checked_grid, value_grid, errors_to_display) {
     super();
     this.holding_shift = holding_shift;
     this.grid_width = grid_width;
     this.grid_height = grid_height;
-    this.col_widths = col_widths;
     this.display_formulas = display_formulas;
     this.active_cell = active_cell;
     this.src_grid = src_grid;
@@ -7745,65 +7744,6 @@ function focus2(id2) {
     return focus(id2);
   });
 }
-function recalculate_col_width(model, col2) {
-  let new_width = (() => {
-    let _pipe = (() => {
-      let $ = model.display_formulas;
-      if (!$) {
-        let _pipe2 = to_list3(model.value_grid);
-        let _pipe$1 = filter_map(
-          _pipe2,
-          (c) => {
-            let k = c[0];
-            let v = c[1];
-            let $1 = (() => {
-              let _pipe$12 = k;
-              return col(_pipe$12);
-            })() === col2;
-            if (!$1) {
-              return new Error(void 0);
-            } else {
-              if (!v.isOk()) {
-                return new Ok(get4(model.src_grid, k));
-              } else {
-                let v$1 = v[0];
-                let $2 = isEqual(model.active_cell, new Some(k));
-                if (!$2) {
-                  return new Ok(value_to_string(v$1));
-                } else {
-                  return new Ok(get4(model.src_grid, k));
-                }
-              }
-            }
-          }
-        );
-        return map2(_pipe$1, length2);
-      } else {
-        let _pipe2 = to_list3(model.src_grid);
-        return filter_map(
-          _pipe2,
-          (c) => {
-            let k = c[0];
-            let v = c[1];
-            let $1 = (() => {
-              let _pipe$1 = k;
-              return col(_pipe$1);
-            })() === col2;
-            if (!$1) {
-              return new Error(void 0);
-            } else {
-              return new Ok(length2(v));
-            }
-          }
-        );
-      }
-    })();
-    return fold2(_pipe, 7, max);
-  })();
-  return model.withFields({
-    col_widths: insert(model.col_widths, col2, new_width)
-  });
-}
 function update_grid(model) {
   let scanned = scan_grid(model.src_grid);
   let parsed = parse_grid(scanned);
@@ -7862,29 +7802,7 @@ function set_active_cell_to(model, key) {
   } else {
     let key$1 = key[0];
     let id2 = to_string7(key$1);
-    let old_col = (() => {
-      let _pipe = model.active_cell;
-      return map(_pipe, col);
-    })();
-    let new_model = (() => {
-      let _pipe = (() => {
-        if (old_col instanceof None) {
-          return model.withFields({ active_cell: new Some(key$1) });
-        } else {
-          let c = old_col[0];
-          let _pipe2 = model.withFields({ active_cell: new Some(key$1) });
-          return recalculate_col_width(_pipe2, c);
-        }
-      })();
-      return recalculate_col_width(
-        _pipe,
-        (() => {
-          let _pipe$1 = key$1;
-          return col(_pipe$1);
-        })()
-      );
-    })();
-    return [new_model, focus2(id2)];
+    return [model.withFields({ active_cell: new Some(key$1) }), focus2(id2)];
   }
 }
 function t(input2) {
@@ -7922,6 +7840,374 @@ function error_view(re) {
     )
   );
 }
+var initial_grid_width = 30;
+var initial_grid_height = 40;
+function init2(_) {
+  let src_grid = new$4(initial_grid_width, initial_grid_height, "");
+  let type_checked_grid = new$4(
+    initial_grid_width,
+    initial_grid_height,
+    new Ok(new Empty3(new TNil()))
+  );
+  let value_grid = new$4(
+    initial_grid_width,
+    initial_grid_height,
+    new Ok(new Empty4())
+  );
+  let model = (() => {
+    let _pipe = new Model2(
+      false,
+      initial_grid_width,
+      initial_grid_height,
+      false,
+      new None(),
+      src_grid,
+      type_checked_grid,
+      value_grid,
+      toList([])
+    );
+    return update_grid(_pipe);
+  })();
+  return [model, none()];
+}
+function update(model, msg) {
+  if (msg instanceof UserSetCellValue) {
+    let key = msg.key;
+    let val = msg.val;
+    let model$1 = model.withFields({
+      src_grid: insert4(model.src_grid, key, val)
+    });
+    return [update_grid(model$1), none()];
+  } else if (msg instanceof UserToggledFormulaMode) {
+    let display_formulas = msg.to;
+    return [
+      model.withFields({ display_formulas }),
+      none()
+    ];
+  } else if (msg instanceof UserFocusedOnCell) {
+    let key = msg.key;
+    return [model.withFields({ active_cell: new Some(key) }), none()];
+  } else if (msg instanceof UserFocusedOffCell) {
+    return [model.withFields({ active_cell: new None() }), none()];
+  } else if (msg instanceof UserPressedArrowUp) {
+    let cell = msg.cell;
+    return set_active_cell_to(model, cell_above(model.src_grid, cell));
+  } else if (msg instanceof UserPressedArrowLeft) {
+    let cell = msg.cell;
+    return set_active_cell_to(
+      model,
+      cell_to_the_left(model.src_grid, cell)
+    );
+  } else if (msg instanceof UserPressedArrowRight) {
+    let cell = msg.cell;
+    return set_active_cell_to(
+      model,
+      cell_to_the_right(model.src_grid, cell)
+    );
+  } else if (msg instanceof UserPressedArrowDown) {
+    let cell = msg.cell;
+    return set_active_cell_to(
+      model,
+      cell_underneath(model.src_grid, cell)
+    );
+  } else if (msg instanceof UserPressedEnter) {
+    let cell = msg.cell;
+    return set_active_cell_to(
+      model,
+      cell_underneath(model.src_grid, cell)
+    );
+  } else if (msg instanceof UserShiftPressedArrowRight) {
+    let cell = msg.cell;
+    let maybe_cell_to_right = cell_to_the_right(model.src_grid, cell);
+    if (!maybe_cell_to_right.isOk() && !maybe_cell_to_right[0]) {
+      return [model, none()];
+    } else {
+      let cell_to_right = maybe_cell_to_right[0];
+      let scanned = scan_grid(model.src_grid);
+      let parsed = parse_grid(scanned);
+      let typechecked = typecheck_grid(parsed);
+      let maybe_expr = get4(typechecked, cell);
+      return guard(
+        (() => {
+          let _pipe = maybe_expr;
+          return is_error(_pipe);
+        })(),
+        [model, none()],
+        () => {
+          if (!maybe_expr.isOk()) {
+            throw makeError(
+              "let_assert",
+              "squared_away",
+              240,
+              "",
+              "Pattern match failed, no pattern matched the value.",
+              { value: maybe_expr }
+            );
+          }
+          let expr = maybe_expr[0];
+          let expr_with_labels_updated = visit_cross_labels(
+            expr,
+            (key, row_label, col_label) => {
+              let $ = find3(model.src_grid, col_label);
+              if (!$.isOk()) {
+                throw makeError(
+                  "let_assert",
+                  "squared_away",
+                  248,
+                  "",
+                  "Pattern match failed, no pattern matched the value.",
+                  { value: $ }
+                );
+              }
+              let key_for_col = $[0];
+              return try$(
+                cell_to_the_right(model.src_grid, key_for_col),
+                (key_for_new_col) => {
+                  let maybe_new_label = get4(typechecked, key_for_new_col);
+                  let get_new_label = (l) => {
+                    if (l.isOk() && l[0] instanceof LabelDef2) {
+                      let txt = l[0].txt;
+                      return new Ok(txt);
+                    } else {
+                      return new Error(void 0);
+                    }
+                  };
+                  return try$(
+                    get_new_label(maybe_new_label),
+                    (new_label) => {
+                      let $1 = cell_to_the_right(model.src_grid, key);
+                      if (!$1.isOk()) {
+                        throw makeError(
+                          "let_assert",
+                          "squared_away",
+                          268,
+                          "",
+                          "Pattern match failed, no pattern matched the value.",
+                          { value: $1 }
+                        );
+                      }
+                      let new_key = $1[0];
+                      return new Ok(
+                        new CrossLabel2(
+                          expr.type_,
+                          new_key,
+                          row_label,
+                          new_label
+                        )
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+          if (!expr_with_labels_updated.isOk()) {
+            return [model, none()];
+          } else {
+            let new_expr = expr_with_labels_updated[0];
+            let formula = to_string11(new_expr);
+            let src_grid = insert4(model.src_grid, cell_to_right, formula);
+            let id2 = to_string7(cell_to_right);
+            let new_model = model.withFields({
+              src_grid,
+              active_cell: new Some(cell_to_right)
+            });
+            return [update_grid(new_model), focus2(id2)];
+          }
+        }
+      );
+    }
+  } else if (msg instanceof UserShiftPressedArrowDown) {
+    let cell = msg.cell;
+    let maybe_cell_below = cell_underneath(model.src_grid, cell);
+    if (!maybe_cell_below.isOk() && !maybe_cell_below[0]) {
+      return [model, none()];
+    } else {
+      let cell_below = maybe_cell_below[0];
+      let scanned = scan_grid(model.src_grid);
+      let parsed = parse_grid(scanned);
+      let typechecked = typecheck_grid(parsed);
+      let maybe_expr = get4(typechecked, cell);
+      return guard(
+        (() => {
+          let _pipe = maybe_expr;
+          return is_error(_pipe);
+        })(),
+        [model, none()],
+        () => {
+          if (!maybe_expr.isOk()) {
+            throw makeError(
+              "let_assert",
+              "squared_away",
+              311,
+              "",
+              "Pattern match failed, no pattern matched the value.",
+              { value: maybe_expr }
+            );
+          }
+          let expr = maybe_expr[0];
+          let expr_with_labels_updated = visit_cross_labels(
+            expr,
+            (key, row_label, col_label) => {
+              let $ = find3(model.src_grid, row_label);
+              if (!$.isOk()) {
+                throw makeError(
+                  "let_assert",
+                  "squared_away",
+                  316,
+                  "",
+                  "Pattern match failed, no pattern matched the value.",
+                  { value: $ }
+                );
+              }
+              let key_for_row = $[0];
+              return try$(
+                cell_underneath(model.src_grid, key_for_row),
+                (key_for_new_row) => {
+                  let maybe_new_label = get4(typechecked, key_for_new_row);
+                  let get_new_label = (l) => {
+                    if (l.isOk() && l[0] instanceof LabelDef2) {
+                      let txt = l[0].txt;
+                      return new Ok(txt);
+                    } else {
+                      return new Error(void 0);
+                    }
+                  };
+                  return try$(
+                    get_new_label(maybe_new_label),
+                    (new_label) => {
+                      let $1 = cell_underneath(model.src_grid, key);
+                      if (!$1.isOk()) {
+                        throw makeError(
+                          "let_assert",
+                          "squared_away",
+                          335,
+                          "",
+                          "Pattern match failed, no pattern matched the value.",
+                          { value: $1 }
+                        );
+                      }
+                      let new_key = $1[0];
+                      return new Ok(
+                        new CrossLabel2(
+                          expr.type_,
+                          new_key,
+                          new_label,
+                          col_label
+                        )
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+          if (!expr_with_labels_updated.isOk()) {
+            return [model, none()];
+          } else {
+            let new_expr = expr_with_labels_updated[0];
+            let formula = to_string11(new_expr);
+            let src_grid = insert4(model.src_grid, cell_below, formula);
+            let id2 = to_string7(cell_below);
+            let new_model = model.withFields({
+              src_grid,
+              active_cell: new Some(cell_below)
+            });
+            return [update_grid(new_model), focus2(id2)];
+          }
+        }
+      );
+    }
+  } else if (msg instanceof UserClickedSaveBtn) {
+    let content = src_csv(model.src_grid);
+    saveFile(content, "myspreadsheet.csv");
+    return [model, none()];
+  } else if (msg instanceof UserUploadedFile) {
+    let get_file_contents_effect = from(
+      (dispatch) => {
+        then_await(
+          uploadFile(),
+          (file_content) => {
+            return newPromise(
+              (resolve2) => {
+                dispatch(new FileUploadComplete(file_content));
+                return resolve2(void 0);
+              }
+            );
+          }
+        );
+        return void 0;
+      }
+    );
+    return [model, get_file_contents_effect];
+  } else {
+    let file_content = msg.file_content;
+    let src_grid = (() => {
+      let _pipe = file_content;
+      return from_src_csv(_pipe, initial_grid_width, initial_grid_height);
+    })();
+    let new_model = (() => {
+      let _pipe = model.withFields({ src_grid });
+      return update_grid(_pipe);
+    })();
+    return [new_model, none()];
+  }
+}
+var min_cell_size_ch = 10;
+function recalculate_col_width(model, col2) {
+  let _pipe = (() => {
+    let $ = model.display_formulas;
+    if (!$) {
+      let _pipe2 = to_list3(model.value_grid);
+      let _pipe$1 = filter_map(
+        _pipe2,
+        (c) => {
+          let k = c[0];
+          let v = c[1];
+          let $1 = (() => {
+            let _pipe$12 = k;
+            return col(_pipe$12);
+          })() === col2;
+          if (!$1) {
+            return new Error(void 0);
+          } else {
+            if (!v.isOk()) {
+              return new Ok(get4(model.src_grid, k));
+            } else {
+              let v$1 = v[0];
+              let $2 = isEqual(model.active_cell, new Some(k));
+              if (!$2) {
+                return new Ok(value_to_string(v$1));
+              } else {
+                return new Ok(get4(model.src_grid, k));
+              }
+            }
+          }
+        }
+      );
+      return map2(_pipe$1, length2);
+    } else {
+      let _pipe2 = to_list3(model.src_grid);
+      return filter_map(
+        _pipe2,
+        (c) => {
+          let k = c[0];
+          let v = c[1];
+          let $1 = (() => {
+            let _pipe$1 = k;
+            return col(_pipe$1);
+          })() === col2;
+          if (!$1) {
+            return new Error(void 0);
+          } else {
+            return new Ok(length2(v));
+          }
+        }
+      );
+    }
+  })();
+  return fold2(_pipe, min_cell_size_ch, max);
+}
 function view(model) {
   let error_to_display = (() => {
     let _pipe = find_map(
@@ -7943,6 +8229,16 @@ function view(model) {
       }
     );
     return unwrap(_pipe, div(toList([]), toList([])));
+  })();
+  let col_widths = (() => {
+    let _pipe = range(1, initial_grid_width);
+    let _pipe$1 = map2(
+      _pipe,
+      (c) => {
+        return [c, recalculate_col_width(model, c)];
+      }
+    );
+    return from_list(_pipe$1);
   })();
   let rows = (() => {
     let _pipe = model.src_grid.cells;
@@ -8104,6 +8400,16 @@ function view(model) {
               })();
               let color = $2[0];
               let background_color = $2[1];
+              let col_width = (() => {
+                let _pipe$32 = get(
+                  col_widths,
+                  (() => {
+                    let _pipe$33 = key;
+                    return col(_pipe$33);
+                  })()
+                );
+                return unwrap(_pipe$32, min_cell_size_ch);
+              })();
               let input2 = input(
                 toList([
                   on_input2,
@@ -8122,16 +8428,8 @@ function view(model) {
                       [
                         "width",
                         (() => {
-                          let _pipe$32 = model.col_widths;
-                          let _pipe$42 = get(
-                            _pipe$32,
-                            (() => {
-                              let _pipe$43 = key;
-                              return col(_pipe$43);
-                            })()
-                          );
-                          let _pipe$5 = unwrap(_pipe$42, 7);
-                          return to_string3(_pipe$5);
+                          let _pipe$32 = col_width;
+                          return to_string3(_pipe$32);
                         })() + "ch"
                       ]
                     ])
@@ -8278,407 +8576,6 @@ function view(model) {
       error_to_display
     ])
   );
-}
-var initial_grid_width = 30;
-var initial_grid_height = 40;
-function init2(_) {
-  let src_grid = new$4(initial_grid_width, initial_grid_height, "");
-  let type_checked_grid = new$4(
-    initial_grid_width,
-    initial_grid_height,
-    new Ok(new Empty3(new TNil()))
-  );
-  let value_grid = new$4(
-    initial_grid_width,
-    initial_grid_height,
-    new Ok(new Empty4())
-  );
-  let model = (() => {
-    let _pipe = new Model2(
-      false,
-      initial_grid_width,
-      initial_grid_height,
-      new$(),
-      false,
-      new None(),
-      src_grid,
-      type_checked_grid,
-      value_grid,
-      toList([])
-    );
-    return update_grid(_pipe);
-  })();
-  return [model, none()];
-}
-function update(model, msg) {
-  if (msg instanceof UserSetCellValue) {
-    let key = msg.key;
-    let val = msg.val;
-    let model$1 = model.withFields({
-      src_grid: insert4(model.src_grid, key, val)
-    });
-    return [
-      (() => {
-        let _pipe = update_grid(model$1);
-        return recalculate_col_width(
-          _pipe,
-          (() => {
-            let _pipe$1 = key;
-            return col(_pipe$1);
-          })()
-        );
-      })(),
-      none()
-    ];
-  } else if (msg instanceof UserToggledFormulaMode) {
-    let display_formulas = msg.to;
-    let new_model = (() => {
-      let _pipe = range(1, initial_grid_width);
-      return fold2(
-        _pipe,
-        model.withFields({ display_formulas }),
-        recalculate_col_width
-      );
-    })();
-    return [new_model, none()];
-  } else if (msg instanceof UserFocusedOnCell) {
-    let key = msg.key;
-    let old_col = (() => {
-      let _pipe = model.active_cell;
-      return map(_pipe, col);
-    })();
-    let new_model = (() => {
-      let _pipe = (() => {
-        if (old_col instanceof None) {
-          return model.withFields({ active_cell: new Some(key) });
-        } else {
-          let c = old_col[0];
-          let _pipe2 = model.withFields({ active_cell: new Some(key) });
-          return recalculate_col_width(_pipe2, c);
-        }
-      })();
-      return recalculate_col_width(
-        _pipe,
-        (() => {
-          let _pipe$1 = key;
-          return col(_pipe$1);
-        })()
-      );
-    })();
-    return [new_model, none()];
-  } else if (msg instanceof UserFocusedOffCell) {
-    let old_col = (() => {
-      let _pipe = model.active_cell;
-      return map(_pipe, col);
-    })();
-    let new_model = (() => {
-      if (old_col instanceof None) {
-        return model.withFields({ active_cell: new None() });
-      } else {
-        let c = old_col[0];
-        let _pipe = model.withFields({ active_cell: new None() });
-        return recalculate_col_width(_pipe, c);
-      }
-    })();
-    return [new_model, none()];
-  } else if (msg instanceof UserPressedArrowUp) {
-    let cell = msg.cell;
-    return set_active_cell_to(model, cell_above(model.src_grid, cell));
-  } else if (msg instanceof UserPressedArrowLeft) {
-    let cell = msg.cell;
-    return set_active_cell_to(
-      model,
-      cell_to_the_left(model.src_grid, cell)
-    );
-  } else if (msg instanceof UserPressedArrowRight) {
-    let cell = msg.cell;
-    return set_active_cell_to(
-      model,
-      cell_to_the_right(model.src_grid, cell)
-    );
-  } else if (msg instanceof UserPressedArrowDown) {
-    let cell = msg.cell;
-    return set_active_cell_to(
-      model,
-      cell_underneath(model.src_grid, cell)
-    );
-  } else if (msg instanceof UserPressedEnter) {
-    let cell = msg.cell;
-    return set_active_cell_to(
-      model,
-      cell_underneath(model.src_grid, cell)
-    );
-  } else if (msg instanceof UserShiftPressedArrowRight) {
-    let cell = msg.cell;
-    let maybe_cell_to_right = cell_to_the_right(model.src_grid, cell);
-    if (!maybe_cell_to_right.isOk() && !maybe_cell_to_right[0]) {
-      return [model, none()];
-    } else {
-      let cell_to_right = maybe_cell_to_right[0];
-      let scanned = scan_grid(model.src_grid);
-      let parsed = parse_grid(scanned);
-      let typechecked = typecheck_grid(parsed);
-      let maybe_expr = get4(typechecked, cell);
-      return guard(
-        (() => {
-          let _pipe = maybe_expr;
-          return is_error(_pipe);
-        })(),
-        [model, none()],
-        () => {
-          if (!maybe_expr.isOk()) {
-            throw makeError(
-              "let_assert",
-              "squared_away",
-              260,
-              "",
-              "Pattern match failed, no pattern matched the value.",
-              { value: maybe_expr }
-            );
-          }
-          let expr = maybe_expr[0];
-          let expr_with_labels_updated = visit_cross_labels(
-            expr,
-            (key, row_label, col_label) => {
-              let $ = find3(model.src_grid, col_label);
-              if (!$.isOk()) {
-                throw makeError(
-                  "let_assert",
-                  "squared_away",
-                  268,
-                  "",
-                  "Pattern match failed, no pattern matched the value.",
-                  { value: $ }
-                );
-              }
-              let key_for_col = $[0];
-              return try$(
-                cell_to_the_right(model.src_grid, key_for_col),
-                (key_for_new_col) => {
-                  let maybe_new_label = get4(typechecked, key_for_new_col);
-                  let get_new_label = (l) => {
-                    if (l.isOk() && l[0] instanceof LabelDef2) {
-                      let txt = l[0].txt;
-                      return new Ok(txt);
-                    } else {
-                      return new Error(void 0);
-                    }
-                  };
-                  return try$(
-                    get_new_label(maybe_new_label),
-                    (new_label) => {
-                      let $1 = cell_to_the_right(model.src_grid, key);
-                      if (!$1.isOk()) {
-                        throw makeError(
-                          "let_assert",
-                          "squared_away",
-                          288,
-                          "",
-                          "Pattern match failed, no pattern matched the value.",
-                          { value: $1 }
-                        );
-                      }
-                      let new_key = $1[0];
-                      return new Ok(
-                        new CrossLabel2(
-                          expr.type_,
-                          new_key,
-                          row_label,
-                          new_label
-                        )
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-          if (!expr_with_labels_updated.isOk()) {
-            return [model, none()];
-          } else {
-            let new_expr = expr_with_labels_updated[0];
-            let formula = to_string11(new_expr);
-            let src_grid = insert4(model.src_grid, cell_to_right, formula);
-            let id2 = to_string7(cell_to_right);
-            let new_model = model.withFields({
-              src_grid,
-              active_cell: new Some(cell_to_right)
-            });
-            return [
-              (() => {
-                let _pipe = update_grid(new_model);
-                let _pipe$1 = recalculate_col_width(
-                  _pipe,
-                  (() => {
-                    let _pipe$12 = cell;
-                    return col(_pipe$12);
-                  })()
-                );
-                return recalculate_col_width(
-                  _pipe$1,
-                  (() => {
-                    let _pipe$2 = cell_to_right;
-                    return col(_pipe$2);
-                  })()
-                );
-              })(),
-              focus2(id2)
-            ];
-          }
-        }
-      );
-    }
-  } else if (msg instanceof UserShiftPressedArrowDown) {
-    let cell = msg.cell;
-    let maybe_cell_below = cell_underneath(model.src_grid, cell);
-    if (!maybe_cell_below.isOk() && !maybe_cell_below[0]) {
-      return [model, none()];
-    } else {
-      let cell_below = maybe_cell_below[0];
-      let scanned = scan_grid(model.src_grid);
-      let parsed = parse_grid(scanned);
-      let typechecked = typecheck_grid(parsed);
-      let maybe_expr = get4(typechecked, cell);
-      return guard(
-        (() => {
-          let _pipe = maybe_expr;
-          return is_error(_pipe);
-        })(),
-        [model, none()],
-        () => {
-          if (!maybe_expr.isOk()) {
-            throw makeError(
-              "let_assert",
-              "squared_away",
-              333,
-              "",
-              "Pattern match failed, no pattern matched the value.",
-              { value: maybe_expr }
-            );
-          }
-          let expr = maybe_expr[0];
-          let expr_with_labels_updated = visit_cross_labels(
-            expr,
-            (key, row_label, col_label) => {
-              let $ = find3(model.src_grid, row_label);
-              if (!$.isOk()) {
-                throw makeError(
-                  "let_assert",
-                  "squared_away",
-                  338,
-                  "",
-                  "Pattern match failed, no pattern matched the value.",
-                  { value: $ }
-                );
-              }
-              let key_for_row = $[0];
-              return try$(
-                cell_underneath(model.src_grid, key_for_row),
-                (key_for_new_row) => {
-                  let maybe_new_label = get4(typechecked, key_for_new_row);
-                  let get_new_label = (l) => {
-                    if (l.isOk() && l[0] instanceof LabelDef2) {
-                      let txt = l[0].txt;
-                      return new Ok(txt);
-                    } else {
-                      return new Error(void 0);
-                    }
-                  };
-                  return try$(
-                    get_new_label(maybe_new_label),
-                    (new_label) => {
-                      let $1 = cell_underneath(model.src_grid, key);
-                      if (!$1.isOk()) {
-                        throw makeError(
-                          "let_assert",
-                          "squared_away",
-                          357,
-                          "",
-                          "Pattern match failed, no pattern matched the value.",
-                          { value: $1 }
-                        );
-                      }
-                      let new_key = $1[0];
-                      return new Ok(
-                        new CrossLabel2(
-                          expr.type_,
-                          new_key,
-                          new_label,
-                          col_label
-                        )
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-          if (!expr_with_labels_updated.isOk()) {
-            return [model, none()];
-          } else {
-            let new_expr = expr_with_labels_updated[0];
-            let formula = to_string11(new_expr);
-            let src_grid = insert4(model.src_grid, cell_below, formula);
-            let id2 = to_string7(cell_below);
-            let new_model = model.withFields({
-              src_grid,
-              active_cell: new Some(cell_below)
-            });
-            return [
-              (() => {
-                let _pipe = update_grid(new_model);
-                return recalculate_col_width(
-                  _pipe,
-                  (() => {
-                    let _pipe$1 = cell;
-                    return col(_pipe$1);
-                  })()
-                );
-              })(),
-              focus2(id2)
-            ];
-          }
-        }
-      );
-    }
-  } else if (msg instanceof UserClickedSaveBtn) {
-    let content = src_csv(model.src_grid);
-    saveFile(content, "myspreadsheet.csv");
-    return [model, none()];
-  } else if (msg instanceof UserUploadedFile) {
-    let get_file_contents_effect = from(
-      (dispatch) => {
-        then_await(
-          uploadFile(),
-          (file_content) => {
-            return newPromise(
-              (resolve2) => {
-                dispatch(new FileUploadComplete(file_content));
-                return resolve2(void 0);
-              }
-            );
-          }
-        );
-        return void 0;
-      }
-    );
-    return [model, get_file_contents_effect];
-  } else {
-    let file_content = msg.file_content;
-    let src_grid = (() => {
-      let _pipe = file_content;
-      return from_src_csv(_pipe, initial_grid_width, initial_grid_height);
-    })();
-    let new_model = (() => {
-      let _pipe = model.withFields({ src_grid });
-      return update_grid(_pipe);
-    })();
-    let new_model$1 = (() => {
-      let _pipe = range(1, initial_grid_width);
-      return fold2(_pipe, new_model, recalculate_col_width);
-    })();
-    return [new_model$1, none()];
-  }
 }
 function main() {
   let app = application(init2, update, view);

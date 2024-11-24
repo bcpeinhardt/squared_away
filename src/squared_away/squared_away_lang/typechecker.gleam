@@ -1,6 +1,5 @@
 import gleam/bool
 import gleam/int
-import gleam/io
 import gleam/list.{Continue, Stop}
 import gleam/option.{None, Some}
 import gleam/result

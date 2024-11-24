@@ -1,8 +1,6 @@
 import gleam/float
 import gleam/int
-import gleam/io
-import gleam/list.{Continue, Stop}
-import gleam/option.{None, Some}
+import gleam/list
 import gleam/result
 import squared_away/squared_away_lang/error
 import squared_away/squared_away_lang/grid

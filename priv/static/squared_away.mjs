@@ -5463,7 +5463,7 @@ function interpret(loop$env, loop$expr) {
                   throw makeError(
                     "let_assert",
                     "squared_away/squared_away_lang/interpreter",
-                    134,
+                    132,
                     "",
                     "Pattern match failed, no pattern matched the value.",
                     { value: $ }
@@ -5479,7 +5479,7 @@ function interpret(loop$env, loop$expr) {
                   throw makeError(
                     "let_assert",
                     "squared_away/squared_away_lang/interpreter",
-                    138,
+                    136,
                     "",
                     "Pattern match failed, no pattern matched the value.",
                     { value: $ }
@@ -5614,7 +5614,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                220,
+                218,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5635,7 +5635,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                228,
+                226,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5656,7 +5656,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                236,
+                234,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -6859,7 +6859,7 @@ function typecheck(env, expr) {
       throw makeError(
         "let_assert",
         "squared_away/squared_away_lang/typechecker",
-        21,
+        20,
         "typecheck",
         "Pattern match failed, no pattern matched the value.",
         { value: key }
@@ -6923,7 +6923,7 @@ function typecheck(env, expr) {
                 throw makeError(
                   "let_assert",
                   "squared_away/squared_away_lang/typechecker",
-                  59,
+                  58,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: i }
@@ -6956,7 +6956,7 @@ function typecheck(env, expr) {
                     throw makeError(
                       "let_assert",
                       "squared_away/squared_away_lang/typechecker",
-                      76,
+                      75,
                       "",
                       "Pattern match failed, no pattern matched the value.",
                       { value: t2 }
@@ -8296,7 +8296,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              207,
+              206,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8311,7 +8311,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  215,
+                  214,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8338,7 +8338,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          235,
+                          234,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -8397,7 +8397,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              275,
+              274,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8412,7 +8412,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  280,
+                  279,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8439,7 +8439,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          299,
+                          298,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -8518,7 +8518,7 @@ function main() {
     throw makeError(
       "let_assert",
       "squared_away",
-      32,
+      31,
       "main",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }

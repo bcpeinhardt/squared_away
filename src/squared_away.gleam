@@ -7,9 +7,8 @@ import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/pair
 import gleam/result
-import gleam/string
 import lustre
-import lustre/attribute.{class}
+import lustre/attribute
 import lustre/effect
 import lustre/element
 import lustre/element/html

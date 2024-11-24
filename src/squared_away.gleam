@@ -56,7 +56,6 @@ type Model {
     grid_width: Int,
     grid_height: Int,
     display_formulas: Bool,
-    display_coords: Bool,
     active_cell: Option(grid.GridKey),
     src_grid: grid.Grid(String),
     type_checked_grid: grid.Grid(
@@ -84,7 +83,6 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
       grid_width: initial_grid_width,
       grid_height: initial_grid_height,
       display_formulas: False,
-      display_coords: False,
       active_cell: None,
       src_grid:,
       value_grid:,
@@ -99,7 +97,6 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
 type Msg {
   Noop
   UserToggledFormulaMode(to: Bool)
-  UserToggledDisplayCoords(to: Bool)
   UserSetCellValue(key: grid.GridKey, val: String)
   UserFocusedOnCell(key: grid.GridKey)
   UserFocusedOffCell
@@ -162,9 +159,6 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
     }
     UserToggledFormulaMode(display_formulas) -> {
       #(Model(..model, display_formulas:), effect.none())
-    }
-    UserToggledDisplayCoords(display_coords) -> {
-      #(Model(..model, display_coords:), effect.none())
     }
     UserFocusedOnCell(key) -> {
       #(Model(..model, active_cell: Some(key)), effect.none())
@@ -461,11 +455,6 @@ fn view(model: Model) -> element.Element(Msg) {
               }
           }
 
-          let border = case model.active_cell == Some(key) {
-            False -> "1px solid gray"
-            True -> "1px solid DeepSkyBlue"
-          }
-
           let input =
             html.input([
               on_input,
@@ -480,28 +469,13 @@ fn view(model: Model) -> element.Element(Msg) {
                 #("background-color", background_color),
                 #("color", color),
                 #("text-align", alignment),
-                #("margin", "0px"),
-                #("box-sizing", "border-box"),
-                #("width", "7rem"),
-                #("border", border),
               ]),
             ])
 
-          case model.display_coords {
-            False ->
-              html.td(
-                [attribute.style([#("padding", "0px"), #("margin", "0px")])],
-                [input],
-              )
-            True ->
-              html.td(
-                [attribute.style([#("padding", "0px"), #("margin", "0px")])],
-                [html.label([], t(grid.to_string(key) <> ": ")), input],
-              )
-          }
+          html.td([attribute.style([#("border", "1px solid gray")])], [input])
         })
 
-      html.tr([], cells)
+      html.tr([attribute.style([#("border", "1px solid gray")])], cells)
     })
     |> dict.to_list
     |> list.sort(fn(r1, r2) { int.compare(r1.0, r2.0) })
@@ -531,16 +505,6 @@ fn view(model: Model) -> element.Element(Msg) {
 
   let formula_mode_toggle_label =
     html.label([attribute.for("formula_mode")], t("Show formulas"))
-
-  let grid_mode_toggle =
-    html.input([
-      attribute.type_("checkbox"),
-      attribute.id("grid_mode"),
-      event.on_check(UserToggledDisplayCoords),
-    ])
-
-  let grid_mode_toggle_label =
-    html.label([attribute.for("grid_mode")], t("Show grid coordinates"))
 
   let save_button = html.button([event.on_click(UserClickedSaveBtn)], t("Save"))
   let load_button =
@@ -584,10 +548,6 @@ fn view(model: Model) -> element.Element(Msg) {
       html.div([attribute.class("menu-item")], [
         formula_mode_toggle,
         formula_mode_toggle_label,
-      ]),
-      html.div([attribute.class("menu-item")], [
-        grid_mode_toggle,
-        grid_mode_toggle_label,
       ]),
       html.div([attribute.class("menu-item")], [load_button]),
       html.div([attribute.class("menu-item")], [save_button]),

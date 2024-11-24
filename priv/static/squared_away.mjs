@@ -7641,13 +7641,12 @@ function uploadFile() {
 
 // build/dev/javascript/squared_away/squared_away.mjs
 var Model2 = class extends CustomType {
-  constructor(holding_shift, grid_width, grid_height, display_formulas, display_coords, active_cell, src_grid, type_checked_grid, value_grid, errors_to_display) {
+  constructor(holding_shift, grid_width, grid_height, display_formulas, active_cell, src_grid, type_checked_grid, value_grid, errors_to_display) {
     super();
     this.holding_shift = holding_shift;
     this.grid_width = grid_width;
     this.grid_height = grid_height;
     this.display_formulas = display_formulas;
-    this.display_coords = display_coords;
     this.active_cell = active_cell;
     this.src_grid = src_grid;
     this.type_checked_grid = type_checked_grid;
@@ -7658,12 +7657,6 @@ var Model2 = class extends CustomType {
 var Noop = class extends CustomType {
 };
 var UserToggledFormulaMode = class extends CustomType {
-  constructor(to2) {
-    super();
-    this.to = to2;
-  }
-};
-var UserToggledDisplayCoords = class extends CustomType {
   constructor(to2) {
     super();
     this.to = to2;
@@ -7902,10 +7895,10 @@ function view(model) {
               let value3 = (() => {
                 let _pipe$32 = (() => {
                   let $3 = model.display_formulas;
-                  let $13 = isEqual(model.active_cell, new Some(key));
+                  let $12 = isEqual(model.active_cell, new Some(key));
                   if ($3) {
                     return get4(model.src_grid, key);
-                  } else if (!$3 && $13) {
+                  } else if (!$3 && $12) {
                     return get4(model.src_grid, key);
                   } else {
                     let $22 = get4(model.value_grid, key);
@@ -7924,11 +7917,11 @@ function view(model) {
                 if ($3) {
                   return "left";
                 } else {
-                  let $13 = get4(model.value_grid, key);
-                  if (!$13.isOk()) {
+                  let $12 = get4(model.value_grid, key);
+                  if (!$12.isOk()) {
                     return "left";
                   } else {
-                    let v = $13[0];
+                    let v = $12[0];
                     if (v instanceof Percent) {
                       return "right";
                     } else if (v instanceof Integer) {
@@ -7982,11 +7975,11 @@ function view(model) {
                 }
               })();
               let $2 = (() => {
-                let $13 = model.active_cell;
-                if ($13 instanceof None) {
+                let $12 = model.active_cell;
+                if ($12 instanceof None) {
                   return colors;
                 } else {
-                  let active_cell = $13[0];
+                  let active_cell = $12[0];
                   let $22 = get4(model.type_checked_grid, active_cell);
                   if (!$22.isOk()) {
                     return colors;
@@ -8020,14 +8013,6 @@ function view(model) {
               })();
               let color = $2[0];
               let background_color = $2[1];
-              let border = (() => {
-                let $13 = isEqual(model.active_cell, new Some(key));
-                if (!$13) {
-                  return "1px solid gray";
-                } else {
-                  return "1px solid DeepSkyBlue";
-                }
-              })();
               let input2 = input(
                 toList([
                   on_input2,
@@ -8042,42 +8027,24 @@ function view(model) {
                     toList([
                       ["background-color", background_color],
                       ["color", color],
-                      ["text-align", alignment],
-                      ["margin", "0px"],
-                      ["box-sizing", "border-box"],
-                      ["width", "7rem"],
-                      ["border", border]
+                      ["text-align", alignment]
                     ])
                   )
                 ])
               );
-              let $12 = model.display_coords;
-              if (!$12) {
-                return td(
-                  toList([
-                    style(
-                      toList([["padding", "0px"], ["margin", "0px"]])
-                    )
-                  ]),
-                  toList([input2])
-                );
-              } else {
-                return td(
-                  toList([
-                    style(
-                      toList([["padding", "0px"], ["margin", "0px"]])
-                    )
-                  ]),
-                  toList([
-                    label(toList([]), t(to_string7(key) + ": ")),
-                    input2
-                  ])
-                );
-              }
+              return td(
+                toList([
+                  style(toList([["border", "1px solid gray"]]))
+                ]),
+                toList([input2])
+              );
             }
           );
         })();
-        return tr(toList([]), cells);
+        return tr(
+          toList([style(toList([["border", "1px solid gray"]]))]),
+          cells
+        );
       }
     );
     let _pipe$3 = map_to_list(_pipe$2);
@@ -8118,19 +8085,6 @@ function view(model) {
   let formula_mode_toggle_label = label(
     toList([for$("formula_mode")]),
     t("Show formulas")
-  );
-  let grid_mode_toggle = input(
-    toList([
-      type_("checkbox"),
-      id("grid_mode"),
-      on_check((var0) => {
-        return new UserToggledDisplayCoords(var0);
-      })
-    ])
-  );
-  let grid_mode_toggle_label = label(
-    toList([for$("grid_mode")]),
-    t("Show grid coordinates")
   );
   let save_button = button(
     toList([on_click(new UserClickedSaveBtn())]),
@@ -8202,10 +8156,6 @@ function view(model) {
           ),
           div(
             toList([class$("menu-item")]),
-            toList([grid_mode_toggle, grid_mode_toggle_label])
-          ),
-          div(
-            toList([class$("menu-item")]),
             toList([load_button])
           ),
           div(
@@ -8243,7 +8193,6 @@ function init2(_) {
       initial_grid_width,
       initial_grid_height,
       false,
-      false,
       new None(),
       src_grid,
       type_checked_grid,
@@ -8268,12 +8217,6 @@ function update(model, msg) {
     let display_formulas = msg.to;
     return [
       model.withFields({ display_formulas }),
-      none()
-    ];
-  } else if (msg instanceof UserToggledDisplayCoords) {
-    let display_coords = msg.to;
-    return [
-      model.withFields({ display_coords }),
       none()
     ];
   } else if (msg instanceof UserFocusedOnCell) {
@@ -8330,7 +8273,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              206,
+              200,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8345,7 +8288,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  214,
+                  208,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8372,7 +8315,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          234,
+                          228,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -8431,7 +8374,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              274,
+              268,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8446,7 +8389,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  279,
+                  273,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8473,7 +8416,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          298,
+                          292,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }

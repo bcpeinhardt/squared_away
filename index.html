@@ -10,7 +10,8 @@
   <style>
     table {
       margin: auto;
-      padding-top: 20px;
+      margin-top: 20px;
+      border-collapse: collapse;
     }
 
     .menu-item {
@@ -18,18 +19,19 @@
       display: inline;
     }
 
-    input {
+    table input {
       font-family: monospace;
+      margin: 1px;
+      border: none;
+      width: 7rem;
     }
 
-    input+input {
-      border-left: none;
-      border-top: none;
-      border-bottom: none;
+    td {
+      padding: 0;
     }
 
-    input:focus {
-      outline: none;
+    tr {
+      padding: 0;
     }
   </style>
 

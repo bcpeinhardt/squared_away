@@ -414,6 +414,38 @@ fn view(model: Model) -> element.Element(Msg) {
     |> list.map(fn(c) { #(c, recalculate_col_width(model, c)) })
     |> dict.from_list
 
+  let deps = case model.show_test_coverage {
+    False -> []
+    True -> {
+      // In show test coverage mode, we need to check the dependency lists of *all*
+      // passing tests
+      let deps =
+        model.type_checked_grid
+        |> grid.to_list
+        |> list.filter_map(fn(g) {
+          let #(k, mte) = g
+          case mte {
+            Error(_) -> Error(Nil)
+            Ok(te) ->
+              case te.type_ {
+                typ.TTestResult ->
+                  case grid.get(model.value_grid, k) {
+                    Ok(value.TestPass) -> Ok(te)
+                    _ -> Error(Nil)
+                  }
+                _ -> Error(Nil)
+              }
+          }
+        })
+        |> list.map(squared_away_lang.dependency_list(
+          model.type_checked_grid,
+          _,
+          [],
+        ))
+        |> list.flatten
+    }
+  }
+
   let rows =
     model.src_grid.cells
     |> list.group(grid.row)
@@ -519,33 +551,6 @@ fn view(model: Model) -> element.Element(Msg) {
                   }
               }
             True, _ -> {
-              // In show test coverage mode, we need to check the dependency lists of *all*
-              // passing tests
-              let deps =
-                model.type_checked_grid
-                |> grid.to_list
-                |> list.filter_map(fn(g) {
-                  let #(k, mte) = g
-                  case mte {
-                    Error(_) -> Error(Nil)
-                    Ok(te) ->
-                      case te.type_ {
-                        typ.TTestResult ->
-                          case grid.get(model.value_grid, k) {
-                            Ok(value.TestPass) -> Ok(te)
-                            _ -> Error(Nil)
-                          }
-                        _ -> Error(Nil)
-                      }
-                  }
-                })
-                |> list.map(squared_away_lang.dependency_list(
-                  model.type_checked_grid,
-                  _,
-                  [],
-                ))
-                |> list.flatten
-
               case list.contains(deps, key) {
                 False -> colors
                 True -> #("#006400", "#e6ffe6")

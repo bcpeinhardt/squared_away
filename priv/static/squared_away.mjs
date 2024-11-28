@@ -8295,6 +8295,52 @@ function view(model) {
     );
     return from_list(_pipe$1);
   })();
+  let deps = (() => {
+    let $2 = model.show_test_coverage;
+    if (!$2) {
+      return toList([]);
+    } else {
+      let deps2 = (() => {
+        let _pipe = model.type_checked_grid;
+        let _pipe$1 = to_list3(_pipe);
+        let _pipe$2 = filter_map(
+          _pipe$1,
+          (g) => {
+            let k = g[0];
+            let mte = g[1];
+            if (!mte.isOk()) {
+              return new Error(void 0);
+            } else {
+              let te = mte[0];
+              let $12 = te.type_;
+              if ($12 instanceof TTestResult) {
+                let $22 = get4(model.value_grid, k);
+                if ($22.isOk() && $22[0] instanceof TestPass) {
+                  return new Ok(te);
+                } else {
+                  return new Error(void 0);
+                }
+              } else {
+                return new Error(void 0);
+              }
+            }
+          }
+        );
+        let _pipe$3 = map2(
+          _pipe$2,
+          (_capture) => {
+            return dependency_list(
+              model.type_checked_grid,
+              _capture,
+              toList([])
+            );
+          }
+        );
+        return flatten2(_pipe$3);
+      })();
+      return deps2;
+    }
+  })();
   let rows = (() => {
     let _pipe = model.src_grid.cells;
     let _pipe$1 = group(_pipe, row);
@@ -8471,44 +8517,6 @@ function view(model) {
                     }
                   }
                 } else {
-                  let deps = (() => {
-                    let _pipe$32 = model.type_checked_grid;
-                    let _pipe$42 = to_list3(_pipe$32);
-                    let _pipe$5 = filter_map(
-                      _pipe$42,
-                      (g) => {
-                        let k = g[0];
-                        let mte = g[1];
-                        if (!mte.isOk()) {
-                          return new Error(void 0);
-                        } else {
-                          let te = mte[0];
-                          let $32 = te.type_;
-                          if ($32 instanceof TTestResult) {
-                            let $4 = get4(model.value_grid, k);
-                            if ($4.isOk() && $4[0] instanceof TestPass) {
-                              return new Ok(te);
-                            } else {
-                              return new Error(void 0);
-                            }
-                          } else {
-                            return new Error(void 0);
-                          }
-                        }
-                      }
-                    );
-                    let _pipe$6 = map2(
-                      _pipe$5,
-                      (_capture) => {
-                        return dependency_list(
-                          model.type_checked_grid,
-                          _capture,
-                          toList([])
-                        );
-                      }
-                    );
-                    return flatten2(_pipe$6);
-                  })();
                   let $3 = contains(deps, key);
                   if (!$3) {
                     return colors;

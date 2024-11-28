@@ -41,10 +41,10 @@ var List = class {
   }
   // @internal
   countLength() {
-    let length4 = 0;
+    let length5 = 0;
     for (let _ of this)
-      length4++;
-    return length4;
+      length5++;
+    return length5;
   }
 };
 function prepend(element2, tail) {
@@ -1661,6 +1661,22 @@ var Ascending = class extends CustomType {
 };
 var Descending = class extends CustomType {
 };
+function count_length(loop$list, loop$count) {
+  while (true) {
+    let list = loop$list;
+    let count = loop$count;
+    if (list.atLeastLength(1)) {
+      let list$1 = list.tail;
+      loop$list = list$1;
+      loop$count = count + 1;
+    } else {
+      return count;
+    }
+  }
+}
+function length(list) {
+  return count_length(list, 0);
+}
 function do_reverse(loop$remaining, loop$accumulator) {
   while (true) {
     let remaining = loop$remaining;
@@ -2440,7 +2456,7 @@ function reverse2(builder) {
 }
 
 // build/dev/javascript/gleam_stdlib/gleam/string.mjs
-function length2(string3) {
+function length3(string3) {
   return string_length(string3);
 }
 function do_reverse3(string3) {
@@ -2468,7 +2484,7 @@ function slice(string3, idx, len) {
   } else {
     let $1 = idx < 0;
     if ($1) {
-      let translated_idx = length2(string3) + idx;
+      let translated_idx = length3(string3) + idx;
       let $2 = translated_idx < 0;
       if ($2) {
         return "";
@@ -2485,7 +2501,7 @@ function drop_left(string3, num_graphemes) {
   if ($) {
     return string3;
   } else {
-    return slice(string3, num_graphemes, length2(string3) - num_graphemes);
+    return slice(string3, num_graphemes, length3(string3) - num_graphemes);
   }
 }
 function ends_with2(string3, suffix) {
@@ -3831,8 +3847,8 @@ function from_lists(rows, separator, line_ending) {
   );
   return join2(_pipe, line_ending$1);
 }
-function extract_field(string3, from3, length4, status) {
-  let field2 = slice3(string3, from3, length4);
+function extract_field(string3, from3, length5, status) {
+  let field2 = slice3(string3, from3, length5);
   if (status instanceof CommaFound) {
     return field2;
   } else if (status instanceof ParsingUnescapedField) {
@@ -4624,7 +4640,7 @@ function from_string3(input2) {
                 return try$(
                   power4(
                     from2(10),
-                    from2(length2(decimal))
+                    from2(length3(decimal))
                   ),
                   (multiplier) => {
                     return try$(
@@ -5076,7 +5092,7 @@ function do_to_string2(te) {
       return str + ".00";
     } else {
       let cents = $[0][1];
-      let $1 = length2(cents) === 1;
+      let $1 = length3(cents) === 1;
       if (!$1) {
         return str;
       } else {
@@ -5312,7 +5328,7 @@ function value_to_string(fv) {
       return str + ".00";
     } else {
       let cents = $[0][1];
-      let $1 = length2(cents) === 1;
+      let $1 = length3(cents) === 1;
       if (!$1) {
         return str;
       } else {
@@ -7665,9 +7681,9 @@ function scan_grid(input2) {
 function focus(id2) {
   const input2 = document.getElementById(id2);
   input2.focus();
-  const length4 = input2.value.length;
+  const length5 = input2.value.length;
   setTimeout(() => {
-    input2.setSelectionRange(length4, length4);
+    input2.setSelectionRange(length5, length5);
   }, 0);
 }
 function saveFile(content, filename) {
@@ -7992,7 +8008,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              245,
+              246,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8007,7 +8023,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  253,
+                  254,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8034,7 +8050,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          273,
+                          274,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -8093,7 +8109,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              313,
+              314,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8108,7 +8124,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  318,
+                  319,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8135,7 +8151,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          337,
+                          338,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -8239,7 +8255,7 @@ function recalculate_col_width(model, col2) {
           }
         }
       );
-      return map2(_pipe$12, length2);
+      return map2(_pipe$12, length3);
     } else {
       let _pipe2 = to_list3(model.src_grid);
       return filter_map(
@@ -8254,7 +8270,7 @@ function recalculate_col_width(model, col2) {
           if (!$1) {
             return new Error(void 0);
           } else {
-            return new Ok(length2(v));
+            return new Ok(length3(v));
           }
         }
       );
@@ -8296,50 +8312,66 @@ function view(model) {
     return from_list(_pipe$1);
   })();
   let deps = (() => {
-    let $2 = model.show_test_coverage;
-    if (!$2) {
-      return toList([]);
-    } else {
-      let deps2 = (() => {
-        let _pipe = model.type_checked_grid;
-        let _pipe$1 = to_list3(_pipe);
-        let _pipe$2 = filter_map(
-          _pipe$1,
-          (g) => {
-            let k = g[0];
-            let mte = g[1];
-            if (!mte.isOk()) {
-              return new Error(void 0);
+    let _pipe = model.type_checked_grid;
+    let _pipe$1 = to_list3(_pipe);
+    let _pipe$2 = filter_map(
+      _pipe$1,
+      (g) => {
+        let k = g[0];
+        let mte = g[1];
+        if (!mte.isOk()) {
+          return new Error(void 0);
+        } else {
+          let te = mte[0];
+          let $2 = te.type_;
+          if ($2 instanceof TTestResult) {
+            let $12 = get4(model.value_grid, k);
+            if ($12.isOk() && $12[0] instanceof TestPass) {
+              return new Ok(te);
             } else {
-              let te = mte[0];
-              let $12 = te.type_;
-              if ($12 instanceof TTestResult) {
-                let $22 = get4(model.value_grid, k);
-                if ($22.isOk() && $22[0] instanceof TestPass) {
-                  return new Ok(te);
-                } else {
-                  return new Error(void 0);
-                }
-              } else {
-                return new Error(void 0);
-              }
+              return new Error(void 0);
             }
+          } else {
+            return new Error(void 0);
           }
+        }
+      }
+    );
+    let _pipe$3 = map2(
+      _pipe$2,
+      (_capture) => {
+        return dependency_list(
+          model.type_checked_grid,
+          _capture,
+          toList([])
         );
-        let _pipe$3 = map2(
-          _pipe$2,
-          (_capture) => {
-            return dependency_list(
-              model.type_checked_grid,
-              _capture,
-              toList([])
-            );
+      }
+    );
+    return flatten2(_pipe$3);
+  })();
+  let maybe_needs_coverage = (() => {
+    let _pipe = model.type_checked_grid;
+    let _pipe$1 = to_list3(_pipe);
+    return filter(
+      _pipe$1,
+      (g) => {
+        let te = g[1];
+        if (!te.isOk()) {
+          return false;
+        } else {
+          let te$1 = te[0];
+          if (te$1 instanceof Empty3) {
+            return false;
+          } else if (te$1 instanceof LabelDef2) {
+            return false;
+          } else if (te$1 instanceof BinaryOp2 && te$1.op instanceof MustBe) {
+            return false;
+          } else {
+            return true;
           }
-        );
-        return flatten2(_pipe$3);
-      })();
-      return deps2;
-    }
+        }
+      }
+    );
   })();
   let rows = (() => {
     let _pipe = model.src_grid.cells;
@@ -8687,7 +8719,9 @@ function view(model) {
       )
     ]),
     t(
-      to_string3(passed) + "/" + to_string3(total) + " tests passing"
+      to_string3(passed) + "/" + to_string3(total) + " tests passing. Coverage: " + to_string3(
+        length(deps)
+      ) + "/" + to_string3(length(maybe_needs_coverage)) + " cells"
     )
   );
   return div(
@@ -8730,7 +8764,7 @@ function main() {
     throw makeError(
       "let_assert",
       "squared_away",
-      34,
+      35,
       "main",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }

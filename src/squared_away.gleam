@@ -20,6 +20,7 @@ import squared_away/squared_away_lang as lang
 import squared_away/squared_away_lang/error
 import squared_away/squared_away_lang/grid
 import squared_away/squared_away_lang/interpreter/value
+import squared_away/squared_away_lang/parser/expr
 import squared_away/squared_away_lang/typechecker/typ
 import squared_away/squared_away_lang/typechecker/typed_expr
 
@@ -414,37 +415,49 @@ fn view(model: Model) -> element.Element(Msg) {
     |> list.map(fn(c) { #(c, recalculate_col_width(model, c)) })
     |> dict.from_list
 
-  let deps = case model.show_test_coverage {
-    False -> []
-    True -> {
-      // In show test coverage mode, we need to check the dependency lists of *all*
-      // passing tests
-      let deps =
-        model.type_checked_grid
-        |> grid.to_list
-        |> list.filter_map(fn(g) {
-          let #(k, mte) = g
-          case mte {
-            Error(_) -> Error(Nil)
-            Ok(te) ->
-              case te.type_ {
-                typ.TTestResult ->
-                  case grid.get(model.value_grid, k) {
-                    Ok(value.TestPass) -> Ok(te)
-                    _ -> Error(Nil)
-                  }
+  // In show test coverage mode, we need to check the dependency lists of *all*
+  // passing tests
+  let deps =
+    model.type_checked_grid
+    |> grid.to_list
+    |> list.filter_map(fn(g) {
+      let #(k, mte) = g
+      case mte {
+        Error(_) -> Error(Nil)
+        Ok(te) ->
+          case te.type_ {
+            typ.TTestResult ->
+              case grid.get(model.value_grid, k) {
+                Ok(value.TestPass) -> Ok(te)
                 _ -> Error(Nil)
               }
+            _ -> Error(Nil)
           }
-        })
-        |> list.map(squared_away_lang.dependency_list(
-          model.type_checked_grid,
-          _,
-          [],
-        ))
-        |> list.flatten
-    }
-  }
+      }
+    })
+    |> list.map(squared_away_lang.dependency_list(
+      model.type_checked_grid,
+      _,
+      [],
+    ))
+    |> list.flatten
+
+  let maybe_needs_coverage =
+    model.type_checked_grid
+    |> grid.to_list
+    |> list.filter(fn(g) {
+      let #(_, te) = g
+      case te {
+        Error(_) -> False
+        Ok(te) ->
+          case te {
+            typed_expr.Empty(_)
+            | typed_expr.LabelDef(_, _)
+            | typed_expr.BinaryOp(_, _, expr.MustBe, _) -> False
+            _ -> True
+          }
+      }
+    })
 
   let rows =
     model.src_grid.cells
@@ -663,7 +676,14 @@ fn view(model: Model) -> element.Element(Msg) {
         ]),
       ],
       t(
-        int.to_string(passed) <> "/" <> int.to_string(total) <> " tests passing",
+        int.to_string(passed)
+        <> "/"
+        <> int.to_string(total)
+        <> " tests passing. Coverage: "
+        <> int.to_string(list.length(deps))
+        <> "/"
+        <> int.to_string(list.length(maybe_needs_coverage))
+        <> " cells",
       ),
     )
 

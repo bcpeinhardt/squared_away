@@ -263,6 +263,16 @@ fn try_parse_binary_ops(
       )
       Ok(#(expr.BinaryOp(_, expr.MustBe, rhs), rest))
     }
+    [token.Minimum, ..rest] -> {
+      use #(rhs, rest) <- result.try(do_parse(rest))
+      use <- bool.guard(
+        rhs == expr.Empty,
+        Error(parse_error.ParseError(
+          "No item on right hand side of binary operation.",
+        )),
+      )
+      Ok(#(expr.BinaryOp(_, expr.Minimum, rhs), rest))
+    }
     _ -> Error(parse_error.ParseError("Not a binary operation"))
   }
 }

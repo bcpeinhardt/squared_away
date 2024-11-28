@@ -88,6 +88,8 @@ pub fn interpret(
           Ok(value.Boolean(a < b))
         value.Integer(a), expr.LessThanOrEqualCheck, value.Integer(b) ->
           Ok(value.Boolean(a <= b))
+        value.Integer(a), expr.Minimum, value.Integer(b) ->
+          Ok(value.Integer(int.min(a, b)))
 
         // Float operations
         value.FloatingPointNumber(a), expr.Add, value.FloatingPointNumber(b) ->
@@ -126,6 +128,8 @@ pub fn interpret(
           expr.LessThanOrEqualCheck,
           value.FloatingPointNumber(b)
         -> Ok(value.Boolean(a <=. b))
+        value.FloatingPointNumber(a), expr.Minimum, value.FloatingPointNumber(b)
+        -> Ok(value.FloatingPointNumber(float.min(a, b)))
 
         // Exponents
         value.Integer(a), expr.Power, value.FloatingPointNumber(b) -> {
@@ -173,6 +177,9 @@ pub fn interpret(
         value.Usd(d), expr.Divide, value.Percent(p) -> {
           Ok(value.Usd(rational.divide(d, p)))
         }
+        value.Usd(d), expr.Minimum, value.Usd(p) -> {
+          Ok(value.Usd(rational.min(d, p)))
+        }
 
         // Percent ops
         value.Percent(p1), expr.Multiply, value.Percent(p2) -> {
@@ -207,7 +214,7 @@ pub fn interpret(
         })
         |> list.filter(fn(v) {
           case v {
-            value.TestFail | value.TestPass -> False
+            value.TestFail | value.TestPass | value.Empty -> False
             _ -> True
           }
         })
@@ -263,7 +270,7 @@ pub fn interpret(
         })
         |> list.filter(fn(v) {
           case v {
-            value.TestFail | value.TestPass -> False
+            value.TestFail | value.TestPass | value.Empty -> False
             _ -> True
           }
         })

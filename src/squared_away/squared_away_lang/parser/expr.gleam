@@ -34,6 +34,7 @@ pub type BinaryOpKind {
   And
   Or
   MustBe
+  Minimum
 }
 
 pub fn binary_to_string(b: BinaryOpKind) -> String {
@@ -52,6 +53,7 @@ pub fn binary_to_string(b: BinaryOpKind) -> String {
     Power -> "**"
     Subtract -> "-"
     MustBe -> "mustbe"
+    Minimum -> "min"
   }
 }
 

@@ -55,4 +55,5 @@ pub type Token {
   BuiltinSum(key: option.Option(grid.GridKey))
   BuiltinAvg(key: option.Option(grid.GridKey))
   MustBe
+  Minimum
 }

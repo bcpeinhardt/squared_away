@@ -58,6 +58,7 @@ type Model {
     holding_shift: Bool,
     grid_width: Int,
     grid_height: Int,
+    show_test_coverage: Bool,
     display_formulas: Bool,
     active_cell: Option(grid.GridKey),
     src_grid: grid.Grid(String),
@@ -86,6 +87,7 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
       grid_width: initial_grid_width,
       grid_height: initial_grid_height,
       display_formulas: False,
+      show_test_coverage: False,
       active_cell: None,
       src_grid:,
       value_grid:,
@@ -136,6 +138,7 @@ fn recalculate_col_width(model: Model, col: Int) -> Int {
 }
 
 type Msg {
+  UserToggledShowTestCoverage(to: Bool)
   UserToggledFormulaMode(to: Bool)
   UserSetCellValue(key: grid.GridKey, val: String)
   UserFocusedOnCell(key: grid.GridKey)
@@ -198,6 +201,9 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
     }
     UserToggledFormulaMode(display_formulas) -> {
       #(Model(..model, display_formulas:), effect.none())
+    }
+    UserToggledShowTestCoverage(show_test_coverage) -> {
+      #(Model(..model, show_test_coverage:), effect.none())
     }
     UserFocusedOnCell(key) -> {
       #(Model(..model, active_cell: Some(key)), effect.none())
@@ -483,9 +489,12 @@ fn view(model: Model) -> element.Element(Msg) {
               }
           }
 
-          let #(color, background_color) = case model.active_cell {
-            None -> colors
-            Some(active_cell) ->
+          let #(color, background_color) = case
+            model.show_test_coverage,
+            model.active_cell
+          {
+            False, None -> colors
+            False, Some(active_cell) ->
               case grid.get(model.type_checked_grid, active_cell) {
                 Error(_) -> colors
                 Ok(typed_expr) ->
@@ -509,6 +518,39 @@ fn view(model: Model) -> element.Element(Msg) {
                     _ -> colors
                   }
               }
+            True, _ -> {
+              // In show test coverage mode, we need to check the dependency lists of *all*
+              // passing tests
+              let deps =
+                model.type_checked_grid
+                |> grid.to_list
+                |> list.filter_map(fn(g) {
+                  let #(k, mte) = g
+                  case mte {
+                    Error(_) -> Error(Nil)
+                    Ok(te) ->
+                      case te.type_ {
+                        typ.TTestResult ->
+                          case grid.get(model.value_grid, k) {
+                            Ok(value.TestPass) -> Ok(te)
+                            _ -> Error(Nil)
+                          }
+                        _ -> Error(Nil)
+                      }
+                  }
+                })
+                |> list.map(squared_away_lang.dependency_list(
+                  model.type_checked_grid,
+                  _,
+                  [],
+                ))
+                |> list.flatten
+
+              case list.contains(deps, key) {
+                False -> colors
+                True -> #("#006400", "#e6ffe6")
+              }
+            }
           }
 
           let col_width =
@@ -572,6 +614,16 @@ fn view(model: Model) -> element.Element(Msg) {
   let formula_mode_toggle_label =
     html.label([attribute.for("formula_mode")], t("Show formulas"))
 
+  let show_test_coverage_toggle =
+    html.input([
+      attribute.type_("checkbox"),
+      attribute.id("test_coverage"),
+      event.on_check(UserToggledShowTestCoverage),
+    ])
+
+  let show_test_coverage_toggle_label =
+    html.label([attribute.for("test_coverage")], t("Show test coverage"))
+
   let save_button = html.button([event.on_click(UserClickedSaveBtn)], t("Save"))
   let load_button =
     html.input([
@@ -615,6 +667,10 @@ fn view(model: Model) -> element.Element(Msg) {
       html.div([attribute.class("menu-item")], [
         formula_mode_toggle,
         formula_mode_toggle_label,
+      ]),
+      html.div([attribute.class("menu-item")], [
+        show_test_coverage_toggle,
+        show_test_coverage_toggle_label,
       ]),
       html.div([attribute.class("menu-item")], [load_button]),
       html.div([attribute.class("menu-item")], [save_button]),

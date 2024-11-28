@@ -7689,17 +7689,24 @@ function uploadFile() {
 
 // build/dev/javascript/squared_away/squared_away.mjs
 var Model2 = class extends CustomType {
-  constructor(holding_shift, grid_width, grid_height, display_formulas, active_cell, src_grid, type_checked_grid, value_grid, errors_to_display) {
+  constructor(holding_shift, grid_width, grid_height, show_test_coverage, display_formulas, active_cell, src_grid, type_checked_grid, value_grid, errors_to_display) {
     super();
     this.holding_shift = holding_shift;
     this.grid_width = grid_width;
     this.grid_height = grid_height;
+    this.show_test_coverage = show_test_coverage;
     this.display_formulas = display_formulas;
     this.active_cell = active_cell;
     this.src_grid = src_grid;
     this.type_checked_grid = type_checked_grid;
     this.value_grid = value_grid;
     this.errors_to_display = errors_to_display;
+  }
+};
+var UserToggledShowTestCoverage = class extends CustomType {
+  constructor(to2) {
+    super();
+    this.to = to2;
   }
 };
 var UserToggledFormulaMode = class extends CustomType {
@@ -7900,6 +7907,7 @@ function init2(_) {
       initial_grid_width,
       initial_grid_height,
       false,
+      false,
       new None(),
       src_grid,
       type_checked_grid,
@@ -7922,6 +7930,12 @@ function update(model, msg) {
     let display_formulas = msg.to;
     return [
       model.withFields({ display_formulas }),
+      none()
+    ];
+  } else if (msg instanceof UserToggledShowTestCoverage) {
+    let show_test_coverage = msg.to;
+    return [
+      model.withFields({ show_test_coverage }),
       none()
     ];
   } else if (msg instanceof UserFocusedOnCell) {
@@ -7978,7 +7992,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              239,
+              245,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -7993,7 +8007,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  247,
+                  253,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8020,7 +8034,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          267,
+                          273,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -8079,7 +8093,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              307,
+              313,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8094,7 +8108,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  312,
+                  318,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8121,7 +8135,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          331,
+                          337,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -8421,21 +8435,22 @@ function view(model) {
                 }
               })();
               let $2 = (() => {
-                let $12 = model.active_cell;
-                if ($12 instanceof None) {
+                let $12 = model.show_test_coverage;
+                let $22 = model.active_cell;
+                if (!$12 && $22 instanceof None) {
                   return colors;
-                } else {
-                  let active_cell = $12[0];
-                  let $22 = get4(model.type_checked_grid, active_cell);
-                  if (!$22.isOk()) {
+                } else if (!$12 && $22 instanceof Some) {
+                  let active_cell = $22[0];
+                  let $3 = get4(model.type_checked_grid, active_cell);
+                  if (!$3.isOk()) {
                     return colors;
                   } else {
-                    let typed_expr = $22[0];
-                    let $3 = typed_expr.type_;
-                    if ($3 instanceof TTestResult) {
-                      let $4 = get4(model.value_grid, active_cell);
-                      if ($4.isOk() && $4[0] instanceof TestPass) {
-                        let $5 = (() => {
+                    let typed_expr = $3[0];
+                    let $4 = typed_expr.type_;
+                    if ($4 instanceof TTestResult) {
+                      let $5 = get4(model.value_grid, active_cell);
+                      if ($5.isOk() && $5[0] instanceof TestPass) {
+                        let $6 = (() => {
                           let _pipe$32 = dependency_list(
                             model.type_checked_grid,
                             typed_expr,
@@ -8443,7 +8458,7 @@ function view(model) {
                           );
                           return contains(_pipe$32, key);
                         })();
-                        if (!$5) {
+                        if (!$6) {
                           return colors;
                         } else {
                           return ["#006400", "#e6ffe6"];
@@ -8454,6 +8469,51 @@ function view(model) {
                     } else {
                       return colors;
                     }
+                  }
+                } else {
+                  let deps = (() => {
+                    let _pipe$32 = model.type_checked_grid;
+                    let _pipe$42 = to_list3(_pipe$32);
+                    let _pipe$5 = filter_map(
+                      _pipe$42,
+                      (g) => {
+                        let k = g[0];
+                        let mte = g[1];
+                        if (!mte.isOk()) {
+                          return new Error(void 0);
+                        } else {
+                          let te = mte[0];
+                          let $32 = te.type_;
+                          if ($32 instanceof TTestResult) {
+                            let $4 = get4(model.value_grid, k);
+                            if ($4.isOk() && $4[0] instanceof TestPass) {
+                              return new Ok(te);
+                            } else {
+                              return new Error(void 0);
+                            }
+                          } else {
+                            return new Error(void 0);
+                          }
+                        }
+                      }
+                    );
+                    let _pipe$6 = map2(
+                      _pipe$5,
+                      (_capture) => {
+                        return dependency_list(
+                          model.type_checked_grid,
+                          _capture,
+                          toList([])
+                        );
+                      }
+                    );
+                    return flatten2(_pipe$6);
+                  })();
+                  let $3 = contains(deps, key);
+                  if (!$3) {
+                    return colors;
+                  } else {
+                    return ["#006400", "#e6ffe6"];
                   }
                 }
               })();
@@ -8549,6 +8609,21 @@ function view(model) {
     toList([for$("formula_mode")]),
     t("Show formulas")
   );
+  let show_test_coverage_toggle = input(
+    toList([
+      type_("checkbox"),
+      id("test_coverage"),
+      on_check(
+        (var0) => {
+          return new UserToggledShowTestCoverage(var0);
+        }
+      )
+    ])
+  );
+  let show_test_coverage_toggle_label = label(
+    toList([for$("test_coverage")]),
+    t("Show test coverage")
+  );
   let save_button = button(
     toList([on_click(new UserClickedSaveBtn())]),
     t("Save")
@@ -8616,6 +8691,10 @@ function view(model) {
           div(
             toList([class$("menu-item")]),
             toList([formula_mode_toggle, formula_mode_toggle_label])
+          ),
+          div(
+            toList([class$("menu-item")]),
+            toList([show_test_coverage_toggle, show_test_coverage_toggle_label])
           ),
           div(
             toList([class$("menu-item")]),

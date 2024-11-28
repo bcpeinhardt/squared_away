@@ -564,6 +564,7 @@ fn view(model: Model) -> element.Element(Msg) {
                               case te {
                                 typed_expr.BinaryOp(_, _, _, _)
                                 | typed_expr.BuiltinSum(_, _)
+                                | typed_expr.BuiltinAvg(_, _)
                                 | typed_expr.Group(_, _)
                                 | typed_expr.UnaryOp(_, _, _) -> #(
                                   "#FFA500",

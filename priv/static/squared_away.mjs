@@ -5813,7 +5813,7 @@ function interpret(loop$env, loop$expr) {
                 throw makeError(
                   "let_assert",
                   "squared_away/squared_away_lang/interpreter",
-                  274,
+                  275,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: v }
@@ -5839,7 +5839,7 @@ function interpret(loop$env, loop$expr) {
                 throw makeError(
                   "let_assert",
                   "squared_away/squared_away_lang/interpreter",
-                  284,
+                  286,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: v }
@@ -5860,7 +5860,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                294,
+                296,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -8870,6 +8870,8 @@ function view(model) {
                           if (te instanceof BinaryOp2) {
                             return ["#FFA500", "#FFF8E1"];
                           } else if (te instanceof BuiltinSum2) {
+                            return ["#FFA500", "#FFF8E1"];
+                          } else if (te instanceof BuiltinAvg) {
                             return ["#FFA500", "#FFF8E1"];
                           } else if (te instanceof Group2) {
                             return ["#FFA500", "#FFF8E1"];

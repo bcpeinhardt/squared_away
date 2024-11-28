@@ -238,6 +238,13 @@ function structurallyCompatibleObjects(a, b) {
     return false;
   return a.constructor === b.constructor;
 }
+function remainderInt(a, b) {
+  if (b === 0) {
+    return 0;
+  } else {
+    return a % b;
+  }
+}
 function divideInt(a, b) {
   return Math.trunc(divideFloat(a, b));
 }
@@ -4439,6 +4446,26 @@ var Rat = class extends CustomType {
 function from_int(input2) {
   return new Rat(from2(input2), from2(1));
 }
+function commas(n) {
+  let _pipe = n;
+  let _pipe$1 = reverse3(_pipe);
+  let _pipe$2 = graphemes(_pipe$1);
+  return index_fold(
+    _pipe$2,
+    "",
+    (acc, c, i) => {
+      let $ = i === 0;
+      let $1 = remainderInt(i, 3) === 0;
+      if (!$ && $1) {
+        return c + "," + acc;
+      } else if ($) {
+        return c + acc;
+      } else {
+        return c + acc;
+      }
+    }
+  );
+}
 function remove_zeroes_and_decimal(loop$txt) {
   while (true) {
     let txt = loop$txt;
@@ -4477,7 +4504,10 @@ function do_to_string(loop$precision, loop$remainder, loop$d, loop$acc) {
 function to_string9(rat, precision) {
   let n = rat.numerator;
   let d = rat.denominator;
-  let whole = to_string8(divide(n, d));
+  let whole = (() => {
+    let _pipe = to_string8(divide(n, d));
+    return commas(_pipe);
+  })();
   let decimal_part = modulo(n, d);
   let $ = isEqual(decimal_part, from2(0));
   if ($) {

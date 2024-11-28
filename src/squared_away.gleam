@@ -442,23 +442,6 @@ fn view(model: Model) -> element.Element(Msg) {
     ))
     |> list.flatten
 
-  let maybe_needs_coverage =
-    model.type_checked_grid
-    |> grid.to_list
-    |> list.filter(fn(g) {
-      let #(_, te) = g
-      case te {
-        Error(_) -> False
-        Ok(te) ->
-          case te {
-            typed_expr.Empty(_)
-            | typed_expr.LabelDef(_, _)
-            | typed_expr.BinaryOp(_, _, expr.MustBe, _) -> False
-            _ -> True
-          }
-      }
-    })
-
   let rows =
     model.src_grid.cells
     |> list.group(grid.row)
@@ -565,8 +548,34 @@ fn view(model: Model) -> element.Element(Msg) {
               }
             True, _ -> {
               case list.contains(deps, key) {
-                False -> colors
                 True -> #("#006400", "#e6ffe6")
+                False -> {
+                  // If it's a formula not covered by a test, we'll make it orange 
+                  case grid.get(model.type_checked_grid, key) {
+                    Error(_) -> colors
+                    Ok(te) ->
+                      case grid.get(model.value_grid, key) {
+                        Error(_) -> colors
+                        Ok(v) ->
+                          case v {
+                            value.TestFail -> colors
+                            value.TestPass -> colors
+                            _ ->
+                              case te {
+                                typed_expr.BinaryOp(_, _, _, _)
+                                | typed_expr.BuiltinSum(_, _)
+                                | typed_expr.Group(_, _)
+                                | typed_expr.UnaryOp(_, _, _) -> #(
+                                  "#FFA500",
+                                  "#FFF8E1",
+                                )
+
+                                _ -> colors
+                              }
+                          }
+                      }
+                  }
+                }
               }
             }
           }
@@ -679,11 +688,7 @@ fn view(model: Model) -> element.Element(Msg) {
         int.to_string(passed)
         <> "/"
         <> int.to_string(total)
-        <> " tests passing. Coverage: "
-        <> int.to_string(list.length(deps))
-        <> "/"
-        <> int.to_string(list.length(maybe_needs_coverage))
-        <> " cells",
+        <> " tests passing.",
       ),
     )
 

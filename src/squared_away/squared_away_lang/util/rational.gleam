@@ -78,6 +78,10 @@ pub fn sum(rats: List(Rat)) -> Rat {
   list.fold(rats, from_int(0), add)
 }
 
+pub fn avg(rats: List(Rat)) -> Rat {
+  sum(rats) |> divide(list.length(rats) |> from_int)
+}
+
 pub fn to_string(rat: Rat, precision: Int, with_commas: Bool) -> String {
   let Rat(n, d) = rat
   let whole = bigi.to_string(bigi.divide(n, d))

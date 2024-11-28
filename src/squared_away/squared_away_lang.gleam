@@ -48,7 +48,7 @@ pub fn dependency_list(
       list.flatten([deps, acc])
     }
     typed_expr.BooleanLiteral(_, _) -> acc
-    typed_expr.BuiltinSum(_, keys) ->
+    typed_expr.BuiltinSum(_, keys) | typed_expr.BuiltinAvg(_, keys) ->
       list.map(keys, fn(k) {
         case grid.get(input, k) {
           Error(_) -> [k]
@@ -91,6 +91,7 @@ pub fn parse_grid(
         |> list.map(fn(t) {
           case t {
             token.BuiltinSum(option.None) -> token.BuiltinSum(option.Some(key))
+            token.BuiltinAvg(option.None) -> token.BuiltinAvg(option.Some(key))
             _ -> t
           }
         })

@@ -41,10 +41,10 @@ var List = class {
   }
   // @internal
   countLength() {
-    let length4 = 0;
+    let length5 = 0;
     for (let _ of this)
-      length4++;
-    return length4;
+      length5++;
+    return length5;
   }
 };
 function prepend(element2, tail) {
@@ -1661,6 +1661,22 @@ var Ascending = class extends CustomType {
 };
 var Descending = class extends CustomType {
 };
+function count_length(loop$list, loop$count) {
+  while (true) {
+    let list = loop$list;
+    let count = loop$count;
+    if (list.atLeastLength(1)) {
+      let list$1 = list.tail;
+      loop$list = list$1;
+      loop$count = count + 1;
+    } else {
+      return count;
+    }
+  }
+}
+function length(list) {
+  return count_length(list, 0);
+}
 function do_reverse(loop$remaining, loop$accumulator) {
   while (true) {
     let remaining = loop$remaining;
@@ -2440,7 +2456,7 @@ function reverse2(builder) {
 }
 
 // build/dev/javascript/gleam_stdlib/gleam/string.mjs
-function length2(string3) {
+function length3(string3) {
   return string_length(string3);
 }
 function do_reverse3(string3) {
@@ -2468,7 +2484,7 @@ function slice(string3, idx, len) {
   } else {
     let $1 = idx < 0;
     if ($1) {
-      let translated_idx = length2(string3) + idx;
+      let translated_idx = length3(string3) + idx;
       let $2 = translated_idx < 0;
       if ($2) {
         return "";
@@ -2485,7 +2501,7 @@ function drop_left(string3, num_graphemes) {
   if ($) {
     return string3;
   } else {
-    return slice(string3, num_graphemes, length2(string3) - num_graphemes);
+    return slice(string3, num_graphemes, length3(string3) - num_graphemes);
   }
 }
 function ends_with2(string3, suffix) {
@@ -3831,8 +3847,8 @@ function from_lists(rows, separator, line_ending) {
   );
   return join2(_pipe, line_ending$1);
 }
-function extract_field(string3, from3, length4, status) {
-  let field2 = slice3(string3, from3, length4);
+function extract_field(string3, from3, length5, status) {
+  let field2 = slice3(string3, from3, length5);
   if (status instanceof CommaFound) {
     return field2;
   } else if (status instanceof ParsingUnescapedField) {
@@ -4624,7 +4640,7 @@ function from_string3(input2) {
                 return try$(
                   power4(
                     from2(10),
-                    from2(length2(decimal))
+                    from2(length3(decimal))
                   ),
                   (multiplier) => {
                     return try$(
@@ -4698,6 +4714,16 @@ function divide2(lhs, rhs) {
 }
 function sum3(rats) {
   return fold2(rats, from_int(0), add4);
+}
+function avg(rats) {
+  let _pipe = sum3(rats);
+  return divide2(
+    _pipe,
+    (() => {
+      let _pipe$1 = length(rats);
+      return from_int(_pipe$1);
+    })()
+  );
 }
 
 // build/dev/javascript/squared_away/squared_away/squared_away_lang/parser/expr.mjs
@@ -4774,6 +4800,12 @@ var Group = class extends CustomType {
   }
 };
 var BuiltinSum = class extends CustomType {
+  constructor(key) {
+    super();
+    this.key = key;
+  }
+};
+var BuiltInAvg = class extends CustomType {
   constructor(key) {
     super();
     this.key = key;
@@ -4984,6 +5016,13 @@ var BuiltinSum2 = class extends CustomType {
     this.keys = keys2;
   }
 };
+var BuiltinAvg = class extends CustomType {
+  constructor(type_2, keys2) {
+    super();
+    this.type_ = type_2;
+    this.keys = keys2;
+  }
+};
 function visit_cross_labels(te, f) {
   if (te instanceof CrossLabel2) {
     let key = te.key;
@@ -5068,6 +5107,8 @@ function do_to_string2(te) {
     );
   } else if (te instanceof BuiltinSum2) {
     return "sum";
+  } else if (te instanceof BuiltinAvg) {
+    return "avg";
   } else {
     let dollars = te.cents;
     let str = "$" + to_string9(dollars, 100, false);
@@ -5076,7 +5117,7 @@ function do_to_string2(te) {
       return str + ".00";
     } else {
       let cents = $[0][1];
-      let $1 = length2(cents) === 1;
+      let $1 = length3(cents) === 1;
       if (!$1) {
         return str;
       } else {
@@ -5312,7 +5353,7 @@ function value_to_string(fv) {
       return str + ".00";
     } else {
       let cents = $[0][1];
-      let $1 = length2(cents) === 1;
+      let $1 = length3(cents) === 1;
       if (!$1) {
         return str;
       } else {
@@ -5617,7 +5658,7 @@ function interpret(loop$env, loop$expr) {
           );
         }
       );
-    } else {
+    } else if (expr instanceof BuiltinSum2) {
       let type_2 = expr.type_;
       let keys2 = expr.keys;
       let values = (() => {
@@ -5726,6 +5767,121 @@ function interpret(loop$env, loop$expr) {
           )
         );
       }
+    } else {
+      let type_2 = expr.type_;
+      let keys2 = expr.keys;
+      let values = (() => {
+        let _pipe = to_list3(env);
+        let _pipe$1 = filter_map(
+          _pipe,
+          (i) => {
+            let gk = i[0];
+            let item = i[1];
+            let $ = contains(keys2, gk);
+            if (!$) {
+              return new Error(void 0);
+            } else {
+              if (!item.isOk()) {
+                return new Error(void 0);
+              } else {
+                let x = item[0];
+                let _pipe$12 = interpret(env, x);
+                return nil_error(_pipe$12);
+              }
+            }
+          }
+        );
+        return filter(
+          _pipe$1,
+          (v) => {
+            if (v instanceof TestFail) {
+              return false;
+            } else if (v instanceof TestPass) {
+              return false;
+            } else {
+              return true;
+            }
+          }
+        );
+      })();
+      if (type_2 instanceof TFloat) {
+        let sum4 = (() => {
+          let _pipe = map2(
+            values,
+            (v) => {
+              if (!(v instanceof FloatingPointNumber)) {
+                throw makeError(
+                  "let_assert",
+                  "squared_away/squared_away_lang/interpreter",
+                  274,
+                  "",
+                  "Pattern match failed, no pattern matched the value.",
+                  { value: v }
+                );
+              }
+              let f = v.f;
+              return f;
+            }
+          );
+          return sum(_pipe);
+        })();
+        return new Ok(
+          new FloatingPointNumber(
+            divideFloat(sum4, to_float(length(values)))
+          )
+        );
+      } else if (type_2 instanceof TInt) {
+        let sum4 = (() => {
+          let _pipe = map2(
+            values,
+            (v) => {
+              if (!(v instanceof Integer)) {
+                throw makeError(
+                  "let_assert",
+                  "squared_away/squared_away_lang/interpreter",
+                  284,
+                  "",
+                  "Pattern match failed, no pattern matched the value.",
+                  { value: v }
+                );
+              }
+              let i = v.n;
+              return i;
+            }
+          );
+          return sum2(_pipe);
+        })();
+        return new Ok(new Integer(divideInt(sum4, length(values))));
+      } else if (type_2 instanceof TUsd) {
+        let _pipe = map2(
+          values,
+          (v) => {
+            if (!(v instanceof Usd)) {
+              throw makeError(
+                "let_assert",
+                "squared_away/squared_away_lang/interpreter",
+                294,
+                "",
+                "Pattern match failed, no pattern matched the value.",
+                { value: v }
+              );
+            }
+            let d = v.cents;
+            return d;
+          }
+        );
+        let _pipe$1 = avg(_pipe);
+        let _pipe$2 = new Usd(_pipe$1);
+        return new Ok(_pipe$2);
+      } else {
+        return new Error(
+          new RuntimeError2(
+            new RuntimeError(
+              "internal compiler error sum function interpret"
+            )
+          )
+        );
+      }
     }
   }
 }
@@ -5808,6 +5964,12 @@ var LabelDef3 = class extends CustomType {
 var Underscore = class extends CustomType {
 };
 var BuiltinSum3 = class extends CustomType {
+  constructor(key) {
+    super();
+    this.key = key;
+  }
+};
+var BuiltinAvg2 = class extends CustomType {
   constructor(key) {
     super();
     this.key = key;
@@ -6254,6 +6416,17 @@ function do_parse2(tokens) {
     } else {
       return new Ok([new BuiltinSum(key), rest]);
     }
+  } else if (tokens.atLeastLength(1) && tokens.head instanceof BuiltinAvg2) {
+    let key = tokens.head.key;
+    let rest = tokens.tail;
+    let $ = try_parse_binary_ops(rest);
+    if ($.isOk()) {
+      let op = $[0][0];
+      let rest$1 = $[0][1];
+      return new Ok([op(new BuiltInAvg(key)), rest$1]);
+    } else {
+      return new Ok([new BuiltInAvg(key), rest]);
+    }
   } else if (tokens.atLeastLength(1) && tokens.head instanceof Label3) {
     let str = tokens.head.key;
     let rest = tokens.tail;
@@ -6696,6 +6869,10 @@ function do_scan(loop$src, loop$acc) {
       let rest = src.slice(3);
       loop$src = trim_left2(rest);
       loop$acc = prepend(new BuiltinSum3(new None()), acc);
+    } else if (src.startsWith("avg")) {
+      let rest = src.slice(3);
+      loop$src = trim_left2(rest);
+      loop$acc = prepend(new BuiltinAvg2(new None()), acc);
     } else if (src.startsWith("&&")) {
       let rest = src.slice(2);
       loop$src = trim_left2(rest);
@@ -7037,6 +7214,150 @@ function typecheck(env, expr) {
                 new TypeError2(
                   new TypeError(
                     "sum function can only be used on floats, integers, and USD."
+                  )
+                )
+              );
+            }
+          }
+        );
+      }
+    );
+  } else if (expr instanceof BuiltInAvg) {
+    let key = expr.key;
+    if (!(key instanceof Some)) {
+      throw makeError(
+        "let_assert",
+        "squared_away/squared_away_lang/typechecker",
+        95,
+        "typecheck",
+        "Pattern match failed, no pattern matched the value.",
+        { value: key }
+      );
+    }
+    let key$1 = key[0];
+    let items_above_sum_call = (() => {
+      let _pipe = to_list3(env);
+      let _pipe$1 = filter(
+        _pipe,
+        (i) => {
+          let gk = i[0];
+          return col(gk) === col(key$1) && row(gk) < row(
+            key$1
+          );
+        }
+      );
+      let _pipe$2 = sort(
+        _pipe$1,
+        (i1, i2) => {
+          let gk1 = i1[0];
+          let gk2 = i2[0];
+          return compare(row(gk1), row(gk2));
+        }
+      );
+      let _pipe$3 = reverse(_pipe$2);
+      return take_while(
+        _pipe$3,
+        (i) => {
+          let item = i[1];
+          if (item.isOk() && item[0] instanceof LabelDef) {
+            return false;
+          } else {
+            return true;
+          }
+        }
+      );
+    })();
+    let keys2 = map2(items_above_sum_call, (i) => {
+      return i[0];
+    });
+    let items_above_sum_call$1 = map2(
+      items_above_sum_call,
+      (i) => {
+        return i[1];
+      }
+    );
+    return guard(
+      any(items_above_sum_call$1, is_error),
+      new Error(
+        new TypeError2(
+          new TypeError("Cell above sum expression has error")
+        )
+      ),
+      () => {
+        let types = (() => {
+          let _pipe = map2(
+            items_above_sum_call$1,
+            (i) => {
+              if (!i.isOk()) {
+                throw makeError(
+                  "let_assert",
+                  "squared_away/squared_away_lang/typechecker",
+                  133,
+                  "",
+                  "Pattern match failed, no pattern matched the value.",
+                  { value: i }
+                );
+              }
+              let item = i[0];
+              return item;
+            }
+          );
+          let _pipe$1 = unique(_pipe);
+          return map2(_pipe$1, (e) => {
+            return typecheck(env, e);
+          });
+        })();
+        return guard(
+          any(types, is_error),
+          new Error(
+            new TypeError2(
+              new TypeError(
+                "Cell above sum expression has type error"
+              )
+            )
+          ),
+          () => {
+            let types$1 = (() => {
+              let _pipe = map2(
+                types,
+                (t2) => {
+                  if (!t2.isOk()) {
+                    throw makeError(
+                      "let_assert",
+                      "squared_away/squared_away_lang/typechecker",
+                      150,
+                      "",
+                      "Pattern match failed, no pattern matched the value.",
+                      { value: t2 }
+                    );
+                  }
+                  let texpr = t2[0];
+                  return texpr.type_;
+                }
+              );
+              let _pipe$1 = unique(_pipe);
+              return filter(
+                _pipe$1,
+                (t2) => {
+                  return !isEqual(t2, new TTestResult());
+                }
+              );
+            })();
+            if (types$1.hasLength(1) && types$1.head instanceof TFloat) {
+              return new Ok(new BuiltinAvg(new TFloat(), keys2));
+            } else if (types$1.hasLength(1) && types$1.head instanceof TInt) {
+              return new Ok(new BuiltinAvg(new TInt(), keys2));
+            } else if (types$1.hasLength(1) && types$1.head instanceof TUsd) {
+              return new Ok(new BuiltinAvg(new TUsd(), keys2));
+            } else if (types$1.hasLength(1) && types$1.head instanceof TPercent) {
+              return new Ok(
+                new BuiltinAvg(new TPercent(), keys2)
+              );
+            } else {
+              return new Error(
+                new TypeError2(
+                  new TypeError(
+                    "avg function can only be used on floats, integers, and USD."
                   )
                 )
               );
@@ -7565,6 +7886,22 @@ function dependency_list(loop$input, loop$te, loop$acc) {
       );
       let _pipe$1 = flatten2(_pipe);
       return append(_pipe$1, acc);
+    } else if (te instanceof BuiltinAvg) {
+      let keys2 = te.keys;
+      let _pipe = map2(
+        keys2,
+        (k) => {
+          let $ = get4(input2, k);
+          if (!$.isOk()) {
+            return toList([k]);
+          } else {
+            let te$1 = $[0];
+            return dependency_list(input2, te$1, toList([k]));
+          }
+        }
+      );
+      let _pipe$1 = flatten2(_pipe);
+      return append(_pipe$1, acc);
     } else if (te instanceof CrossLabel2) {
       let key = te.key;
       let $ = get4(input2, key);
@@ -7628,6 +7965,8 @@ function parse_grid(input2) {
             (t2) => {
               if (t2 instanceof BuiltinSum3 && t2.key instanceof None) {
                 return new BuiltinSum3(new Some(key));
+              } else if (t2 instanceof BuiltinAvg2 && t2.key instanceof None) {
+                return new BuiltinAvg2(new Some(key));
               } else {
                 return t2;
               }
@@ -7665,9 +8004,9 @@ function scan_grid(input2) {
 function focus(id2) {
   const input2 = document.getElementById(id2);
   input2.focus();
-  const length4 = input2.value.length;
+  const length5 = input2.value.length;
   setTimeout(() => {
-    input2.setSelectionRange(length4, length4);
+    input2.setSelectionRange(length5, length5);
   }, 0);
 }
 function saveFile(content, filename) {
@@ -8239,7 +8578,7 @@ function recalculate_col_width(model, col2) {
           }
         }
       );
-      return map2(_pipe$12, length2);
+      return map2(_pipe$12, length3);
     } else {
       let _pipe2 = to_list3(model.src_grid);
       return filter_map(
@@ -8254,7 +8593,7 @@ function recalculate_col_width(model, col2) {
           if (!$1) {
             return new Error(void 0);
           } else {
-            return new Ok(length2(v));
+            return new Ok(length3(v));
           }
         }
       );

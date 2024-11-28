@@ -30,6 +30,7 @@ pub type TypedExpr {
   )
   Group(type_: typ.Typ, expr: TypedExpr)
   BuiltinSum(type_: typ.Typ, keys: List(grid.GridKey))
+  BuiltinAvg(type_: typ.Typ, keys: List(grid.GridKey))
 }
 
 pub fn visit_cross_labels(
@@ -97,6 +98,7 @@ fn do_to_string(te: TypedExpr) -> String {
       <> " "
       <> do_to_string(rhs)
     BuiltinSum(_, _) -> "sum"
+    BuiltinAvg(_, _) -> "avg"
     UsdLiteral(_, dollars) -> {
       let str = "$" <> rational.to_string(dollars, 100, False)
       case string.split_once(str, ".") {

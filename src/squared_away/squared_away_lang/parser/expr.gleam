@@ -16,6 +16,7 @@ pub type Expr {
   BinaryOp(lhs: Expr, op: BinaryOpKind, rhs: Expr)
   Group(inner: Expr)
   BuiltinSum(key: option.Option(grid.GridKey))
+  BuiltInAvg(key: option.Option(grid.GridKey))
 }
 
 pub type BinaryOpKind {

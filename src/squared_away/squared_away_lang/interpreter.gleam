@@ -245,5 +245,67 @@ pub fn interpret(
           )
       }
     }
+    typed_expr.BuiltinAvg(type_:, keys:) -> {
+      let values =
+        grid.to_list(env)
+        |> list.filter_map(fn(i) {
+          let #(gk, item) = i
+          case list.contains(keys, gk) {
+            False -> Error(Nil)
+            True ->
+              case item {
+                Error(_) -> Error(Nil)
+                Ok(x) -> {
+                  interpret(env, x) |> result.nil_error
+                }
+              }
+          }
+        })
+        |> list.filter(fn(v) {
+          case v {
+            value.TestFail | value.TestPass -> False
+            _ -> True
+          }
+        })
+
+      case type_ {
+        typ.TFloat -> {
+          let sum =
+            list.map(values, fn(v) {
+              let assert value.FloatingPointNumber(f) = v
+              f
+            })
+            |> float.sum
+
+          Ok(value.FloatingPointNumber(sum /. int.to_float(list.length(values))))
+        }
+
+        typ.TInt -> {
+          let sum =
+            list.map(values, fn(v) {
+              let assert value.Integer(i) = v
+              i
+            })
+            |> int.sum
+
+          Ok(value.Integer(sum / list.length(values)))
+        }
+
+        typ.TUsd ->
+          list.map(values, fn(v) {
+            let assert value.Usd(d) = v
+            d
+          })
+          |> rational.avg
+          |> value.Usd
+          |> Ok
+        _ ->
+          Error(
+            error.RuntimeError(runtime_error.RuntimeError(
+              "internal compiler error sum function interpret",
+            )),
+          )
+      }
+    }
   }
 }

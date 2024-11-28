@@ -91,6 +91,81 @@ pub fn typecheck(
           )
       }
     }
+    expr.BuiltInAvg(key) -> {
+      let assert option.Some(key) = key
+
+      // The sum builtin will sum up all the values above it until it finds a label, so we need to fetch those 
+      // values and sort them
+      let items_above_sum_call =
+        grid.to_list(env)
+        |> list.filter(fn(i) {
+          let #(gk, _) = i
+          grid.col(gk) == grid.col(key) && grid.row(gk) < grid.row(key)
+        })
+        |> list.sort(fn(i1, i2) {
+          let #(gk1, _) = i1
+          let #(gk2, _) = i2
+          int.compare(grid.row(gk1), grid.row(gk2))
+        })
+        |> list.reverse
+        |> list.take_while(fn(i) {
+          let #(_, item) = i
+          case item {
+            Ok(expr.LabelDef(_)) -> False
+            _ -> True
+          }
+        })
+
+      let keys = list.map(items_above_sum_call, fn(i) { i.0 })
+      let items_above_sum_call = list.map(items_above_sum_call, fn(i) { i.1 })
+
+      use <- bool.guard(
+        list.any(items_above_sum_call, result.is_error),
+        Error(
+          error.TypeError(type_error.TypeError(
+            "Cell above sum expression has error",
+          )),
+        ),
+      )
+
+      let types =
+        list.map(items_above_sum_call, fn(i) {
+          let assert Ok(item) = i
+          item
+        })
+        |> list.unique
+        |> list.map(fn(e) { typecheck(env, e) })
+
+      use <- bool.guard(
+        list.any(types, result.is_error),
+        Error(
+          error.TypeError(type_error.TypeError(
+            "Cell above sum expression has type error",
+          )),
+        ),
+      )
+
+      let types =
+        list.map(types, fn(t) {
+          let assert Ok(texpr) = t
+          texpr.type_
+        })
+        |> list.unique
+        |> list.filter(fn(t) { t != typ.TTestResult })
+
+      case types {
+        [typ.TFloat] -> Ok(typed_expr.BuiltinAvg(typ.TFloat, keys))
+        [typ.TInt] -> Ok(typed_expr.BuiltinAvg(typ.TInt, keys))
+        [typ.TUsd] -> Ok(typed_expr.BuiltinAvg(typ.TUsd, keys))
+        [typ.TPercent] -> Ok(typed_expr.BuiltinAvg(typ.TPercent, keys))
+        _ ->
+          Error(
+            error.TypeError(type_error.TypeError(
+              "avg function can only be used on floats, integers, and USD.",
+            )),
+          )
+      }
+    }
     expr.LabelDef(txt) -> {
       // Duplicate label definitions should be a type error
       let defs =

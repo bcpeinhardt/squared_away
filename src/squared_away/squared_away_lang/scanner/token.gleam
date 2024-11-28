@@ -53,5 +53,6 @@ pub type Token {
   LabelDef(txt: String)
   Underscore
   BuiltinSum(key: option.Option(grid.GridKey))
+  BuiltinAvg(key: option.Option(grid.GridKey))
   MustBe
 }

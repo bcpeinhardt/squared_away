@@ -96,6 +96,8 @@ fn do_scan(
     "mustbe" <> rest -> do_scan(string.trim_left(rest), [token.MustBe, ..acc])
     "sum" <> rest ->
       do_scan(string.trim_left(rest), [token.BuiltinSum(option.None), ..acc])
+    "avg" <> rest ->
+      do_scan(string.trim_left(rest), [token.BuiltinAvg(option.None), ..acc])
 
     // Operators
     "&&" <> rest -> do_scan(string.trim_left(rest), [token.And, ..acc])

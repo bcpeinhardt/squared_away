@@ -37,6 +37,12 @@ fn do_parse(
         Error(_) -> Ok(#(expr.BuiltinSum(key), rest))
       }
     }
+    [token.BuiltinAvg(key), ..rest] -> {
+      case try_parse_binary_ops(rest) {
+        Ok(#(op, rest)) -> Ok(#(op(expr.BuiltInAvg(key)), rest))
+        Error(_) -> Ok(#(expr.BuiltInAvg(key), rest))
+      }
+    }
     [token.Label(str), ..rest] -> {
       case try_parse_binary_ops(rest) {
         Ok(#(op, rest)) -> Ok(#(op(expr.Label(str)), rest))

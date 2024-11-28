@@ -78,9 +78,13 @@ pub fn sum(rats: List(Rat)) -> Rat {
   list.fold(rats, from_int(0), add)
 }
 
-pub fn to_string(rat: Rat, precision: Int) -> String {
+pub fn to_string(rat: Rat, precision: Int, with_commas: Bool) -> String {
   let Rat(n, d) = rat
-  let whole = bigi.to_string(bigi.divide(n, d)) |> commas
+  let whole = bigi.to_string(bigi.divide(n, d))
+  let whole = case with_commas {
+    False -> whole
+    True -> whole |> commas
+  }
   let decimal_part = bigi.modulo(n, d)
   case decimal_part == bigi.from_int(0) {
     True -> whole
@@ -92,9 +96,12 @@ pub fn to_string(rat: Rat, precision: Int) -> String {
 }
 
 fn commas(n: String) -> String {
-  n |> string.reverse |> string.to_graphemes |> list.index_fold("", fn(acc, c, i) {
+  n
+  |> string.reverse
+  |> string.to_graphemes
+  |> list.index_fold("", fn(acc, c, i) {
     case i == 0, i % 3 == 0 {
-      False, True -> c <> "," <> acc 
+      False, True -> c <> "," <> acc
       True, _ | _, False -> c <> acc
     }
   })

@@ -131,7 +131,8 @@ fn recalculate_col_width(model: Model, col: Int) -> Int {
       })
     }
   }
-  |> list.fold(min_cell_size_ch - 1, int.max) |> int.add(1)
+  |> list.fold(min_cell_size_ch - 1, int.max)
+  |> int.add(1)
 }
 
 type Msg {
@@ -435,7 +436,19 @@ fn view(model: Model) -> element.Element(Msg) {
           let alignment = case
             model.active_cell == Some(key) || model.display_formulas
           {
-            True -> "left"
+            True ->
+              case grid.get(model.type_checked_grid, key) {
+                Error(_) -> "left"
+                Ok(te) ->
+                  case te {
+                    typed_expr.PercentLiteral(_, _)
+                    | typed_expr.BooleanLiteral(_, _)
+                    | typed_expr.UsdLiteral(_, _)
+                    | typed_expr.IntegerLiteral(_, _)
+                    | typed_expr.FloatLiteral(_, _) -> "right"
+                    _ -> "left"
+                  }
+              }
             False ->
               case grid.get(model.value_grid, key) {
                 Error(_) -> "left"

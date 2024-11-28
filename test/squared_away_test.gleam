@@ -35,5 +35,5 @@ pub fn rat_test() {
   rational.divide(one_third, two_thirds)
   |> should.equal(rational.from_ints(1, 2))
 
-  rational.to_string(two_thirds, 10) |> should.equal("0.6666666666")
+  rational.to_string(two_thirds, 10, False) |> should.equal("0.6666666666")
 }

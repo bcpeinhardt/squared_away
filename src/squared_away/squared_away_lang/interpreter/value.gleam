@@ -24,12 +24,16 @@ pub fn value_to_string(fv: Value) -> String {
     Boolean(b) -> bool.to_string(b) |> string.uppercase
     FloatingPointNumber(f) -> float.to_string(f)
     Percent(p) ->
-      rational.to_string(rational.multiply(p, rational.from_int(100)), 100)
+      rational.to_string(
+        rational.multiply(p, rational.from_int(100)),
+        100,
+        True,
+      )
       <> "%"
     TestFail -> "Test Failure"
     TestPass -> "Test Passing"
     Usd(dollars) -> {
-      let str = "$" <> rational.to_string(dollars, 100)
+      let str = "$" <> rational.to_string(dollars, 100, True)
       case string.split_once(str, ".") {
         Error(Nil) -> str <> ".00"
         Ok(#(_, cents)) -> {

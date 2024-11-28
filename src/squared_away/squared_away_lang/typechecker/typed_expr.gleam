@@ -80,7 +80,11 @@ fn do_to_string(te: TypedExpr) -> String {
     FloatLiteral(_, f) -> float.to_string(f)
     IntegerLiteral(_, i) -> int.to_string(i)
     PercentLiteral(_, p) ->
-      rational.to_string(rational.multiply(p, rational.from_int(100)), 100)
+      rational.to_string(
+        rational.multiply(p, rational.from_int(100)),
+        100,
+        False,
+      )
       <> "%"
     Label(_, _, l) -> l
     LabelDef(_, l) -> l
@@ -94,7 +98,7 @@ fn do_to_string(te: TypedExpr) -> String {
       <> do_to_string(rhs)
     BuiltinSum(_, _) -> "sum"
     UsdLiteral(_, dollars) -> {
-      let str = "$" <> rational.to_string(dollars, 100)
+      let str = "$" <> rational.to_string(dollars, 100, False)
       case string.split_once(str, ".") {
         Error(Nil) -> str <> ".00"
         Ok(#(_, cents)) -> {

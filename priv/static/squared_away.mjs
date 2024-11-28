@@ -4501,19 +4501,24 @@ function do_to_string(loop$precision, loop$remainder, loop$d, loop$acc) {
     }
   }
 }
-function to_string9(rat, precision) {
+function to_string9(rat, precision, with_commas) {
   let n = rat.numerator;
   let d = rat.denominator;
-  let whole = (() => {
-    let _pipe = to_string8(divide(n, d));
-    return commas(_pipe);
+  let whole = to_string8(divide(n, d));
+  let whole$1 = (() => {
+    if (!with_commas) {
+      return whole;
+    } else {
+      let _pipe = whole;
+      return commas(_pipe);
+    }
   })();
   let decimal_part = modulo(n, d);
   let $ = isEqual(decimal_part, from2(0));
   if ($) {
-    return whole;
+    return whole$1;
   } else {
-    let str = do_to_string(precision, decimal_part, d, whole + ".");
+    let str = do_to_string(precision, decimal_part, d, whole$1 + ".");
     let _pipe = str;
     let _pipe$1 = reverse3(_pipe);
     let _pipe$2 = remove_zeroes_and_decimal(_pipe$1);
@@ -5038,7 +5043,8 @@ function do_to_string2(te) {
     let p2 = te.percent;
     return to_string9(
       multiply2(p2, from_int(100)),
-      100
+      100,
+      false
     ) + "%";
   } else if (te instanceof Label2) {
     let l = te.txt;
@@ -5064,7 +5070,7 @@ function do_to_string2(te) {
     return "sum";
   } else {
     let dollars = te.cents;
-    let str = "$" + to_string9(dollars, 100);
+    let str = "$" + to_string9(dollars, 100, false);
     let $ = split_once2(str, ".");
     if (!$.isOk() && !$[0]) {
       return str + ".00";
@@ -5291,7 +5297,8 @@ function value_to_string(fv) {
     let p2 = fv.percent;
     return to_string9(
       multiply2(p2, from_int(100)),
-      100
+      100,
+      true
     ) + "%";
   } else if (fv instanceof TestFail) {
     return "Test Failure";
@@ -5299,7 +5306,7 @@ function value_to_string(fv) {
     return "Test Passing";
   } else {
     let dollars = fv.cents;
-    let str = "$" + to_string9(dollars, 100);
+    let str = "$" + to_string9(dollars, 100, true);
     let $ = split_once2(str, ".");
     if (!$.isOk() && !$[0]) {
       return str + ".00";
@@ -7971,7 +7978,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              238,
+              239,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -7986,7 +7993,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  246,
+                  247,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8013,7 +8020,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          266,
+                          267,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -8072,7 +8079,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              306,
+              307,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8087,7 +8094,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  311,
+                  312,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8114,7 +8121,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          330,
+                          331,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -8336,7 +8343,25 @@ function view(model) {
               let alignment = (() => {
                 let $3 = isEqual(model.active_cell, new Some(key)) || model.display_formulas;
                 if ($3) {
-                  return "left";
+                  let $12 = get4(model.type_checked_grid, key);
+                  if (!$12.isOk()) {
+                    return "left";
+                  } else {
+                    let te = $12[0];
+                    if (te instanceof PercentLiteral2) {
+                      return "right";
+                    } else if (te instanceof BooleanLiteral2) {
+                      return "right";
+                    } else if (te instanceof UsdLiteral2) {
+                      return "right";
+                    } else if (te instanceof IntegerLiteral2) {
+                      return "right";
+                    } else if (te instanceof FloatLiteral2) {
+                      return "right";
+                    } else {
+                      return "left";
+                    }
+                  }
                 } else {
                   let $12 = get4(model.value_grid, key);
                   if (!$12.isOk()) {

@@ -56,4 +56,6 @@ pub type Token {
   BuiltinAvg(key: option.Option(grid.GridKey))
   MustBe
   Minimum
+
+  UpAnglePlus
 }

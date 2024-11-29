@@ -94,13 +94,12 @@ fn do_scan(
 
     // Builtins
     "mustbe" <> rest -> do_scan(string.trim_left(rest), [token.MustBe, ..acc])
-    "sum" <> rest ->
+    "^+" <> rest ->
       do_scan(string.trim_left(rest), [token.BuiltinSum(option.None), ..acc])
     "avg" <> rest ->
       do_scan(string.trim_left(rest), [token.BuiltinAvg(option.None), ..acc])
     "min" <> rest -> do_scan(string.trim_left(rest), [token.Minimum, ..acc])
 
-    // Operators
     "&&" <> rest -> do_scan(string.trim_left(rest), [token.And, ..acc])
     "||" <> rest -> do_scan(string.trim_left(rest), [token.Or, ..acc])
     "**" <> rest -> do_scan(string.trim_left(rest), [token.StarStar, ..acc])

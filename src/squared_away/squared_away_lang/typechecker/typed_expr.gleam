@@ -133,7 +133,7 @@ fn do_to_string(te: TypedExpr) -> String {
       <> expr.binary_to_string(bop)
       <> " "
       <> do_to_string(rhs)
-    BuiltinSum(_, _) -> "sum"
+    BuiltinSum(_, _) -> "^+"
     BuiltinAvg(_, _) -> "avg"
     UsdLiteral(_, dollars) -> {
       let str = "$" <> rational.to_string(dollars, 100, False)

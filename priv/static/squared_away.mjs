@@ -5458,7 +5458,7 @@ function value_to_string(fv) {
     return "Test Passing";
   } else {
     let dollars = fv.cents;
-    let str = "$" + to_string9(dollars, 100, true);
+    let str = "$" + to_string9(dollars, 2, true);
     let $ = split_once2(str, ".");
     if (!$.isOk() && !$[0]) {
       return str + ".00";
@@ -5756,6 +5756,12 @@ function interpret(loop$env, loop$expr) {
                 let d = lhs2.cents;
                 let p2 = rhs2.percent;
                 return new Ok(new Usd(divide2(d, p2)));
+              } else if (lhs2 instanceof Usd && op instanceof Divide && rhs2 instanceof Integer) {
+                let d = lhs2.cents;
+                let p2 = rhs2.n;
+                return new Ok(
+                  new Usd(divide2(d, from_int(p2)))
+                );
               } else if (lhs2 instanceof Usd && op instanceof Minimum && rhs2 instanceof Usd) {
                 let d = lhs2.cents;
                 let p2 = rhs2.cents;
@@ -5828,7 +5834,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                225,
+                228,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5849,7 +5855,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                233,
+                236,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5870,7 +5876,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                241,
+                244,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5940,7 +5946,7 @@ function interpret(loop$env, loop$expr) {
                 throw makeError(
                   "let_assert",
                   "squared_away/squared_away_lang/interpreter",
-                  282,
+                  285,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: v }
@@ -5966,7 +5972,7 @@ function interpret(loop$env, loop$expr) {
                 throw makeError(
                   "let_assert",
                   "squared_away/squared_away_lang/interpreter",
-                  293,
+                  296,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: v }
@@ -5987,7 +5993,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                303,
+                306,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }

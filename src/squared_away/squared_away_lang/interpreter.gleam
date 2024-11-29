@@ -177,6 +177,9 @@ pub fn interpret(
         value.Usd(d), expr.Divide, value.Percent(p) -> {
           Ok(value.Usd(rational.divide(d, p)))
         }
+        value.Usd(d), expr.Divide, value.Integer(p) -> {
+          Ok(value.Usd(rational.divide(d, rational.from_int(p))))
+        }
         value.Usd(d), expr.Minimum, value.Usd(p) -> {
           Ok(value.Usd(rational.min(d, p)))
         }

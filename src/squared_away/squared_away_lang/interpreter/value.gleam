@@ -33,7 +33,7 @@ pub fn value_to_string(fv: Value) -> String {
     TestFail -> "Test Failure"
     TestPass -> "Test Passing"
     Usd(dollars) -> {
-      let str = "$" <> rational.to_string(dollars, 100, True)
+      let str = "$" <> rational.to_string(dollars, 2, True)
       case string.split_once(str, ".") {
         Error(Nil) -> str <> ".00"
         Ok(#(_, cents)) -> {

@@ -2,6 +2,7 @@ import gleam/bool
 import gleam/dict
 import gleam/dynamic
 import gleam/int
+import gleam/io
 import gleam/javascript/promise
 import gleam/list
 import gleam/option.{type Option, None, Some}

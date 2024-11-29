@@ -1179,6 +1179,15 @@ function trim_left(string3) {
 function trim_right(string3) {
   return string3.replace(right_trim_regex, "");
 }
+function print_debug(string3) {
+  if (typeof process === "object" && process.stderr?.write) {
+    process.stderr.write(string3 + "\n");
+  } else if (typeof Deno === "object") {
+    Deno.stderr.writeSync(new TextEncoder().encode(string3 + "\n"));
+  } else {
+    console.log(string3);
+  }
+}
 function ceiling(float3) {
   return Math.ceil(float3);
 }
@@ -2722,6 +2731,14 @@ function guard(requirement, consequence, alternative) {
   } else {
     return alternative();
   }
+}
+
+// build/dev/javascript/gleam_stdlib/gleam/io.mjs
+function debug(term) {
+  let _pipe = term;
+  let _pipe$1 = inspect2(_pipe);
+  print_debug(_pipe$1);
+  return term;
 }
 
 // build/dev/javascript/lustre/lustre/effect.mjs
@@ -5096,6 +5113,16 @@ function visit_cross_labels(te, f) {
     } else {
       return new Error(void 0);
     }
+  } else if (te instanceof Group2) {
+    let t2 = te.type_;
+    let inner = te.expr;
+    let $ = visit_cross_labels(inner, f);
+    if (!$.isOk()) {
+      return new Error(void 0);
+    } else {
+      let modified_expr = $[0];
+      return new Ok(new Group2(t2, modified_expr));
+    }
   } else {
     return new Ok(te);
   }
@@ -5229,6 +5256,8 @@ function to_string11(te) {
   } else if (te instanceof UnaryOp2) {
     return "=" + do_to_string2(te);
   } else if (te instanceof BinaryOp2) {
+    return "=" + do_to_string2(te);
+  } else if (te instanceof Group2) {
     return "=" + do_to_string2(te);
   } else if (te instanceof BuiltinSum2) {
     return "=" + do_to_string2(te);
@@ -8524,7 +8553,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              264,
+              265,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8539,7 +8568,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  272,
+                  273,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8566,7 +8595,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          292,
+                          293,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -8606,6 +8635,7 @@ function update(model, msg) {
   } else if (msg instanceof UserShiftPressedArrowDown) {
     let cell = msg.cell;
     let maybe_cell_below = cell_underneath(model.src_grid, cell);
+    debug(get4(model.type_checked_grid, cell));
     if (!maybe_cell_below.isOk() && !maybe_cell_below[0]) {
       return [model, none()];
     } else {
@@ -8625,7 +8655,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              332,
+              334,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8640,7 +8670,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  337,
+                  339,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8667,7 +8697,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          356,
+                          358,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -9284,7 +9314,7 @@ function main() {
     throw makeError(
       "let_assert",
       "squared_away",
-      35,
+      36,
       "main",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }

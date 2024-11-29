@@ -52,7 +52,12 @@ pub fn visit_cross_labels(
         _, _ -> Error(Nil)
       }
     }
-
+    Group(t, inner) -> {
+      case visit_cross_labels(inner, f) {
+        Error(_) -> Error(Nil)
+        Ok(modified_expr) -> Ok(Group(t, expr: modified_expr))
+      }
+    }
     _ -> Ok(te)
   }
 }
@@ -92,6 +97,7 @@ pub fn to_string(te: TypedExpr) -> String {
     Label(_, _, _)
     | UnaryOp(_, _, _)
     | BinaryOp(_, _, _, _)
+    | Group(_, _)
     | BuiltinSum(_, _)
     | CrossLabel(_, _, _, _) -> "=" <> do_to_string(te)
     _ -> do_to_string(te)

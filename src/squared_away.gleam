@@ -196,9 +196,27 @@ fn key_press_event(event, cell) {
 fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
   case msg {
     UserSetCellValue(key, val) -> {
+      let old = grid.get(model.src_grid, key)
+
+      // For every typed_expr that references the label, we need to update the source to be the serialized version
+      let model =
+        list.fold(model.type_checked_grid |> grid.to_list, model, fn(acc, g) {
+          let #(k, te) = g
+          case te {
+            Error(_) -> acc
+            Ok(te) -> {
+              let new =
+                typed_expr.update_labels(te, old, val) |> typed_expr.to_string
+              Model(..acc, src_grid: grid.insert(acc.src_grid, k, new))
+            }
+          }
+        })
       let model =
         Model(..model, src_grid: grid.insert(model.src_grid, key, val))
-      #(update_grid(model), effect.none())
+
+      let model = update_grid(model)
+
+      #(model, effect.none())
     }
     UserToggledFormulaMode(display_formulas) -> {
       #(Model(..model, display_formulas:), effect.none())

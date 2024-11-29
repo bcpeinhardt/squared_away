@@ -57,6 +57,36 @@ pub fn visit_cross_labels(
   }
 }
 
+pub fn update_labels(ex: TypedExpr, old: String, new: String) -> TypedExpr {
+  case ex {
+    BinaryOp(t, lhs, op, rhs) ->
+      BinaryOp(
+        t,
+        update_labels(lhs, old, new),
+        op,
+        update_labels(rhs, old, new),
+      )
+    CrossLabel(type_:, col_label:, row_label:, key:) -> {
+      let row_label = case row_label == old {
+        True -> new
+        False -> row_label
+      }
+
+      let col_label = case col_label == old {
+        True -> new
+        False -> col_label
+      }
+
+      CrossLabel(type_:, col_label:, row_label:, key:)
+    }
+    Group(t, inner) -> Group(t, update_labels(inner, old, new))
+    Label(key:, txt:, type_:) if txt == old -> Label(key:, txt: new, type_:)
+    Label(_, _, _) as l -> l
+    UnaryOp(t, op, inner) -> UnaryOp(t, op, update_labels(inner, old, new))
+    _ -> ex
+  }
+}
+
 pub fn to_string(te: TypedExpr) -> String {
   case te {
     Label(_, _, _)

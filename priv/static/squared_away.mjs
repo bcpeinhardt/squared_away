@@ -5100,6 +5100,61 @@ function visit_cross_labels(te, f) {
     return new Ok(te);
   }
 }
+function update_labels(ex, old, new$5) {
+  if (ex instanceof BinaryOp2) {
+    let t2 = ex.type_;
+    let lhs = ex.lhs;
+    let op = ex.op;
+    let rhs = ex.rhs;
+    return new BinaryOp2(
+      t2,
+      update_labels(lhs, old, new$5),
+      op,
+      update_labels(rhs, old, new$5)
+    );
+  } else if (ex instanceof CrossLabel2) {
+    let type_2 = ex.type_;
+    let key = ex.key;
+    let row_label = ex.row_label;
+    let col_label = ex.col_label;
+    let row_label$1 = (() => {
+      let $ = row_label === old;
+      if ($) {
+        return new$5;
+      } else {
+        return row_label;
+      }
+    })();
+    let col_label$1 = (() => {
+      let $ = col_label === old;
+      if ($) {
+        return new$5;
+      } else {
+        return col_label;
+      }
+    })();
+    return new CrossLabel2(type_2, key, row_label$1, col_label$1);
+  } else if (ex instanceof Group2) {
+    let t2 = ex.type_;
+    let inner = ex.expr;
+    return new Group2(t2, update_labels(inner, old, new$5));
+  } else if (ex instanceof Label2 && ex.txt === old) {
+    let type_2 = ex.type_;
+    let key = ex.key;
+    let txt = ex.txt;
+    return new Label2(type_2, key, new$5);
+  } else if (ex instanceof Label2) {
+    let l = ex;
+    return l;
+  } else if (ex instanceof UnaryOp2) {
+    let t2 = ex.type_;
+    let op = ex.op;
+    let inner = ex.expr;
+    return new UnaryOp2(t2, op, update_labels(inner, old, new$5));
+  } else {
+    return ex;
+  }
+}
 function do_to_string2(te) {
   if (te instanceof BooleanLiteral2) {
     let b = te.b;
@@ -5604,7 +5659,7 @@ function interpret(loop$env, loop$expr) {
                   throw makeError(
                     "let_assert",
                     "squared_away/squared_away_lang/interpreter",
-                    138,
+                    136,
                     "",
                     "Pattern match failed, no pattern matched the value.",
                     { value: $ }
@@ -5620,7 +5675,7 @@ function interpret(loop$env, loop$expr) {
                   throw makeError(
                     "let_assert",
                     "squared_away/squared_away_lang/interpreter",
-                    142,
+                    140,
                     "",
                     "Pattern match failed, no pattern matched the value.",
                     { value: $ }
@@ -5761,7 +5816,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                227,
+                225,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5782,7 +5837,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                235,
+                233,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5803,7 +5858,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                243,
+                241,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5873,7 +5928,7 @@ function interpret(loop$env, loop$expr) {
                 throw makeError(
                   "let_assert",
                   "squared_away/squared_away_lang/interpreter",
-                  284,
+                  282,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: v }
@@ -5899,7 +5954,7 @@ function interpret(loop$env, loop$expr) {
                 throw makeError(
                   "let_assert",
                   "squared_away/squared_away_lang/interpreter",
-                  295,
+                  293,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: v }
@@ -5920,7 +5975,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                305,
+                303,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -8376,10 +8431,33 @@ function update(model, msg) {
   if (msg instanceof UserSetCellValue) {
     let key = msg.key;
     let val = msg.val;
-    let model$1 = model.withFields({
-      src_grid: insert4(model.src_grid, key, val)
+    let old = get4(model.src_grid, key);
+    let model$1 = fold2(
+      (() => {
+        let _pipe = model.type_checked_grid;
+        return to_list3(_pipe);
+      })(),
+      model,
+      (acc, g) => {
+        let k = g[0];
+        let te = g[1];
+        if (!te.isOk()) {
+          return acc;
+        } else {
+          let te$1 = te[0];
+          let new$5 = (() => {
+            let _pipe = update_labels(te$1, old, val);
+            return to_string11(_pipe);
+          })();
+          return acc.withFields({ src_grid: insert4(acc.src_grid, k, new$5) });
+        }
+      }
+    );
+    let model$2 = model$1.withFields({
+      src_grid: insert4(model$1.src_grid, key, val)
     });
-    return [update_grid(model$1), none()];
+    let model$3 = update_grid(model$2);
+    return [model$3, none()];
   } else if (msg instanceof UserToggledFormulaMode) {
     let display_formulas = msg.to;
     return [
@@ -8446,7 +8524,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              246,
+              264,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8461,7 +8539,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  254,
+                  272,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8488,7 +8566,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          274,
+                          292,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -8547,7 +8625,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              314,
+              332,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8562,7 +8640,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  319,
+                  337,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8589,7 +8667,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          338,
+                          356,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }

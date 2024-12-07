@@ -1,3 +1,4 @@
+import gleam/bool
 import gleam/float
 import gleam/int
 import gleam/list
@@ -68,7 +69,7 @@ pub fn interpret(
       use lhs <- result.try(interpret(env, lhs))
       use rhs <- result.try(interpret(env, rhs))
       case lhs, op, rhs {
-        // Integer operations
+        // Int x Int
         value.Integer(a), expr.Add, value.Integer(b) -> Ok(value.Integer(a + b))
         value.Integer(a), expr.Subtract, value.Integer(b) ->
           Ok(value.Integer(a - b))
@@ -91,7 +92,7 @@ pub fn interpret(
         value.Integer(a), expr.Minimum, value.Integer(b) ->
           Ok(value.Integer(int.min(a, b)))
 
-        // Float operations
+        // Float x Float
         value.FloatingPointNumber(a), expr.Add, value.FloatingPointNumber(b) ->
           Ok(value.FloatingPointNumber(a +. b))
         value.FloatingPointNumber(a),
@@ -131,17 +132,142 @@ pub fn interpret(
         value.FloatingPointNumber(a), expr.Minimum, value.FloatingPointNumber(b)
         -> Ok(value.FloatingPointNumber(float.min(a, b)))
 
-        // Exponents
-        value.Integer(a), expr.Power, value.FloatingPointNumber(b) -> {
-          let assert Ok(p) = int.power(a, b)
-          Ok(value.FloatingPointNumber(p))
-        }
-        value.FloatingPointNumber(a), expr.Power, value.FloatingPointNumber(b) -> {
-          let assert Ok(p) = float.power(a, b)
-          Ok(value.FloatingPointNumber(p))
+        value.FloatingPointNumber(base),
+          expr.Power,
+          value.FloatingPointNumber(exponent)
+        -> {
+          let fractional_exponent = float.ceiling(exponent) -. exponent >. 0.0
+          use <- bool.guard(
+            base <. 0.0 && fractional_exponent,
+            Error(
+              error.RuntimeError(runtime_error.RuntimeError(
+                "Cannot raise negative number to fractional power as it produces an imaginary number.",
+              )),
+            ),
+          )
+
+          use <- bool.guard(
+            base == 0.0 && exponent <. 0.0,
+            Error(
+              error.RuntimeError(runtime_error.RuntimeError(
+                "Raising 0.0 to a negative power is equivalent to doing division by zero.",
+              )),
+            ),
+          )
+
+          // The above checks are pulled directly from the float.power function. We do them ourselves so we can provide
+          // specific error messages.
+          let assert Ok(x) = float.power(base, exponent)
+
+          Ok(value.FloatingPointNumber(x))
         }
 
-        // Boolean operations
+        // Float x Int
+        value.FloatingPointNumber(base), expr.Power, value.Integer(exponent) -> {
+          // In our case we can raise a floating point number to an integer power by converting the int to a float
+
+          use <- bool.guard(
+            base == 0.0 && exponent < 0,
+            Error(
+              error.RuntimeError(runtime_error.RuntimeError(
+                "
+            Raising 0.0 to a negative power is equivalent to doing division by zero.
+          ",
+              )),
+            ),
+          )
+
+          // The above checks are pulled directly from the float.power function. We do them ourselves so we can provide
+          // specific error messages.
+          let assert Ok(x) = float.power(base, exponent |> int.to_float)
+
+          Ok(value.FloatingPointNumber(x))
+        }
+
+        // USD x Int
+        value.Usd(c), expr.Multiply, value.Integer(i) ->
+          Ok(value.Usd(rational.multiply(c, rational.from_int(i))))
+        value.Usd(d), expr.Divide, value.Integer(p) -> {
+          Ok(value.Usd(rational.divide(d, rational.from_int(p))))
+        }
+
+        // Percent x Int
+        value.Percent(p), expr.Power, value.Integer(i) -> {
+          case rational.power(p, i) {
+            Error(_) ->
+              Error(
+                error.RuntimeError(runtime_error.RuntimeError(
+                  "
+              Cannot raise 0% to a negative power, it's equivalent to dividing by zero.
+            ",
+                )),
+              )
+            Ok(x) -> Ok(value.Percent(x))
+          }
+        }
+
+        // Usd x Usd
+        value.Usd(c1), expr.Add, value.Usd(c2) ->
+          Ok(value.Usd(rational.add(c1, c2)))
+        value.Usd(c1), expr.Subtract, value.Usd(c2) ->
+          Ok(value.Usd(rational.subtract(c1, c2)))
+        value.Usd(d1), expr.Divide, value.Usd(d2) ->
+          Ok(value.Percent(rational.divide(d1, d2)))
+        value.Usd(d), expr.Minimum, value.Usd(p) -> {
+          Ok(value.Usd(rational.min(d, p)))
+        }
+
+        // Percent x Usd
+        value.Percent(p), expr.Multiply, value.Usd(d) -> {
+          Ok(value.Usd(rational.multiply(p, d)))
+        }
+
+        // Usd x Percent
+        value.Usd(c), expr.Multiply, value.Percent(p) -> {
+          Ok(value.Usd(rational.multiply(c, p)))
+        }
+        value.Usd(d), expr.Divide, value.Percent(p) -> {
+          Ok(value.Usd(rational.divide(d, p)))
+        }
+
+        // Percent x Percent
+        value.Percent(p1), expr.Multiply, value.Percent(p2) -> {
+          Ok(value.Percent(rational.multiply(p1, p2)))
+        }
+        value.Percent(p1), expr.Divide, value.Percent(p2) -> {
+          Ok(value.Percent(rational.divide(p1, p2)))
+        }
+        value.Percent(p1), expr.Minimum, value.Percent(p2) -> {
+          Ok(value.Percent(rational.min(p1, p2)))
+        }
+        value.Percent(base), expr.Power, value.Percent(exponent) -> {
+          let fractional_exponent = !rational.is_whole_number(exponent)
+          use <- bool.guard(
+            rational.is_negative(base) && fractional_exponent,
+            Error(
+              error.RuntimeError(runtime_error.RuntimeError(
+                "Cannot raise negative number to fractional power as it produces an imaginary number.",
+              )),
+            ),
+          )
+
+          use <- bool.guard(
+            rational.is_zero(base) && rational.is_negative(exponent),
+            Error(
+              error.RuntimeError(runtime_error.RuntimeError(
+                "Raising zero to a negative power is equivalent to doing division by zero.",
+              )),
+            ),
+          )
+
+          Error(
+            error.RuntimeError(runtime_error.RuntimeError(
+              "Raising a rational number to another rational number power is not implemented yet.",
+            )),
+          )
+        }
+
+        // Bool x Bool
         value.Boolean(a), expr.And, value.Boolean(b) ->
           Ok(value.Boolean(a && b))
         value.Boolean(a), expr.Or, value.Boolean(b) -> Ok(value.Boolean(a || b))
@@ -150,44 +276,44 @@ pub fn interpret(
         value.Boolean(a), expr.NotEqualCheck, value.Boolean(b) ->
           Ok(value.Boolean(a != b))
 
+        // Int x Float 
+        value.Integer(base), expr.Power, value.FloatingPointNumber(exponent) -> {
+          let fractional_exponent = float.ceiling(exponent) -. exponent >. 0.0
+          use <- bool.guard(
+            base < 0 && fractional_exponent,
+            Error(
+              error.RuntimeError(runtime_error.RuntimeError(
+                "Cannot raise negative number to fractional power as it produces an imaginary number.",
+              )),
+            ),
+          )
+
+          use <- bool.guard(
+            base == 0 && exponent <. 0.0,
+            Error(
+              error.RuntimeError(runtime_error.RuntimeError(
+                "Raising 0.0 to a negative power is equivalent to doing division by zero.",
+              )),
+            ),
+          )
+
+          // The above checks are pulled directly from the float.power function. We do them ourselves so we can provide
+          // specific error messages.
+          let assert Ok(x) = int.power(base, exponent)
+
+          Ok(value.FloatingPointNumber(x))
+        }
+
+        // Int x USD
+        value.Integer(i), expr.Multiply, value.Usd(c) ->
+          Ok(value.Usd(rational.multiply(c, rational.from_int(i))))
+
         // MustBe
         vlhs, expr.MustBe, vrhs ->
           case vlhs == vrhs {
             False -> Ok(value.TestFail)
             True -> Ok(value.TestPass)
           }
-
-        // Money Operations
-        value.Usd(c1), expr.Add, value.Usd(c2) ->
-          Ok(value.Usd(rational.add(c1, c2)))
-        value.Usd(c1), expr.Subtract, value.Usd(c2) ->
-          Ok(value.Usd(rational.subtract(c1, c2)))
-        value.Usd(c), expr.Multiply, value.Integer(i) ->
-          Ok(value.Usd(rational.multiply(c, rational.from_int(i))))
-        value.Integer(i), expr.Multiply, value.Usd(c) ->
-          Ok(value.Usd(rational.multiply(c, rational.from_int(i))))
-        value.Usd(c), expr.Multiply, value.Percent(p) -> {
-          Ok(value.Usd(rational.multiply(c, p)))
-        }
-        value.Usd(d1), expr.Divide, value.Usd(d2) ->
-          Ok(value.Percent(rational.divide(d1, d2)))
-        value.Percent(p), expr.Multiply, value.Usd(c) -> {
-          Ok(value.Usd(rational.multiply(p, c)))
-        }
-        value.Usd(d), expr.Divide, value.Percent(p) -> {
-          Ok(value.Usd(rational.divide(d, p)))
-        }
-        value.Usd(d), expr.Divide, value.Integer(p) -> {
-          Ok(value.Usd(rational.divide(d, rational.from_int(p))))
-        }
-        value.Usd(d), expr.Minimum, value.Usd(p) -> {
-          Ok(value.Usd(rational.min(d, p)))
-        }
-
-        // Percent ops
-        value.Percent(p1), expr.Multiply, value.Percent(p2) -> {
-          Ok(value.Percent(rational.multiply(p1, p2)))
-        }
 
         lhs, op, rhs -> {
           let msg =

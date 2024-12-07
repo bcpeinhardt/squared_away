@@ -2,7 +2,6 @@ import gleam/bool
 import gleam/dict
 import gleam/dynamic
 import gleam/int
-import gleam/io
 import gleam/javascript/promise
 import gleam/list
 import gleam/option.{type Option, None, Some}
@@ -21,7 +20,6 @@ import squared_away/squared_away_lang as lang
 import squared_away/squared_away_lang/error
 import squared_away/squared_away_lang/grid
 import squared_away/squared_away_lang/interpreter/value
-import squared_away/squared_away_lang/parser/expr
 import squared_away/squared_away_lang/typechecker/typ
 import squared_away/squared_away_lang/typechecker/typed_expr
 

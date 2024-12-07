@@ -115,24 +115,44 @@ var UtfCodepoint = class {
   }
 };
 function byteArrayToInt(byteArray, start3, end, isBigEndian, isSigned) {
-  let value3 = 0;
-  if (isBigEndian) {
-    for (let i = start3; i < end; i++) {
-      value3 = value3 * 256 + byteArray[i];
+  const byteSize = end - start3;
+  if (byteSize <= 6) {
+    let value3 = 0;
+    if (isBigEndian) {
+      for (let i = start3; i < end; i++) {
+        value3 = value3 * 256 + byteArray[i];
+      }
+    } else {
+      for (let i = end - 1; i >= start3; i--) {
+        value3 = value3 * 256 + byteArray[i];
+      }
     }
+    if (isSigned) {
+      const highBit = 2 ** (byteSize * 8 - 1);
+      if (value3 >= highBit) {
+        value3 -= highBit * 2;
+      }
+    }
+    return value3;
   } else {
-    for (let i = end - 1; i >= start3; i--) {
-      value3 = value3 * 256 + byteArray[i];
+    let value3 = 0n;
+    if (isBigEndian) {
+      for (let i = start3; i < end; i++) {
+        value3 = (value3 << 8n) + BigInt(byteArray[i]);
+      }
+    } else {
+      for (let i = end - 1; i >= start3; i--) {
+        value3 = (value3 << 8n) + BigInt(byteArray[i]);
+      }
     }
-  }
-  if (isSigned) {
-    const byteSize = end - start3;
-    const highBit = 2 ** (byteSize * 8 - 1);
-    if (value3 >= highBit) {
-      value3 -= highBit * 2;
+    if (isSigned) {
+      const highBit = 1n << BigInt(byteSize * 8 - 1);
+      if (value3 >= highBit) {
+        value3 -= highBit * 2n;
+      }
     }
+    return Number(value3);
   }
-  return value3;
 }
 function byteArrayToFloat(byteArray, start3, end, isBigEndian) {
   const view2 = new DataView(byteArray.buffer);
@@ -4487,6 +4507,26 @@ var Rat = class extends CustomType {
 function from_int(input2) {
   return new Rat(from2(input2), from2(1));
 }
+function is_negative(r) {
+  let n = r.numerator;
+  let d = r.denominator;
+  return isEqual(
+    (() => {
+      let _pipe = multiply(n, d);
+      return compare4(_pipe, from2(0));
+    })(),
+    new Lt()
+  );
+}
+function is_zero(r) {
+  let n = r.numerator;
+  return isEqual(from2(0), n);
+}
+function is_whole_number(r) {
+  let n = r.numerator;
+  let d = r.denominator;
+  return isEqual(modulo(n, d), from2(0));
+}
 function commas(n) {
   let _pipe = n;
   let _pipe$1 = reverse3(_pipe);
@@ -4729,6 +4769,28 @@ function multiply2(lhs, rhs) {
   let n2 = rhs.numerator;
   let d2 = rhs.denominator;
   return simplify(new Rat(multiply(n1, n2), multiply(d1, d2)));
+}
+function do_power(loop$base, loop$exponent, loop$acc) {
+  while (true) {
+    let base = loop$base;
+    let exponent = loop$exponent;
+    let acc = loop$acc;
+    if (exponent === 1) {
+      return new Ok(acc);
+    } else {
+      loop$base = base;
+      loop$exponent = exponent - 1;
+      loop$acc = multiply2(base, acc);
+    }
+  }
+}
+function power5(base, exponent) {
+  let $ = isEqual(base, from_int(0)) && exponent < 0;
+  if ($) {
+    return new Error(void 0);
+  } else {
+    return do_power(base, exponent, base);
+  }
 }
 function divide2(lhs, rhs) {
   let n1 = lhs.numerator;
@@ -5663,6 +5725,184 @@ function interpret(loop$env, loop$expr) {
                 let a = lhs2.f;
                 let b = rhs2.f;
                 return new Ok(new FloatingPointNumber(min(a, b)));
+              } else if (lhs2 instanceof FloatingPointNumber && op instanceof Power && rhs2 instanceof FloatingPointNumber) {
+                let base = lhs2.f;
+                let exponent = rhs2.f;
+                let fractional_exponent = ceiling2(exponent) - exponent > 0;
+                return guard(
+                  base < 0 && fractional_exponent,
+                  new Error(
+                    new RuntimeError2(
+                      new RuntimeError(
+                        "Cannot raise negative number to fractional power as it produces an imaginary number."
+                      )
+                    )
+                  ),
+                  () => {
+                    return guard(
+                      base === 0 && exponent < 0,
+                      new Error(
+                        new RuntimeError2(
+                          new RuntimeError(
+                            "Raising 0.0 to a negative power is equivalent to doing division by zero."
+                          )
+                        )
+                      ),
+                      () => {
+                        let $ = power2(base, exponent);
+                        if (!$.isOk()) {
+                          throw makeError(
+                            "let_assert",
+                            "squared_away/squared_away_lang/interpreter",
+                            160,
+                            "",
+                            "Pattern match failed, no pattern matched the value.",
+                            { value: $ }
+                          );
+                        }
+                        let x = $[0];
+                        return new Ok(new FloatingPointNumber(x));
+                      }
+                    );
+                  }
+                );
+              } else if (lhs2 instanceof FloatingPointNumber && op instanceof Power && rhs2 instanceof Integer) {
+                let base = lhs2.f;
+                let exponent = rhs2.n;
+                return guard(
+                  base === 0 && exponent < 0,
+                  new Error(
+                    new RuntimeError2(
+                      new RuntimeError(
+                        "\n            Raising 0.0 to a negative power is equivalent to doing division by zero.\n          "
+                      )
+                    )
+                  ),
+                  () => {
+                    let $ = power2(
+                      base,
+                      (() => {
+                        let _pipe = exponent;
+                        return to_float(_pipe);
+                      })()
+                    );
+                    if (!$.isOk()) {
+                      throw makeError(
+                        "let_assert",
+                        "squared_away/squared_away_lang/interpreter",
+                        182,
+                        "",
+                        "Pattern match failed, no pattern matched the value.",
+                        { value: $ }
+                      );
+                    }
+                    let x = $[0];
+                    return new Ok(new FloatingPointNumber(x));
+                  }
+                );
+              } else if (lhs2 instanceof Usd && op instanceof Multiply && rhs2 instanceof Integer) {
+                let c = lhs2.cents;
+                let i = rhs2.n;
+                return new Ok(
+                  new Usd(multiply2(c, from_int(i)))
+                );
+              } else if (lhs2 instanceof Usd && op instanceof Divide && rhs2 instanceof Integer) {
+                let d = lhs2.cents;
+                let p2 = rhs2.n;
+                return new Ok(
+                  new Usd(divide2(d, from_int(p2)))
+                );
+              } else if (lhs2 instanceof Percent && op instanceof Power && rhs2 instanceof Integer) {
+                let p2 = lhs2.percent;
+                let i = rhs2.n;
+                let $ = power5(p2, i);
+                if (!$.isOk()) {
+                  return new Error(
+                    new RuntimeError2(
+                      new RuntimeError(
+                        "\n              Cannot raise 0% to a negative power, it's equivalent to dividing by zero.\n            "
+                      )
+                    )
+                  );
+                } else {
+                  let x = $[0];
+                  return new Ok(new Percent(x));
+                }
+              } else if (lhs2 instanceof Usd && op instanceof Add && rhs2 instanceof Usd) {
+                let c1 = lhs2.cents;
+                let c2 = rhs2.cents;
+                return new Ok(new Usd(add4(c1, c2)));
+              } else if (lhs2 instanceof Usd && op instanceof Subtract && rhs2 instanceof Usd) {
+                let c1 = lhs2.cents;
+                let c2 = rhs2.cents;
+                return new Ok(new Usd(subtract2(c1, c2)));
+              } else if (lhs2 instanceof Usd && op instanceof Divide && rhs2 instanceof Usd) {
+                let d1 = lhs2.cents;
+                let d2 = rhs2.cents;
+                return new Ok(new Percent(divide2(d1, d2)));
+              } else if (lhs2 instanceof Usd && op instanceof Minimum && rhs2 instanceof Usd) {
+                let d = lhs2.cents;
+                let p2 = rhs2.cents;
+                return new Ok(new Usd(min3(d, p2)));
+              } else if (lhs2 instanceof Percent && op instanceof Multiply && rhs2 instanceof Usd) {
+                let p2 = lhs2.percent;
+                let d = rhs2.cents;
+                return new Ok(new Usd(multiply2(p2, d)));
+              } else if (lhs2 instanceof Usd && op instanceof Multiply && rhs2 instanceof Percent) {
+                let c = lhs2.cents;
+                let p2 = rhs2.percent;
+                return new Ok(new Usd(multiply2(c, p2)));
+              } else if (lhs2 instanceof Usd && op instanceof Divide && rhs2 instanceof Percent) {
+                let d = lhs2.cents;
+                let p2 = rhs2.percent;
+                return new Ok(new Usd(divide2(d, p2)));
+              } else if (lhs2 instanceof Percent && op instanceof Multiply && rhs2 instanceof Percent) {
+                let p1 = lhs2.percent;
+                let p2 = rhs2.percent;
+                return new Ok(new Percent(multiply2(p1, p2)));
+              } else if (lhs2 instanceof Percent && op instanceof Divide && rhs2 instanceof Percent) {
+                let p1 = lhs2.percent;
+                let p2 = rhs2.percent;
+                return new Ok(new Percent(divide2(p1, p2)));
+              } else if (lhs2 instanceof Percent && op instanceof Minimum && rhs2 instanceof Percent) {
+                let p1 = lhs2.percent;
+                let p2 = rhs2.percent;
+                return new Ok(new Percent(min3(p1, p2)));
+              } else if (lhs2 instanceof Percent && op instanceof Power && rhs2 instanceof Percent) {
+                let base = lhs2.percent;
+                let exponent = rhs2.percent;
+                let fractional_exponent = !is_whole_number(exponent);
+                return guard(
+                  is_negative(base) && fractional_exponent,
+                  new Error(
+                    new RuntimeError2(
+                      new RuntimeError(
+                        "Cannot raise negative number to fractional power as it produces an imaginary number."
+                      )
+                    )
+                  ),
+                  () => {
+                    return guard(
+                      is_zero(base) && is_negative(exponent),
+                      new Error(
+                        new RuntimeError2(
+                          new RuntimeError(
+                            "Raising zero to a negative power is equivalent to doing division by zero."
+                          )
+                        )
+                      ),
+                      () => {
+                        return new Error(
+                          new RuntimeError2(
+                            new RuntimeError(
+                              "Raising a rational number to another rational number power is not implemented yet."
+                            )
+                          )
+                        );
+                      }
+                    );
+                  }
+                );
               } else if (lhs2 instanceof Integer && op instanceof Power && rhs2 instanceof FloatingPointNumber) {
                 let a = lhs2.n;
                 let b = rhs2.f;
@@ -5671,23 +5911,7 @@ function interpret(loop$env, loop$expr) {
                   throw makeError(
                     "let_assert",
                     "squared_away/squared_away_lang/interpreter",
-                    136,
-                    "",
-                    "Pattern match failed, no pattern matched the value.",
-                    { value: $ }
-                  );
-                }
-                let p2 = $[0];
-                return new Ok(new FloatingPointNumber(p2));
-              } else if (lhs2 instanceof FloatingPointNumber && op instanceof Power && rhs2 instanceof FloatingPointNumber) {
-                let a = lhs2.f;
-                let b = rhs2.f;
-                let $ = power2(a, b);
-                if (!$.isOk()) {
-                  throw makeError(
-                    "let_assert",
-                    "squared_away/squared_away_lang/interpreter",
-                    140,
+                    270,
                     "",
                     "Pattern match failed, no pattern matched the value.",
                     { value: $ }
@@ -5720,52 +5944,12 @@ function interpret(loop$env, loop$expr) {
                 } else {
                   return new Ok(new TestPass());
                 }
-              } else if (lhs2 instanceof Usd && op instanceof Add && rhs2 instanceof Usd) {
-                let c1 = lhs2.cents;
-                let c2 = rhs2.cents;
-                return new Ok(new Usd(add4(c1, c2)));
-              } else if (lhs2 instanceof Usd && op instanceof Subtract && rhs2 instanceof Usd) {
-                let c1 = lhs2.cents;
-                let c2 = rhs2.cents;
-                return new Ok(new Usd(subtract2(c1, c2)));
-              } else if (lhs2 instanceof Usd && op instanceof Multiply && rhs2 instanceof Integer) {
-                let c = lhs2.cents;
-                let i = rhs2.n;
-                return new Ok(
-                  new Usd(multiply2(c, from_int(i)))
-                );
               } else if (lhs2 instanceof Integer && op instanceof Multiply && rhs2 instanceof Usd) {
                 let i = lhs2.n;
                 let c = rhs2.cents;
                 return new Ok(
                   new Usd(multiply2(c, from_int(i)))
                 );
-              } else if (lhs2 instanceof Usd && op instanceof Multiply && rhs2 instanceof Percent) {
-                let c = lhs2.cents;
-                let p2 = rhs2.percent;
-                return new Ok(new Usd(multiply2(c, p2)));
-              } else if (lhs2 instanceof Usd && op instanceof Divide && rhs2 instanceof Usd) {
-                let d1 = lhs2.cents;
-                let d2 = rhs2.cents;
-                return new Ok(new Percent(divide2(d1, d2)));
-              } else if (lhs2 instanceof Percent && op instanceof Multiply && rhs2 instanceof Usd) {
-                let p2 = lhs2.percent;
-                let c = rhs2.cents;
-                return new Ok(new Usd(multiply2(p2, c)));
-              } else if (lhs2 instanceof Usd && op instanceof Divide && rhs2 instanceof Percent) {
-                let d = lhs2.cents;
-                let p2 = rhs2.percent;
-                return new Ok(new Usd(divide2(d, p2)));
-              } else if (lhs2 instanceof Usd && op instanceof Divide && rhs2 instanceof Integer) {
-                let d = lhs2.cents;
-                let p2 = rhs2.n;
-                return new Ok(
-                  new Usd(divide2(d, from_int(p2)))
-                );
-              } else if (lhs2 instanceof Usd && op instanceof Minimum && rhs2 instanceof Usd) {
-                let d = lhs2.cents;
-                let p2 = rhs2.cents;
-                return new Ok(new Usd(min3(d, p2)));
               } else if (lhs2 instanceof Percent && op instanceof Multiply && rhs2 instanceof Percent) {
                 let p1 = lhs2.percent;
                 let p2 = rhs2.percent;
@@ -5834,7 +6018,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                228,
+                336,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5855,7 +6039,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                236,
+                344,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5876,7 +6060,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                244,
+                352,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -5946,7 +6130,7 @@ function interpret(loop$env, loop$expr) {
                 throw makeError(
                   "let_assert",
                   "squared_away/squared_away_lang/interpreter",
-                  285,
+                  393,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: v }
@@ -5972,7 +6156,7 @@ function interpret(loop$env, loop$expr) {
                 throw makeError(
                   "let_assert",
                   "squared_away/squared_away_lang/interpreter",
-                  296,
+                  404,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: v }
@@ -5993,7 +6177,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                306,
+                414,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -8542,7 +8726,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              265,
+              263,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8557,7 +8741,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  273,
+                  271,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8584,7 +8768,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          293,
+                          291,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -8643,7 +8827,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              333,
+              331,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: maybe_expr }
@@ -8658,7 +8842,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  338,
+                  336,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $ }
@@ -8685,7 +8869,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          357,
+                          355,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $1 }
@@ -9302,7 +9486,7 @@ function main() {
     throw makeError(
       "let_assert",
       "squared_away",
-      36,
+      34,
       "main",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }

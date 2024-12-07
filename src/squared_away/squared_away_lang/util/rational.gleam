@@ -2,6 +2,7 @@
 //// This will be used by the spreadsheet's Money, Percent, and Integer types.
 
 import bigi
+import gleam/int
 import gleam/list
 import gleam/order
 import gleam/result
@@ -67,6 +68,59 @@ pub fn multiply(lhs: Rat, rhs: Rat) -> Rat {
   let Rat(n1, d1) = lhs
   let Rat(n2, d2) = rhs
   simplify(Rat(bigi.multiply(n1, n2), bigi.multiply(d1, d2)))
+}
+
+fn do_power_bigi(base, exponent, acc) {
+  case exponent == bigi.from_int(1) {
+    True -> acc
+    False ->
+      do_power_bigi(
+        base,
+        exponent |> bigi.subtract(bigi.from_int(1)),
+        multiply(base, acc),
+      )
+  }
+}
+
+pub fn power(base: Rat, exponent: Int) -> Result(Rat, Nil) {
+  case base == from_int(0) && exponent < 0 {
+    // Raising 0 to a negative power means dividing by zero
+    True -> Error(Nil)
+    False -> do_power(base, exponent, base)
+  }
+}
+
+fn do_power(base, exponent, acc) {
+  case exponent {
+    1 -> Ok(acc)
+    _ -> do_power(base, exponent - 1, multiply(base, acc))
+  }
+}
+
+pub fn is_negative(r: Rat) -> Bool {
+  let Rat(n, d) = r
+  bigi.multiply(n, d) |> bigi.compare(bigi.from_int(0)) == order.Lt
+}
+
+pub fn is_zero(r: Rat) -> Bool {
+  let Rat(n, _) = r
+  bigi.from_int(0) == n
+}
+
+pub fn compare(lhs: Rat, rhs: Rat) -> order.Order {
+  case lhs == rhs {
+    True -> order.Eq
+    False ->
+      case subtract(lhs, rhs) |> is_negative {
+        False -> order.Lt
+        True -> order.Gt
+      }
+  }
+}
+
+pub fn is_whole_number(r: Rat) -> Bool {
+  let Rat(n, d) = r
+  bigi.modulo(n, d) == bigi.from_int(0)
 }
 
 pub fn divide(lhs: Rat, rhs: Rat) -> Rat {

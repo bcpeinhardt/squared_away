@@ -15,7 +15,6 @@ import lustre/element
 import lustre/element/html
 import lustre/event
 import squared_away/renderable_error
-import squared_away/squared_away_lang
 import squared_away/squared_away_lang as lang
 import squared_away/squared_away_lang/error
 import squared_away/squared_away_lang/grid
@@ -452,7 +451,7 @@ fn view(model: Model) -> element.Element(Msg) {
           }
       }
     })
-    |> list.map(squared_away_lang.dependency_list(
+    |> list.map(lang.dependency_list(
       model.type_checked_grid,
       _,
       [],
@@ -548,7 +547,7 @@ fn view(model: Model) -> element.Element(Msg) {
                       case grid.get(model.value_grid, active_cell) {
                         Ok(value.TestPass) ->
                           case
-                            squared_away_lang.dependency_list(
+                            lang.dependency_list(
                               model.type_checked_grid,
                               typed_expr,
                               [],

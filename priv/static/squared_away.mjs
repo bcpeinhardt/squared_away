@@ -1645,6 +1645,21 @@ function do_map_values(f, dict) {
 function map_values(dict, fun) {
   return do_map_values(fun, dict);
 }
+function do_filter(f, dict) {
+  let insert$1 = (dict2, k, v) => {
+    let $ = f(k, v);
+    if ($) {
+      return insert(dict2, k, v);
+    } else {
+      return dict2;
+    }
+  };
+  let _pipe = dict;
+  return fold(_pipe, new$(), insert$1);
+}
+function filter(dict, predicate) {
+  return do_filter(predicate, dict);
+}
 
 // build/dev/javascript/gleam_stdlib/gleam/pair.mjs
 function first(pair) {
@@ -1733,7 +1748,7 @@ function update_group(f) {
     }
   };
 }
-function do_filter(loop$list, loop$fun, loop$acc) {
+function do_filter2(loop$list, loop$fun, loop$acc) {
   while (true) {
     let list = loop$list;
     let fun = loop$fun;
@@ -1757,8 +1772,8 @@ function do_filter(loop$list, loop$fun, loop$acc) {
     }
   }
 }
-function filter(list, predicate) {
-  return do_filter(list, predicate, toList([]));
+function filter2(list, predicate) {
+  return do_filter2(list, predicate, toList([]));
 }
 function do_filter_map(loop$list, loop$fun, loop$acc) {
   while (true) {
@@ -2010,7 +2025,7 @@ function unique(list) {
     let rest$1 = list.tail;
     return prepend(
       x,
-      unique(filter(rest$1, (y) => {
+      unique(filter2(rest$1, (y) => {
         return !isEqual(y, x);
       }))
     );
@@ -4241,7 +4256,7 @@ function get4(grid, key) {
     throw makeError(
       "let_assert",
       "squared_away/squared_away_lang/grid",
-      96,
+      99,
       "get",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -4342,7 +4357,7 @@ function from_src_csv(src, width, height) {
     throw makeError(
       "let_assert",
       "squared_away/squared_away_lang/grid",
-      152,
+      155,
       "from_src_csv",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -5959,7 +5974,7 @@ function interpret(loop$env, loop$expr) {
             }
           }
         );
-        return filter(
+        return filter2(
           _pipe$1,
           (v) => {
             if (v instanceof TestFail) {
@@ -6070,7 +6085,7 @@ function interpret(loop$env, loop$expr) {
             }
           }
         );
-        return filter(
+        return filter2(
           _pipe$1,
           (v) => {
             if (v instanceof TestFail) {
@@ -7407,7 +7422,7 @@ function typecheck(env, expr) {
     let key$1 = key[0];
     let items_above_sum_call = (() => {
       let _pipe = to_list3(env);
-      let _pipe$1 = filter(
+      let _pipe$1 = filter2(
         _pipe,
         (i) => {
           let gk = i[0];
@@ -7506,7 +7521,7 @@ function typecheck(env, expr) {
                 }
               );
               let _pipe$1 = unique(_pipe);
-              return filter(
+              return filter2(
                 _pipe$1,
                 (t2) => {
                   return !isEqual(t2, new TTestResult()) && !isEqual(
@@ -7554,7 +7569,7 @@ function typecheck(env, expr) {
     let key$1 = key[0];
     let items_above_sum_call = (() => {
       let _pipe = to_list3(env);
-      let _pipe$1 = filter(
+      let _pipe$1 = filter2(
         _pipe,
         (i) => {
           let gk = i[0];
@@ -7653,7 +7668,7 @@ function typecheck(env, expr) {
                 }
               );
               let _pipe$1 = unique(_pipe);
-              return filter(
+              return filter2(
                 _pipe$1,
                 (t2) => {
                   return !isEqual(t2, new TTestResult()) && !isEqual(
@@ -8779,7 +8794,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              239,
+              267,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: $ }
@@ -8799,7 +8814,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  247,
+                  277,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $1 }
@@ -8841,7 +8856,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          270,
+                          300,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $2 }
@@ -8904,7 +8919,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              308,
+              349,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: $ }
@@ -8924,7 +8939,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  314,
+                  356,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $1 }
@@ -8966,7 +8981,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          336,
+                          378,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $2 }
@@ -9150,7 +9165,6 @@ function view(model) {
     return filter_map(
       _pipe$1,
       (c) => {
-        let k = c[0];
         let c$1 = c[1];
         return try$(
           (() => {
@@ -9300,12 +9314,12 @@ function view(model) {
                   }
                 }
               })();
-              let cell_is_errored = (() => {
-                let _pipe$32 = cell.outcome;
-                return is_error(_pipe$32);
-              })();
               let error_class = (() => {
-                if (!cell_is_errored) {
+                let $3 = (() => {
+                  let _pipe$32 = cell.outcome;
+                  return is_error(_pipe$32);
+                })();
+                if (!$3) {
                   return none2();
                 } else {
                   return class$("errorcell");
@@ -9344,15 +9358,15 @@ function view(model) {
                     let $4 = cs.interpreted;
                     if ($4 instanceof TestPass) {
                       let $5 = (() => {
-                        let _pipe$32 = dependency_list(
-                          (() => {
-                            let _pipe$33 = model.compiler_state;
-                            return get_typechecked(_pipe$33);
-                          })(),
-                          cs.typechecked,
-                          toList([])
+                        let _pipe$32 = model.compiler_state.deps_graph;
+                        let _pipe$42 = filter(
+                          _pipe$32,
+                          (k, v) => {
+                            return contains(v, active_cell);
+                          }
                         );
-                        return contains(_pipe$32, key);
+                        let _pipe$5 = keys(_pipe$42);
+                        return contains(_pipe$5, key);
                       })();
                       if (!$5) {
                         return colors;

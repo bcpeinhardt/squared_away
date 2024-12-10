@@ -564,9 +564,7 @@ fn view(model: Model) -> element.Element(Msg) {
               }
           }
 
-          let cell_is_errored = cell.outcome |> result.is_error
-
-          let error_class = case cell_is_errored {
+          let error_class = case cell.outcome |> result.is_error {
             False -> attribute.none()
             True -> attribute.class("errorcell")
           }
@@ -596,11 +594,11 @@ fn view(model: Model) -> element.Element(Msg) {
                   case cs.interpreted {
                     value.TestPass ->
                       case
-                        compiler.dependency_list(
-                          model.compiler_state |> compiler.get_typechecked,
-                          cs.typechecked,
-                          [],
-                        )
+                        model.compiler_state.deps_graph
+                        |> dict.filter(fn(_, v) {
+                          list.contains(v, active_cell)
+                        })
+                        |> dict.keys
                         |> list.contains(key)
                       {
                         False -> colors

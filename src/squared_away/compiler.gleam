@@ -170,6 +170,9 @@ pub fn get_cell(state: State, key: grid.GridKey) -> Cell {
   grid.get(state.cells, key)
 }
 
+// TODO: Change this from a recursive function to a shallow function which only 
+// returns the immediate dependencies and rely on the existing dependency graph for
+// the rest
 pub fn dependency_list(
   input: grid.Grid(Result(typed_expr.TypedExpr, error.CompileError)),
   te: typed_expr.TypedExpr,

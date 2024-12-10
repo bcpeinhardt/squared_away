@@ -15,7 +15,7 @@ import lustre/element
 import lustre/element/html
 import lustre/event
 import squared_away/renderable_error
-import squared_away/squared_away_lang as lang
+import squared_away/compiler
 import squared_away/squared_away_lang/error
 import squared_away/squared_away_lang/grid
 import squared_away/squared_away_lang/interpreter/value
@@ -60,25 +60,12 @@ type Model {
     show_test_coverage: Bool,
     display_formulas: Bool,
     active_cell: Option(grid.GridKey),
-    src_grid: grid.Grid(String),
-    type_checked_grid: grid.Grid(
-      Result(typed_expr.TypedExpr, error.CompileError),
-    ),
-    value_grid: grid.Grid(Result(value.Value, error.CompileError)),
+    compiler_state: compiler.State,
     errors_to_display: List(#(grid.GridKey, error.CompileError)),
   )
 }
 
 fn init(_flags) -> #(Model, effect.Effect(Msg)) {
-  let src_grid = grid.new(initial_grid_width, initial_grid_height, "")
-  let type_checked_grid =
-    grid.new(
-      initial_grid_width,
-      initial_grid_height,
-      Ok(typed_expr.Empty(typ.TNil)),
-    )
-  let value_grid =
-    grid.new(initial_grid_width, initial_grid_height, Ok(value.Empty))
 
   let model =
     Model(
@@ -88,9 +75,7 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
       display_formulas: False,
       show_test_coverage: False,
       active_cell: None,
-      src_grid:,
-      value_grid:,
-      type_checked_grid:,
+      compiler_state: compiler.init_state(initial_grid_width, initial_grid_height),
       errors_to_display: [],
     )
     |> update_grid
@@ -102,18 +87,19 @@ fn recalculate_col_width(model: Model, col: Int) -> Int {
   case model.display_formulas {
     False -> {
       // Based on value grid 
-      grid.to_list(model.value_grid)
+      model.compiler_state.cells
+      |> grid.to_list
       |> list.filter_map(fn(c) {
-        let #(k, v) = c
+        let #(k, c) = c
         case k |> grid.col == col {
           False -> Error(Nil)
           True ->
-            case v {
-              Error(_) -> Ok(grid.get(model.src_grid, k))
-              Ok(v) ->
+            case c.outcome {
+              Error(_) -> Ok(c.src)
+              Ok(cs) ->
                 case model.active_cell == Some(k) {
-                  False -> Ok(value.value_to_string(v))
-                  True -> Ok(grid.get(model.src_grid, k))
+                  False -> Ok(value.value_to_string(cs.interpreted))
+                  True -> Ok(c.src)
                 }
             }
         }
@@ -122,12 +108,13 @@ fn recalculate_col_width(model: Model, col: Int) -> Int {
     }
     True -> {
       // based on the src grid 
-      grid.to_list(model.src_grid)
+      model.compiler_state.cells
+      |> grid.to_list
       |> list.filter_map(fn(c) {
-        let #(k, v) = c
+        let #(k, c) = c
         case k |> grid.col == col {
           False -> Error(Nil)
-          True -> Ok(string.length(v))
+          True -> Ok(string.length(c.src))
         }
       })
     }
@@ -154,24 +141,6 @@ type Msg {
   UserShiftPressedArrowDown(cell: grid.GridKey)
 }
 
-fn update_grid(model: Model) -> Model {
-  let scanned = lang.scan_grid(model.src_grid)
-  let parsed = lang.parse_grid(scanned)
-  let type_checked_grid = lang.typecheck_grid(parsed)
-  let value_grid = lang.interpret_grid(type_checked_grid)
-
-  // Loop over the grid to see if there's any errors to display
-  let errors_to_display =
-    grid.fold(value_grid, [], fn(acc, key, val) {
-      case val {
-        Error(err) -> [#(key, err), ..acc]
-        Ok(_) -> acc
-      }
-    })
-
-  Model(..model, value_grid:, type_checked_grid:, errors_to_display:)
-}
-
 // https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent#specifications
 fn key_press_event(event, cell) {
   use key <- result.try(dynamic.field("key", dynamic.string)(event))
@@ -194,25 +163,39 @@ fn key_press_event(event, cell) {
 fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
   case msg {
     UserSetCellValue(key, val) -> {
-      let old = grid.get(model.src_grid, key)
+      let old = compiler.get_cell(model.compiler_state, key)
 
-      // For every typed_expr that references the label, we need to update the source to be the serialized version
+      // If updating a label, 
+      // for every typed_expr that references the label, 
+      // we need to update the source.
+      // We do this by passing in the new label name to the typechecked expression
+      // and re-serializing it to a string.
       let model =
-        list.fold(model.type_checked_grid |> grid.to_list, model, fn(acc, g) {
-          let #(k, te) = g
-          case te {
+        list.fold(model.compiler_state.cells |> grid.to_list, model, fn(acc, g) {
+          let #(k, c) = g
+          
+          case c.outcome {
+            // If it never compiled in the first place, don't try to change it.
             Error(_) -> acc
-            Ok(te) -> {
-              let new =
-                typed_expr.update_labels(te, old, val) |> typed_expr.to_string
-              Model(..acc, src_grid: grid.insert(acc.src_grid, k, new))
+            Ok(cs) -> {
+              
+              // Create a new src string for the cell with the label updated
+              let #(new_te, was_updated) =
+                typed_expr.update_labels(cs.typechecked, old.src, val)
+                
+              // If the src for the cell changed, we need to update it
+              case was_updated {
+                False -> acc
+                True -> Model(..acc, compiler_state: compiler.edit_cell(model.compiler_state, k, typed_expr.to_string(new_te)))
+              }
             }
           }
         })
+        
+      // Set the actual value in the cell.
+      // The compiler will handle updating the cells dependencies.
       let model =
-        Model(..model, src_grid: grid.insert(model.src_grid, key, val))
-
-      let model = update_grid(model)
+        Model(..model, compiler_state: compiler.edit_cell(model.compiler_state, key, val))
 
       #(model, effect.none())
     }
@@ -229,17 +212,17 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
       #(Model(..model, active_cell: None), effect.none())
     }
     UserPressedArrowUp(cell) ->
-      set_active_cell_to(model, grid.cell_above(model.src_grid, cell))
+      set_active_cell_to(model, grid.cell_above(model.compiler_state.cells, cell))
     UserPressedArrowLeft(cell) ->
-      set_active_cell_to(model, grid.cell_to_the_left(model.src_grid, cell))
+      set_active_cell_to(model, grid.cell_to_the_left(model.compiler_state.cells, cell))
     UserPressedArrowRight(cell) ->
-      set_active_cell_to(model, grid.cell_to_the_right(model.src_grid, cell))
+      set_active_cell_to(model, grid.cell_to_the_right(model.compiler_state.cells, cell))
     UserPressedArrowDown(cell) ->
-      set_active_cell_to(model, grid.cell_underneath(model.src_grid, cell))
+      set_active_cell_to(model, grid.cell_underneath(model.compiler_state.cells, cell))
     UserPressedEnter(cell) ->
-      set_active_cell_to(model, grid.cell_underneath(model.src_grid, cell))
+      set_active_cell_to(model, grid.cell_underneath(model.compiler_state.cells, cell))
     UserShiftPressedArrowRight(cell) -> {
-      let maybe_cell_to_right = grid.cell_to_the_right(model.src_grid, cell)
+      let maybe_cell_to_right = grid.cell_to_the_right(model.compiler_state.cells, cell)
       case maybe_cell_to_right {
         Error(Nil) -> #(model, effect.none())
         Ok(cell_to_right) -> {
@@ -248,38 +231,38 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
           // produce the equivalent cross label but updated to the new
           // column value.
 
-          let scanned = lang.scan_grid(model.src_grid)
-          let parsed = lang.parse_grid(scanned)
-          let typechecked = lang.typecheck_grid(parsed)
-          let maybe_expr = grid.get(typechecked, cell)
+          let curr_cell = compiler.get_cell(model.compiler_state, cell)
 
           // if it doesn't typecheck, don't copy it over
-          use <- bool.guard(maybe_expr |> result.is_error, #(
+          use <- bool.guard(curr_cell.outcome |> result.is_error, #(
             model,
             effect.none(),
           ))
           // This assertion is safe because of the above bool.guard check
-          let assert Ok(expr) = maybe_expr
+          let assert Ok(cs) = curr_cell.outcome
 
           let expr_with_labels_updated =
-            typed_expr.visit_cross_labels(expr, fn(key, row_label, col_label) {
+            typed_expr.visit_cross_labels(cs.typechecked, fn(key, row_label, col_label) {
               // For this case, we want to get the label directly to the right of the col label
 
               // This assertion is safe because we know the label is present in the grid,
               // because we got it from a typechecked cross_label
-              let assert Ok(key_for_col) = grid.find(model.src_grid, col_label)
+              let assert Ok(key_for_col) = grid.find_first(model.compiler_state.cells, fn(c) {
+                c.src == col_label
+              })
 
               use key_for_new_col <- result.try(grid.cell_to_the_right(
-                model.src_grid,
+                model.compiler_state.cells,
                 key_for_col,
               ))
 
-              let maybe_new_label = grid.get(typechecked, key_for_new_col)
+              let maybe_new_label = compiler.get_cell(model.compiler_state, key_for_new_col)
               let get_new_label = fn(
-                l: Result(typed_expr.TypedExpr, error.CompileError),
+                c: compiler.Cell,
               ) {
-                case l {
-                  Ok(typed_expr.LabelDef(_, txt)) -> Ok(txt)
+                use l <- result.try(c.outcome |> result.nil_error)
+                case l.typechecked {
+                  typed_expr.LabelDef(_, txt) -> Ok(txt)
                   _ -> Error(Nil)
                 }
               }

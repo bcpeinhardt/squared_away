@@ -1,8 +1,7 @@
-//// A ration number type built around a big integers.
+//// A rational number type built around a big integers.
 //// This will be used by the spreadsheet's Money, Percent, and Integer types.
 
 import bigi
-import gleam/int
 import gleam/list
 import gleam/order
 import gleam/result

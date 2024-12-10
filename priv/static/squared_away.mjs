@@ -1214,9 +1214,6 @@ function map_size(map6) {
 function map_to_list(map6) {
   return List.fromArray(map6.entries());
 }
-function map_remove(key, map6) {
-  return map6.delete(key);
-}
 function map_get(map6, key) {
   const value3 = map6.get(key, NOT_FOUND);
   if (value3 === NOT_FOUND) {
@@ -1370,12 +1367,12 @@ function inspectString(str) {
 }
 function inspectDict(map6) {
   let body = "dict.from_list([";
-  let first2 = true;
+  let first3 = true;
   map6.forEach((value3, key) => {
-    if (!first2)
+    if (!first3)
       body = body + ", ";
     body = body + "#(" + inspect(key) + ", " + inspect(value3) + ")";
-    first2 = false;
+    first3 = false;
   });
   return body + "])";
 }
@@ -1569,10 +1566,10 @@ function do_keys_acc(loop$list, loop$acc) {
     if (list.hasLength(0)) {
       return reverse_and_concat(acc, toList([]));
     } else {
-      let first2 = list.head;
+      let first3 = list.head;
       let rest = list.tail;
       loop$list = rest;
-      loop$acc = prepend(first2[0], acc);
+      loop$acc = prepend(first3[0], acc);
     }
   }
 }
@@ -1582,37 +1579,6 @@ function do_keys(dict) {
 }
 function keys(dict) {
   return do_keys(dict);
-}
-function insert_taken(loop$dict, loop$desired_keys, loop$acc) {
-  while (true) {
-    let dict = loop$dict;
-    let desired_keys = loop$desired_keys;
-    let acc = loop$acc;
-    let insert$1 = (taken, key) => {
-      let $ = get(dict, key);
-      if ($.isOk()) {
-        let value3 = $[0];
-        return insert(taken, key, value3);
-      } else {
-        return taken;
-      }
-    };
-    if (desired_keys.hasLength(0)) {
-      return acc;
-    } else {
-      let first2 = desired_keys.head;
-      let rest = desired_keys.tail;
-      loop$dict = dict;
-      loop$desired_keys = rest;
-      loop$acc = insert$1(acc, first2);
-    }
-  }
-}
-function do_take(desired_keys, dict) {
-  return insert_taken(dict, desired_keys, new$());
-}
-function take(dict, desired_keys) {
-  return do_take(desired_keys, dict);
 }
 function insert_pair(dict, pair) {
   return insert(dict, pair[0], pair[1]);
@@ -1624,10 +1590,10 @@ function fold_inserts(loop$new_entries, loop$dict) {
     if (new_entries.hasLength(0)) {
       return dict;
     } else {
-      let first2 = new_entries.head;
+      let first3 = new_entries.head;
       let rest = new_entries.tail;
       loop$new_entries = rest;
-      loop$dict = insert_pair(dict, first2);
+      loop$dict = insert_pair(dict, first3);
     }
   }
 }
@@ -1639,8 +1605,14 @@ function do_merge(dict, new_entries) {
 function merge(dict, new_entries) {
   return do_merge(dict, new_entries);
 }
-function delete$(dict, key) {
-  return map_remove(key, dict);
+function upsert(dict, key, fun) {
+  let _pipe = dict;
+  let _pipe$1 = get(_pipe, key);
+  let _pipe$2 = from_result(_pipe$1);
+  let _pipe$3 = fun(_pipe$2);
+  return ((_capture) => {
+    return insert(dict, key, _capture);
+  })(_pipe$3);
 }
 function do_fold(loop$list, loop$initial, loop$fun) {
   while (true) {
@@ -1675,6 +1647,10 @@ function map_values(dict, fun) {
 }
 
 // build/dev/javascript/gleam_stdlib/gleam/pair.mjs
+function first(pair) {
+  let a = pair[0];
+  return a;
+}
 function second(pair) {
   let a = pair[1];
   return a;
@@ -1853,7 +1829,7 @@ function do_index_map(loop$list, loop$fun, loop$index, loop$acc) {
 function index_map(list, fun) {
   return do_index_map(list, fun, 0, toList([]));
 }
-function do_take2(loop$list, loop$n, loop$acc) {
+function do_take(loop$list, loop$n, loop$acc) {
   while (true) {
     let list = loop$list;
     let n = loop$n;
@@ -1874,25 +1850,25 @@ function do_take2(loop$list, loop$n, loop$acc) {
     }
   }
 }
-function take2(list, n) {
-  return do_take2(list, n, toList([]));
+function take(list, n) {
+  return do_take(list, n, toList([]));
 }
 function do_append(loop$first, loop$second) {
   while (true) {
-    let first2 = loop$first;
+    let first3 = loop$first;
     let second2 = loop$second;
-    if (first2.hasLength(0)) {
+    if (first3.hasLength(0)) {
       return second2;
     } else {
-      let item = first2.head;
-      let rest$1 = first2.tail;
+      let item = first3.head;
+      let rest$1 = first3.tail;
       loop$first = rest$1;
       loop$second = prepend(item, second2);
     }
   }
 }
-function append(first2, second2) {
-  return do_append(reverse(first2), second2);
+function append(first3, second2) {
+  return do_append(reverse(first3), second2);
 }
 function reverse_and_prepend(loop$prefix, loop$suffix) {
   while (true) {
@@ -2003,26 +1979,6 @@ function find2(loop$list, loop$is_desired) {
       } else {
         loop$list = rest$1;
         loop$is_desired = is_desired;
-      }
-    }
-  }
-}
-function find_map(loop$list, loop$fun) {
-  while (true) {
-    let list = loop$list;
-    let fun = loop$fun;
-    if (list.hasLength(0)) {
-      return new Error(void 0);
-    } else {
-      let x = list.head;
-      let rest$1 = list.tail;
-      let $ = fun(x);
-      if ($.isOk()) {
-        let x$1 = $[0];
-        return new Ok(x$1);
-      } else {
-        loop$list = rest$1;
-        loop$fun = fun;
       }
     }
   }
@@ -2209,9 +2165,9 @@ function merge_ascendings(loop$list1, loop$list2, loop$compare, loop$acc) {
     } else {
       let first1 = list1.head;
       let rest1 = list1.tail;
-      let first2 = list2.head;
+      let first22 = list2.head;
       let rest2 = list2.tail;
-      let $ = compare5(first1, first2);
+      let $ = compare5(first1, first22);
       if ($ instanceof Lt) {
         loop$list1 = rest1;
         loop$list2 = list2;
@@ -2221,12 +2177,12 @@ function merge_ascendings(loop$list1, loop$list2, loop$compare, loop$acc) {
         loop$list1 = list1;
         loop$list2 = rest2;
         loop$compare = compare5;
-        loop$acc = prepend(first2, acc);
+        loop$acc = prepend(first22, acc);
       } else {
         loop$list1 = list1;
         loop$list2 = rest2;
         loop$compare = compare5;
-        loop$acc = prepend(first2, acc);
+        loop$acc = prepend(first22, acc);
       }
     }
   }
@@ -2275,14 +2231,14 @@ function merge_descendings(loop$list1, loop$list2, loop$compare, loop$acc) {
     } else {
       let first1 = list1.head;
       let rest1 = list1.tail;
-      let first2 = list2.head;
+      let first22 = list2.head;
       let rest2 = list2.tail;
-      let $ = compare5(first1, first2);
+      let $ = compare5(first1, first22);
       if ($ instanceof Lt) {
         loop$list1 = list1;
         loop$list2 = rest2;
         loop$compare = compare5;
-        loop$acc = prepend(first2, acc);
+        loop$acc = prepend(first22, acc);
       } else if ($ instanceof Gt) {
         loop$list1 = rest1;
         loop$list2 = list2;
@@ -2943,6 +2899,9 @@ function element(tag, attrs, children2) {
 function text(content) {
   return new Text(content);
 }
+function none3() {
+  return new Text("");
+}
 
 // build/dev/javascript/gleam_stdlib/gleam/set.mjs
 var Set2 = class extends CustomType {
@@ -2954,9 +2913,6 @@ var Set2 = class extends CustomType {
 function new$3() {
   return new Set2(new$());
 }
-function delete$2(set2, member) {
-  return new Set2(delete$(set2.dict, member));
-}
 function to_list2(set2) {
   return keys(set2.dict);
 }
@@ -2965,28 +2921,13 @@ function fold3(set2, initial, reducer) {
     return reducer(a, k);
   });
 }
-function drop(set2, disallowed) {
-  return fold2(disallowed, set2, delete$2);
-}
-function take3(set2, desired) {
-  return new Set2(take(set2.dict, desired));
-}
-function order(first2, second2) {
-  let $ = map_size(first2.dict) > map_size(second2.dict);
+function order(first3, second2) {
+  let $ = map_size(first3.dict) > map_size(second2.dict);
   if ($) {
-    return [first2, second2];
+    return [first3, second2];
   } else {
-    return [second2, first2];
+    return [second2, first3];
   }
-}
-function intersection(first2, second2) {
-  let $ = order(first2, second2);
-  let larger = $[0];
-  let smaller = $[1];
-  return take3(larger, to_list2(smaller));
-}
-function difference(first2, second2) {
-  return drop(first2, to_list2(second2));
 }
 var token = void 0;
 function insert2(set2, member) {
@@ -3002,14 +2943,11 @@ function from_list2(members) {
   );
   return new Set2(dict);
 }
-function union(first2, second2) {
-  let $ = order(first2, second2);
+function union(first3, second2) {
+  let $ = order(first3, second2);
   let larger = $[0];
   let smaller = $[1];
   return fold3(smaller, larger, insert2);
-}
-function symmetric_difference(first2, second2) {
-  return difference(union(first2, second2), intersection(first2, second2));
 }
 
 // build/dev/javascript/lustre/lustre/internals/patch.mjs
@@ -4279,22 +4217,17 @@ function new$4(width, height, default$) {
 function insert4(grid, key, item) {
   return grid.withFields({ inner: insert(grid.inner, key, item) });
 }
-function find3(grid, item) {
+function find_first(grid, func) {
   let _pipe = grid.inner;
   let _pipe$1 = map_to_list(_pipe);
-  return find_map(
+  let _pipe$2 = find2(
     _pipe$1,
-    (i) => {
-      let k = i[0];
-      let i$1 = i[1];
-      let $ = isEqual(i$1, item);
-      if (!$) {
-        return new Error(void 0);
-      } else {
-        return new Ok(k);
-      }
+    (x) => {
+      let x$1 = x[1];
+      return func(x$1);
     }
   );
+  return map3(_pipe$2, first);
 }
 function fold4(grid, acc, do$) {
   return fold(grid.inner, acc, do$);
@@ -4308,7 +4241,7 @@ function get4(grid, key) {
     throw makeError(
       "let_assert",
       "squared_away/squared_away_lang/grid",
-      84,
+      96,
       "get",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -4409,7 +4342,7 @@ function from_src_csv(src, width, height) {
     throw makeError(
       "let_assert",
       "squared_away/squared_away_lang/grid",
-      140,
+      152,
       "from_src_csv",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -4417,11 +4350,11 @@ function from_src_csv(src, width, height) {
   }
   let src$1 = $[0];
   let inner = (() => {
-    let _pipe = take2(src$1, height);
+    let _pipe = take(src$1, height);
     let _pipe$1 = map2(
       _pipe,
       (_capture) => {
-        return take2(_capture, width);
+        return take(_capture, width);
       }
     );
     let _pipe$2 = index_map(
@@ -5178,12 +5111,13 @@ function update_labels(ex, old, new$5) {
     let lhs = ex.lhs;
     let op = ex.op;
     let rhs = ex.rhs;
-    return new BinaryOp2(
-      t2,
-      update_labels(lhs, old, new$5),
-      op,
-      update_labels(rhs, old, new$5)
-    );
+    let $ = update_labels(lhs, old, new$5);
+    let lhs$1 = $[0];
+    let u1 = $[1];
+    let $1 = update_labels(rhs, old, new$5);
+    let rhs$1 = $1[0];
+    let u2 = $1[1];
+    return [new BinaryOp2(t2, lhs$1, op, rhs$1), u1 || u2];
   } else if (ex instanceof CrossLabel2) {
     let type_2 = ex.type_;
     let key = ex.key;
@@ -5205,26 +5139,35 @@ function update_labels(ex, old, new$5) {
         return col_label;
       }
     })();
-    return new CrossLabel2(type_2, key, row_label$1, col_label$1);
+    return [
+      new CrossLabel2(type_2, key, row_label$1, col_label$1),
+      row_label$1 === old || col_label$1 === old
+    ];
   } else if (ex instanceof Group2) {
     let t2 = ex.type_;
     let inner = ex.expr;
-    return new Group2(t2, update_labels(inner, old, new$5));
+    let $ = update_labels(inner, old, new$5);
+    let new$1 = $[0];
+    let updated = $[1];
+    return [new Group2(t2, new$1), updated];
   } else if (ex instanceof Label2 && ex.txt === old) {
     let type_2 = ex.type_;
     let key = ex.key;
     let txt = ex.txt;
-    return new Label2(type_2, key, new$5);
+    return [new Label2(type_2, key, new$5), true];
   } else if (ex instanceof Label2) {
     let l = ex;
-    return l;
+    return [l, false];
   } else if (ex instanceof UnaryOp2) {
     let t2 = ex.type_;
     let op = ex.op;
     let inner = ex.expr;
-    return new UnaryOp2(t2, op, update_labels(inner, old, new$5));
+    let $ = update_labels(inner, old, new$5);
+    let new$1 = $[0];
+    let updated = $[1];
+    return [new UnaryOp2(t2, op, new$1), updated];
   } else {
-    return ex;
+    return [ex, false];
   }
 }
 function do_to_string2(te) {
@@ -5903,22 +5846,6 @@ function interpret(loop$env, loop$expr) {
                     );
                   }
                 );
-              } else if (lhs2 instanceof Integer && op instanceof Power && rhs2 instanceof FloatingPointNumber) {
-                let a = lhs2.n;
-                let b = rhs2.f;
-                let $ = power3(a, b);
-                if (!$.isOk()) {
-                  throw makeError(
-                    "let_assert",
-                    "squared_away/squared_away_lang/interpreter",
-                    270,
-                    "",
-                    "Pattern match failed, no pattern matched the value.",
-                    { value: $ }
-                  );
-                }
-                let p2 = $[0];
-                return new Ok(new FloatingPointNumber(p2));
               } else if (lhs2 instanceof Boolean && op instanceof And && rhs2 instanceof Boolean) {
                 let a = lhs2.b;
                 let b = rhs2.b;
@@ -5935,6 +5862,53 @@ function interpret(loop$env, loop$expr) {
                 let a = lhs2.b;
                 let b = rhs2.b;
                 return new Ok(new Boolean(a !== b));
+              } else if (lhs2 instanceof Integer && op instanceof Power && rhs2 instanceof FloatingPointNumber) {
+                let base = lhs2.n;
+                let exponent = rhs2.f;
+                let fractional_exponent = ceiling2(exponent) - exponent > 0;
+                return guard(
+                  base < 0 && fractional_exponent,
+                  new Error(
+                    new RuntimeError2(
+                      new RuntimeError(
+                        "Cannot raise negative number to fractional power as it produces an imaginary number."
+                      )
+                    )
+                  ),
+                  () => {
+                    return guard(
+                      base === 0 && exponent < 0,
+                      new Error(
+                        new RuntimeError2(
+                          new RuntimeError(
+                            "Raising 0.0 to a negative power is equivalent to doing division by zero."
+                          )
+                        )
+                      ),
+                      () => {
+                        let $ = power3(base, exponent);
+                        if (!$.isOk()) {
+                          throw makeError(
+                            "let_assert",
+                            "squared_away/squared_away_lang/interpreter",
+                            302,
+                            "",
+                            "Pattern match failed, no pattern matched the value.",
+                            { value: $ }
+                          );
+                        }
+                        let x = $[0];
+                        return new Ok(new FloatingPointNumber(x));
+                      }
+                    );
+                  }
+                );
+              } else if (lhs2 instanceof Integer && op instanceof Multiply && rhs2 instanceof Usd) {
+                let i = lhs2.n;
+                let c = rhs2.cents;
+                return new Ok(
+                  new Usd(multiply2(c, from_int(i)))
+                );
               } else if (op instanceof MustBe) {
                 let vlhs = lhs2;
                 let vrhs = rhs2;
@@ -5944,16 +5918,6 @@ function interpret(loop$env, loop$expr) {
                 } else {
                   return new Ok(new TestPass());
                 }
-              } else if (lhs2 instanceof Integer && op instanceof Multiply && rhs2 instanceof Usd) {
-                let i = lhs2.n;
-                let c = rhs2.cents;
-                return new Ok(
-                  new Usd(multiply2(c, from_int(i)))
-                );
-              } else if (lhs2 instanceof Percent && op instanceof Multiply && rhs2 instanceof Percent) {
-                let p1 = lhs2.percent;
-                let p2 = rhs2.percent;
-                return new Ok(new Percent(multiply2(p1, p2)));
               } else {
                 let lhs$1 = lhs2;
                 let op$1 = op;
@@ -6018,7 +5982,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                336,
+                354,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -6039,7 +6003,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                344,
+                362,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -6060,7 +6024,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                352,
+                370,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -6130,7 +6094,7 @@ function interpret(loop$env, loop$expr) {
                 throw makeError(
                   "let_assert",
                   "squared_away/squared_away_lang/interpreter",
-                  393,
+                  411,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: v }
@@ -6156,7 +6120,7 @@ function interpret(loop$env, loop$expr) {
                 throw makeError(
                   "let_assert",
                   "squared_away/squared_away_lang/interpreter",
-                  404,
+                  422,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: v }
@@ -6177,7 +6141,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                414,
+                432,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -7736,7 +7700,9 @@ function typecheck(env, expr) {
         }
       }
     );
-    if (defs === 1) {
+    if (defs === 0) {
+      return new Ok(new LabelDef2(new TNil(), txt));
+    } else if (defs === 1) {
       return new Ok(new LabelDef2(new TNil(), txt));
     } else if (defs > 1) {
       return new Error(
@@ -8193,34 +8159,54 @@ function typecheck(env, expr) {
   }
 }
 
-// build/dev/javascript/squared_away/squared_away/squared_away_lang.mjs
-function interpret_grid(input2) {
+// build/dev/javascript/squared_away/squared_away/compiler.mjs
+var Cell = class extends CustomType {
+  constructor(src, outcome) {
+    super();
+    this.src = src;
+    this.outcome = outcome;
+  }
+};
+var CompileSteps = class extends CustomType {
+  constructor(scanned, parsed, typechecked, interpreted) {
+    super();
+    this.scanned = scanned;
+    this.parsed = parsed;
+    this.typechecked = typechecked;
+    this.interpreted = interpreted;
+  }
+};
+var State = class extends CustomType {
+  constructor(cells, deps_graph) {
+    super();
+    this.cells = cells;
+    this.deps_graph = deps_graph;
+  }
+};
+function get_parsed(state) {
+  let _pipe = state.cells;
   return map_values2(
-    input2,
-    (_, typed_expr) => {
-      if (!typed_expr.isOk()) {
-        let e = typed_expr[0];
-        return new Error(e);
-      } else {
-        let typed_expr$1 = typed_expr[0];
-        return interpret(input2, typed_expr$1);
-      }
+    _pipe,
+    (_, cell) => {
+      return map3(cell.outcome, (c) => {
+        return c.parsed;
+      });
     }
   );
 }
-function typecheck_grid(input2) {
+function get_typechecked(state) {
+  let _pipe = state.cells;
   return map_values2(
-    input2,
-    (_, expr) => {
-      if (!expr.isOk()) {
-        let e = expr[0];
-        return new Error(e);
-      } else {
-        let expr$1 = expr[0];
-        return typecheck(input2, expr$1);
-      }
+    _pipe,
+    (_, cell) => {
+      return map3(cell.outcome, (c) => {
+        return c.typechecked;
+      });
     }
   );
+}
+function get_cell(state, key) {
+  return get4(state.cells, key);
 }
 function dependency_list(loop$input, loop$te, loop$acc) {
   while (true) {
@@ -8233,10 +8219,7 @@ function dependency_list(loop$input, loop$te, loop$acc) {
       let lhs$1 = dependency_list(input2, lhs, toList([]));
       let rhs$1 = dependency_list(input2, rhs, toList([]));
       let deps = (() => {
-        let _pipe = symmetric_difference(
-          from_list2(lhs$1),
-          from_list2(rhs$1)
-        );
+        let _pipe = union(from_list2(lhs$1), from_list2(rhs$1));
         return to_list2(_pipe);
       })();
       return flatten2(toList([deps, acc]));
@@ -8321,46 +8304,9 @@ function dependency_list(loop$input, loop$te, loop$acc) {
     }
   }
 }
-function parse_grid(input2) {
-  return map_values2(
-    input2,
-    (key, toks) => {
-      if (!toks.isOk()) {
-        let e = toks[0];
-        return new Error(e);
-      } else {
-        let toks$1 = toks[0];
-        let toks$2 = (() => {
-          let _pipe2 = toks$1;
-          return map2(
-            _pipe2,
-            (t2) => {
-              if (t2 instanceof BuiltinSum3 && t2.key instanceof None) {
-                return new BuiltinSum3(new Some(key));
-              } else if (t2 instanceof BuiltinAvg2 && t2.key instanceof None) {
-                return new BuiltinAvg2(new Some(key));
-              } else {
-                return t2;
-              }
-            }
-          );
-        })();
-        let expr = parse3(toks$2);
-        let _pipe = expr;
-        return map_error(
-          _pipe,
-          (var0) => {
-            return new ParseError2(var0);
-          }
-        );
-      }
-    }
-  );
-}
-function scan_grid(input2) {
-  return map_values2(
-    input2,
-    (_, src) => {
+function edit_cell(state, key, src) {
+  let res = try$(
+    (() => {
       let _pipe = scan(src);
       return map_error(
         _pipe,
@@ -8368,8 +8314,145 @@ function scan_grid(input2) {
           return new ScanError2(var0);
         }
       );
+    })(),
+    (scanned) => {
+      let scanned$1 = (() => {
+        let _pipe = scanned;
+        return map2(
+          _pipe,
+          (t2) => {
+            if (t2 instanceof BuiltinSum3 && t2.key instanceof None) {
+              return new BuiltinSum3(new Some(key));
+            } else if (t2 instanceof BuiltinAvg2 && t2.key instanceof None) {
+              return new BuiltinAvg2(new Some(key));
+            } else {
+              return t2;
+            }
+          }
+        );
+      })();
+      return try$(
+        (() => {
+          let _pipe = parse3(scanned$1);
+          return map_error(
+            _pipe,
+            (var0) => {
+              return new ParseError2(var0);
+            }
+          );
+        })(),
+        (parsed) => {
+          return try$(
+            typecheck(
+              (() => {
+                let _pipe = state;
+                return get_parsed(_pipe);
+              })(),
+              parsed
+            ),
+            (typechecked) => {
+              let deps2 = dependency_list(
+                (() => {
+                  let _pipe = state;
+                  return get_typechecked(_pipe);
+                })(),
+                typechecked,
+                toList([])
+              );
+              let deps_graph = (() => {
+                let _pipe = deps2;
+                return fold2(
+                  _pipe,
+                  state.deps_graph,
+                  (s, dep) => {
+                    return upsert(
+                      s,
+                      dep,
+                      (v) => {
+                        if (v instanceof None) {
+                          return toList([key]);
+                        } else {
+                          let lst = v[0];
+                          return prepend(key, lst);
+                        }
+                      }
+                    );
+                  }
+                );
+              })();
+              return try$(
+                interpret(
+                  (() => {
+                    let _pipe = state;
+                    return get_typechecked(_pipe);
+                  })(),
+                  typechecked
+                ),
+                (interpreted) => {
+                  return new Ok(
+                    [
+                      new CompileSteps(
+                        scanned$1,
+                        parsed,
+                        typechecked,
+                        interpreted
+                      ),
+                      deps_graph
+                    ]
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
     }
   );
+  let state$1 = (() => {
+    if (!res.isOk()) {
+      let e = res[0];
+      return state.withFields({
+        cells: insert4(state.cells, key, new Cell(src, new Error(e)))
+      });
+    } else {
+      let cell = res[0][0];
+      let deps_graph = res[0][1];
+      return new State(
+        insert4(state.cells, key, new Cell(src, new Ok(cell))),
+        deps_graph
+      );
+    }
+  })();
+  let deps = (() => {
+    let _pipe = state$1.deps_graph;
+    let _pipe$1 = get(_pipe, key);
+    return unwrap(_pipe$1, toList([]));
+  })();
+  let new_state = (() => {
+    let _pipe = deps;
+    return fold2(
+      _pipe,
+      state$1,
+      (s, k) => {
+        return edit_cell(s, k, get4(s.cells, k).src);
+      }
+    );
+  })();
+  return new_state;
+}
+var empty_cell = /* @__PURE__ */ new Cell(
+  "",
+  /* @__PURE__ */ new Ok(
+    /* @__PURE__ */ new CompileSteps(
+      /* @__PURE__ */ toList([]),
+      /* @__PURE__ */ new Empty2(),
+      /* @__PURE__ */ new Empty3(/* @__PURE__ */ new TNil()),
+      /* @__PURE__ */ new Empty4()
+    )
+  )
+);
+function init_state(width, height) {
+  return new State(new$4(width, height, empty_cell), new$());
 }
 
 // build/dev/javascript/squared_away/squared_away_ffi.js
@@ -8400,7 +8483,7 @@ function uploadFile() {
 
 // build/dev/javascript/squared_away/squared_away.mjs
 var Model2 = class extends CustomType {
-  constructor(holding_shift, grid_width, grid_height, show_test_coverage, display_formulas, active_cell, src_grid, type_checked_grid, value_grid, errors_to_display) {
+  constructor(holding_shift, grid_width, grid_height, show_test_coverage, display_formulas, active_cell, compiler_state) {
     super();
     this.holding_shift = holding_shift;
     this.grid_width = grid_width;
@@ -8408,10 +8491,7 @@ var Model2 = class extends CustomType {
     this.show_test_coverage = show_test_coverage;
     this.display_formulas = display_formulas;
     this.active_cell = active_cell;
-    this.src_grid = src_grid;
-    this.type_checked_grid = type_checked_grid;
-    this.value_grid = value_grid;
-    this.errors_to_display = errors_to_display;
+    this.compiler_state = compiler_state;
   }
 };
 var UserToggledShowTestCoverage = class extends CustomType {
@@ -8502,29 +8582,6 @@ function focus2(id2) {
     return focus(id2);
   });
 }
-function update_grid(model) {
-  let scanned = scan_grid(model.src_grid);
-  let parsed = parse_grid(scanned);
-  let type_checked_grid = typecheck_grid(parsed);
-  let value_grid = interpret_grid(type_checked_grid);
-  let errors_to_display = fold4(
-    value_grid,
-    toList([]),
-    (acc, key, val) => {
-      if (!val.isOk()) {
-        let err = val[0];
-        return prepend([key, err], acc);
-      } else {
-        return acc;
-      }
-    }
-  );
-  return model.withFields({
-    value_grid,
-    type_checked_grid,
-    errors_to_display
-  });
-}
 function key_press_event(event2, cell) {
   return try$(
     field("key", string)(event2),
@@ -8601,65 +8658,57 @@ function error_view(re) {
 var initial_grid_width = 30;
 var initial_grid_height = 40;
 function init2(_) {
-  let src_grid = new$4(initial_grid_width, initial_grid_height, "");
-  let type_checked_grid = new$4(
+  let model = new Model2(
+    false,
     initial_grid_width,
     initial_grid_height,
-    new Ok(new Empty3(new TNil()))
+    false,
+    false,
+    new None(),
+    init_state(initial_grid_width, initial_grid_height)
   );
-  let value_grid = new$4(
-    initial_grid_width,
-    initial_grid_height,
-    new Ok(new Empty4())
-  );
-  let model = (() => {
-    let _pipe = new Model2(
-      false,
-      initial_grid_width,
-      initial_grid_height,
-      false,
-      false,
-      new None(),
-      src_grid,
-      type_checked_grid,
-      value_grid,
-      toList([])
-    );
-    return update_grid(_pipe);
-  })();
   return [model, none()];
 }
 function update(model, msg) {
   if (msg instanceof UserSetCellValue) {
     let key = msg.key;
     let val = msg.val;
-    let old = get4(model.src_grid, key);
+    let old = get_cell(model.compiler_state, key);
     let model$1 = fold2(
       (() => {
-        let _pipe = model.type_checked_grid;
+        let _pipe = model.compiler_state.cells;
         return to_list3(_pipe);
       })(),
       model,
       (acc, g) => {
         let k = g[0];
-        let te = g[1];
-        if (!te.isOk()) {
+        let c = g[1];
+        let $ = c.outcome;
+        if (!$.isOk()) {
           return acc;
         } else {
-          let te$1 = te[0];
-          let new$5 = (() => {
-            let _pipe = update_labels(te$1, old, val);
-            return to_string11(_pipe);
-          })();
-          return acc.withFields({ src_grid: insert4(acc.src_grid, k, new$5) });
+          let cs = $[0];
+          let $1 = update_labels(cs.typechecked, old.src, val);
+          let new_te = $1[0];
+          let was_updated = $1[1];
+          if (!was_updated) {
+            return acc;
+          } else {
+            return acc.withFields({
+              compiler_state: edit_cell(
+                model.compiler_state,
+                k,
+                to_string11(new_te)
+              )
+            });
+          }
         }
       }
     );
     let model$2 = model$1.withFields({
-      src_grid: insert4(model$1.src_grid, key, val)
+      compiler_state: edit_cell(model$1.compiler_state, key, val)
     });
-    let model$3 = update_grid(model$2);
-    return [model$3, none()];
+    return [model$2, none()];
   } else if (msg instanceof UserToggledFormulaMode) {
     let display_formulas = msg.to;
     return [
@@ -8679,105 +8728,129 @@ function update(model, msg) {
     return [model.withFields({ active_cell: new None() }), none()];
   } else if (msg instanceof UserPressedArrowUp) {
     let cell = msg.cell;
-    return set_active_cell_to(model, cell_above(model.src_grid, cell));
+    return set_active_cell_to(
+      model,
+      cell_above(model.compiler_state.cells, cell)
+    );
   } else if (msg instanceof UserPressedArrowLeft) {
     let cell = msg.cell;
     return set_active_cell_to(
       model,
-      cell_to_the_left(model.src_grid, cell)
+      cell_to_the_left(model.compiler_state.cells, cell)
     );
   } else if (msg instanceof UserPressedArrowRight) {
     let cell = msg.cell;
     return set_active_cell_to(
       model,
-      cell_to_the_right(model.src_grid, cell)
+      cell_to_the_right(model.compiler_state.cells, cell)
     );
   } else if (msg instanceof UserPressedArrowDown) {
     let cell = msg.cell;
     return set_active_cell_to(
       model,
-      cell_underneath(model.src_grid, cell)
+      cell_underneath(model.compiler_state.cells, cell)
     );
   } else if (msg instanceof UserPressedEnter) {
     let cell = msg.cell;
     return set_active_cell_to(
       model,
-      cell_underneath(model.src_grid, cell)
+      cell_underneath(model.compiler_state.cells, cell)
     );
   } else if (msg instanceof UserShiftPressedArrowRight) {
     let cell = msg.cell;
-    let maybe_cell_to_right = cell_to_the_right(model.src_grid, cell);
+    let maybe_cell_to_right = cell_to_the_right(
+      model.compiler_state.cells,
+      cell
+    );
     if (!maybe_cell_to_right.isOk() && !maybe_cell_to_right[0]) {
       return [model, none()];
     } else {
       let cell_to_right = maybe_cell_to_right[0];
-      let scanned = scan_grid(model.src_grid);
-      let parsed = parse_grid(scanned);
-      let typechecked = typecheck_grid(parsed);
-      let maybe_expr = get4(typechecked, cell);
+      let curr_cell = get_cell(model.compiler_state, cell);
       return guard(
         (() => {
-          let _pipe = maybe_expr;
+          let _pipe = curr_cell.outcome;
           return is_error(_pipe);
         })(),
         [model, none()],
         () => {
-          if (!maybe_expr.isOk()) {
+          let $ = curr_cell.outcome;
+          if (!$.isOk()) {
             throw makeError(
               "let_assert",
               "squared_away",
-              263,
+              239,
               "",
               "Pattern match failed, no pattern matched the value.",
-              { value: maybe_expr }
+              { value: $ }
             );
           }
-          let expr = maybe_expr[0];
+          let cs = $[0];
           let expr_with_labels_updated = visit_cross_labels(
-            expr,
+            cs.typechecked,
             (key, row_label, col_label) => {
-              let $ = find3(model.src_grid, col_label);
-              if (!$.isOk()) {
+              let $1 = find_first(
+                model.compiler_state.cells,
+                (c) => {
+                  return c.src === col_label;
+                }
+              );
+              if (!$1.isOk()) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  271,
+                  247,
                   "",
                   "Pattern match failed, no pattern matched the value.",
-                  { value: $ }
+                  { value: $1 }
                 );
               }
-              let key_for_col = $[0];
+              let key_for_col = $1[0];
               return try$(
-                cell_to_the_right(model.src_grid, key_for_col),
+                cell_to_the_right(model.compiler_state.cells, key_for_col),
                 (key_for_new_col) => {
-                  let maybe_new_label = get4(typechecked, key_for_new_col);
-                  let get_new_label = (l) => {
-                    if (l.isOk() && l[0] instanceof LabelDef2) {
-                      let txt = l[0].txt;
-                      return new Ok(txt);
-                    } else {
-                      return new Error(void 0);
-                    }
+                  let maybe_new_label = get_cell(
+                    model.compiler_state,
+                    key_for_new_col
+                  );
+                  let get_new_label = (c) => {
+                    return try$(
+                      (() => {
+                        let _pipe = c.outcome;
+                        return nil_error(_pipe);
+                      })(),
+                      (l) => {
+                        let $2 = l.typechecked;
+                        if ($2 instanceof LabelDef2) {
+                          let txt = $2.txt;
+                          return new Ok(txt);
+                        } else {
+                          return new Error(void 0);
+                        }
+                      }
+                    );
                   };
                   return try$(
                     get_new_label(maybe_new_label),
                     (new_label) => {
-                      let $1 = cell_to_the_right(model.src_grid, key);
-                      if (!$1.isOk()) {
+                      let $2 = cell_to_the_right(
+                        model.compiler_state.cells,
+                        key
+                      );
+                      if (!$2.isOk()) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          291,
+                          270,
                           "",
                           "Pattern match failed, no pattern matched the value.",
-                          { value: $1 }
+                          { value: $2 }
                         );
                       }
-                      let new_key = $1[0];
+                      let new_key = $2[0];
                       return new Ok(
                         new CrossLabel2(
-                          expr.type_,
+                          new TNil(),
                           new_key,
                           row_label,
                           new_label
@@ -8793,92 +8866,116 @@ function update(model, msg) {
             return [model, none()];
           } else {
             let new_expr = expr_with_labels_updated[0];
-            let formula = to_string11(new_expr);
-            let src_grid = insert4(model.src_grid, cell_to_right, formula);
             let id2 = to_string7(cell_to_right);
+            let formula = to_string11(new_expr);
             let new_model = model.withFields({
-              src_grid,
-              active_cell: new Some(cell_to_right)
+              active_cell: new Some(cell_to_right),
+              compiler_state: edit_cell(
+                model.compiler_state,
+                cell_to_right,
+                formula
+              )
             });
-            return [update_grid(new_model), focus2(id2)];
+            return [new_model, focus2(id2)];
           }
         }
       );
     }
   } else if (msg instanceof UserShiftPressedArrowDown) {
     let cell = msg.cell;
-    let maybe_cell_below = cell_underneath(model.src_grid, cell);
+    let maybe_cell_below = cell_underneath(
+      model.compiler_state.cells,
+      cell
+    );
     if (!maybe_cell_below.isOk() && !maybe_cell_below[0]) {
       return [model, none()];
     } else {
       let cell_below = maybe_cell_below[0];
-      let scanned = scan_grid(model.src_grid);
-      let parsed = parse_grid(scanned);
-      let typechecked = typecheck_grid(parsed);
-      let maybe_expr = get4(typechecked, cell);
+      let curr_cell = get_cell(model.compiler_state, cell);
       return guard(
         (() => {
-          let _pipe = maybe_expr;
+          let _pipe = curr_cell.outcome;
           return is_error(_pipe);
         })(),
         [model, none()],
         () => {
-          if (!maybe_expr.isOk()) {
+          let $ = curr_cell.outcome;
+          if (!$.isOk()) {
             throw makeError(
               "let_assert",
               "squared_away",
-              331,
+              308,
               "",
               "Pattern match failed, no pattern matched the value.",
-              { value: maybe_expr }
+              { value: $ }
             );
           }
-          let expr = maybe_expr[0];
+          let cs = $[0];
           let expr_with_labels_updated = visit_cross_labels(
-            expr,
+            cs.typechecked,
             (key, row_label, col_label) => {
-              let $ = find3(model.src_grid, row_label);
-              if (!$.isOk()) {
+              let $1 = find_first(
+                model.compiler_state.cells,
+                (c) => {
+                  return c.src === row_label;
+                }
+              );
+              if (!$1.isOk()) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  336,
+                  314,
                   "",
                   "Pattern match failed, no pattern matched the value.",
-                  { value: $ }
+                  { value: $1 }
                 );
               }
-              let key_for_row = $[0];
+              let key_for_row = $1[0];
               return try$(
-                cell_underneath(model.src_grid, key_for_row),
+                cell_underneath(model.compiler_state.cells, key_for_row),
                 (key_for_new_row) => {
-                  let maybe_new_label = get4(typechecked, key_for_new_row);
-                  let get_new_label = (l) => {
-                    if (l.isOk() && l[0] instanceof LabelDef2) {
-                      let txt = l[0].txt;
-                      return new Ok(txt);
-                    } else {
-                      return new Error(void 0);
-                    }
+                  let maybe_new_label = get_cell(
+                    model.compiler_state,
+                    key_for_new_row
+                  );
+                  let get_new_label = (c) => {
+                    return try$(
+                      (() => {
+                        let _pipe = c.outcome;
+                        return nil_error(_pipe);
+                      })(),
+                      (l) => {
+                        let $2 = l.typechecked;
+                        if ($2 instanceof LabelDef2) {
+                          let txt = $2.txt;
+                          return new Ok(txt);
+                        } else {
+                          return new Error(void 0);
+                        }
+                      }
+                    );
                   };
                   return try$(
                     get_new_label(maybe_new_label),
                     (new_label) => {
-                      let $1 = cell_underneath(model.src_grid, key);
-                      if (!$1.isOk()) {
+                      let $2 = cell_underneath(
+                        model.compiler_state.cells,
+                        key
+                      );
+                      if (!$2.isOk()) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          355,
+                          336,
                           "",
                           "Pattern match failed, no pattern matched the value.",
-                          { value: $1 }
+                          { value: $2 }
                         );
                       }
-                      let new_key = $1[0];
+                      let new_key = $2[0];
                       return new Ok(
                         new CrossLabel2(
-                          expr.type_,
+                          new TNil(),
                           new_key,
                           new_label,
                           col_label
@@ -8895,19 +8992,28 @@ function update(model, msg) {
           } else {
             let new_expr = expr_with_labels_updated[0];
             let formula = to_string11(new_expr);
-            let src_grid = insert4(model.src_grid, cell_below, formula);
             let id2 = to_string7(cell_below);
             let new_model = model.withFields({
-              src_grid,
-              active_cell: new Some(cell_below)
+              active_cell: new Some(cell_below),
+              compiler_state: edit_cell(
+                model.compiler_state,
+                cell_below,
+                formula
+              )
             });
-            return [update_grid(new_model), focus2(id2)];
+            return [new_model, focus2(id2)];
           }
         }
       );
     }
   } else if (msg instanceof UserClickedSaveBtn) {
-    let content = src_csv(model.src_grid);
+    let content = (() => {
+      let _pipe = model.compiler_state.cells;
+      let _pipe$1 = map_values2(_pipe, (_, c) => {
+        return c.src;
+      });
+      return src_csv(_pipe$1);
+    })();
     saveFile(content, "myspreadsheet.csv");
     return [model, none()];
   } else if (msg instanceof UserUploadedFile) {
@@ -8934,11 +9040,18 @@ function update(model, msg) {
       let _pipe = file_content;
       return from_src_csv(_pipe, initial_grid_width, initial_grid_height);
     })();
-    let new_model = (() => {
-      let _pipe = model.withFields({ src_grid });
-      return update_grid(_pipe);
+    let new_grid = (() => {
+      let _pipe = src_grid;
+      return fold4(
+        _pipe,
+        init_state(initial_grid_width, initial_grid_height),
+        edit_cell
+      );
     })();
-    return [new_model, none()];
+    return [
+      model.withFields({ compiler_state: new_grid, active_cell: new None() }),
+      none()
+    ];
   }
 }
 var min_cell_size_ch = 10;
@@ -8946,49 +9059,52 @@ function recalculate_col_width(model, col2) {
   let _pipe = (() => {
     let $ = model.display_formulas;
     if (!$) {
-      let _pipe2 = to_list3(model.value_grid);
-      let _pipe$12 = filter_map(
-        _pipe2,
+      let _pipe2 = model.compiler_state.cells;
+      let _pipe$12 = to_list3(_pipe2);
+      let _pipe$2 = filter_map(
+        _pipe$12,
         (c) => {
           let k = c[0];
-          let v = c[1];
+          let c$1 = c[1];
           let $1 = (() => {
-            let _pipe$13 = k;
-            return col(_pipe$13);
+            let _pipe$22 = k;
+            return col(_pipe$22);
           })() === col2;
           if (!$1) {
             return new Error(void 0);
           } else {
-            if (!v.isOk()) {
-              return new Ok(get4(model.src_grid, k));
+            let $2 = c$1.outcome;
+            if (!$2.isOk()) {
+              return new Ok(c$1.src);
             } else {
-              let v$1 = v[0];
-              let $2 = isEqual(model.active_cell, new Some(k));
-              if (!$2) {
-                return new Ok(value_to_string(v$1));
+              let cs = $2[0];
+              let $3 = isEqual(model.active_cell, new Some(k));
+              if (!$3) {
+                return new Ok(value_to_string(cs.interpreted));
               } else {
-                return new Ok(get4(model.src_grid, k));
+                return new Ok(c$1.src);
               }
             }
           }
         }
       );
-      return map2(_pipe$12, length3);
+      return map2(_pipe$2, length3);
     } else {
-      let _pipe2 = to_list3(model.src_grid);
+      let _pipe2 = model.compiler_state.cells;
+      let _pipe$12 = to_list3(_pipe2);
       return filter_map(
-        _pipe2,
+        _pipe$12,
         (c) => {
           let k = c[0];
-          let v = c[1];
+          let c$1 = c[1];
           let $1 = (() => {
-            let _pipe$12 = k;
-            return col(_pipe$12);
+            let _pipe$2 = k;
+            return col(_pipe$2);
           })() === col2;
           if (!$1) {
             return new Error(void 0);
           } else {
-            return new Ok(length3(v));
+            return new Ok(length3(c$1.src));
           }
         }
       );
@@ -8999,25 +9115,24 @@ function recalculate_col_width(model, col2) {
 }
 function view(model) {
   let error_to_display = (() => {
-    let _pipe = find_map(
-      model.errors_to_display,
-      (e) => {
-        let $2 = isEqual(new Some(e[0]), model.active_cell);
-        if (!$2) {
-          return new Error(void 0);
-        } else {
-          return new Ok(
-            error_view(
-              (() => {
-                let _pipe2 = e[1];
-                return to_renderable_error2(_pipe2);
-              })()
-            )
-          );
-        }
+    let $2 = model.active_cell;
+    if ($2 instanceof None) {
+      return none3();
+    } else {
+      let k = $2[0];
+      let $12 = get_cell(model.compiler_state, k).outcome;
+      if (!$12.isOk()) {
+        let e = $12[0];
+        return error_view(
+          (() => {
+            let _pipe = e;
+            return to_renderable_error2(_pipe);
+          })()
+        );
+      } else {
+        return none3();
       }
-    );
-    return unwrap(_pipe, div(toList([]), toList([])));
+    }
   })();
   let col_widths = (() => {
     let _pipe = range(1, initial_grid_width);
@@ -9029,46 +9144,51 @@ function view(model) {
     );
     return from_list(_pipe$1);
   })();
-  let deps = (() => {
-    let _pipe = model.type_checked_grid;
+  let passing_test_cells = (() => {
+    let _pipe = model.compiler_state.cells;
     let _pipe$1 = to_list3(_pipe);
-    let _pipe$2 = filter_map(
+    return filter_map(
       _pipe$1,
-      (g) => {
-        let k = g[0];
-        let mte = g[1];
-        if (!mte.isOk()) {
-          return new Error(void 0);
-        } else {
-          let te = mte[0];
-          let $2 = te.type_;
-          if ($2 instanceof TTestResult) {
-            let $12 = get4(model.value_grid, k);
-            if ($12.isOk() && $12[0] instanceof TestPass) {
-              return new Ok(te);
+      (c) => {
+        let k = c[0];
+        let c$1 = c[1];
+        return try$(
+          (() => {
+            let _pipe$2 = c$1.outcome;
+            return nil_error(_pipe$2);
+          })(),
+          (cs) => {
+            let $2 = cs.interpreted;
+            if ($2 instanceof TestPass) {
+              return new Ok(cs.typechecked);
             } else {
               return new Error(void 0);
             }
-          } else {
-            return new Error(void 0);
           }
-        }
+        );
       }
     );
-    let _pipe$3 = map2(
-      _pipe$2,
+  })();
+  let deps = (() => {
+    let _pipe = passing_test_cells;
+    let _pipe$1 = map2(
+      _pipe,
       (_capture) => {
         return dependency_list(
-          model.type_checked_grid,
+          (() => {
+            let _pipe$12 = model.compiler_state;
+            return get_typechecked(_pipe$12);
+          })(),
           _capture,
           toList([])
         );
       }
     );
-    return flatten2(_pipe$3);
+    let _pipe$2 = flatten2(_pipe$1);
+    return unique(_pipe$2);
   })();
   let rows = (() => {
-    let _pipe = model.src_grid.cells;
+    let _pipe = model.compiler_state.cells.cells;
     let _pipe$1 = group(_pipe, row);
     let _pipe$2 = map_values(
       _pipe$1,
@@ -9092,6 +9212,7 @@ function view(model) {
           return map2(
             _pipe$22,
             (key) => {
+              let cell = get_cell(model.compiler_state, key);
               let on_keydown = on2(
                 "keydown",
                 (_capture) => {
@@ -9111,16 +9232,17 @@ function view(model) {
                   let $3 = model.display_formulas;
                   let $12 = isEqual(model.active_cell, new Some(key));
                   if ($3) {
-                    return get4(model.src_grid, key);
+                    return cell.src;
                   } else if (!$3 && $12) {
-                    return get4(model.src_grid, key);
+                    return cell.src;
                   } else {
-                    let $22 = get4(model.value_grid, key);
+                    let $22 = cell.outcome;
                     if (!$22.isOk()) {
-                      return get4(model.src_grid, key);
+                      return cell.src;
                     } else {
-                      let v = $22[0];
-                      return value_to_string(v);
+                      let cs = $22[0];
+                      let _pipe$33 = cs.interpreted;
+                      return value_to_string(_pipe$33);
                     }
                   }
                 })();
@@ -9129,46 +9251,48 @@ function view(model) {
               let alignment = (() => {
                 let $3 = isEqual(model.active_cell, new Some(key)) || model.display_formulas;
                 if ($3) {
-                  let $12 = get4(model.type_checked_grid, key);
+                  let $12 = cell.outcome;
                   if (!$12.isOk()) {
                     return "left";
                   } else {
-                    let te = $12[0];
-                    if (te instanceof PercentLiteral2) {
+                    let cs = $12[0];
+                    let $22 = cs.typechecked;
+                    if ($22 instanceof PercentLiteral2) {
                       return "right";
-                    } else if (te instanceof BooleanLiteral2) {
+                    } else if ($22 instanceof BooleanLiteral2) {
                       return "right";
-                    } else if (te instanceof UsdLiteral2) {
+                    } else if ($22 instanceof UsdLiteral2) {
                       return "right";
-                    } else if (te instanceof IntegerLiteral2) {
+                    } else if ($22 instanceof IntegerLiteral2) {
                       return "right";
-                    } else if (te instanceof FloatLiteral2) {
+                    } else if ($22 instanceof FloatLiteral2) {
                       return "right";
                     } else {
                       return "left";
                     }
                   }
                 } else {
-                  let $12 = get4(model.value_grid, key);
+                  let $12 = cell.outcome;
                   if (!$12.isOk()) {
                     return "left";
                   } else {
-                    let v = $12[0];
-                    if (v instanceof Percent) {
+                    let cs = $12[0];
+                    let $22 = cs.interpreted;
+                    if ($22 instanceof Percent) {
                       return "right";
-                    } else if (v instanceof Integer) {
+                    } else if ($22 instanceof Integer) {
                       return "right";
-                    } else if (v instanceof FloatingPointNumber) {
+                    } else if ($22 instanceof FloatingPointNumber) {
                       return "right";
-                    } else if (v instanceof Usd) {
+                    } else if ($22 instanceof Usd) {
                       return "right";
-                    } else if (v instanceof Boolean) {
+                    } else if ($22 instanceof Boolean) {
                       return "right";
-                    } else if (v instanceof TestFail) {
+                    } else if ($22 instanceof TestFail) {
                       return "center";
-                    } else if (v instanceof TestPass) {
+                    } else if ($22 instanceof TestPass) {
                       return "center";
-                    } else if (v instanceof Empty4) {
+                    } else if ($22 instanceof Empty4) {
                       return "center";
                     } else {
                       return "left";
@@ -9176,12 +9300,10 @@ function view(model) {
                   }
                 }
               })();
-              let cell_is_errored = any(
-                model.errors_to_display,
-                (i) => {
-                  return isEqual(i[0], key);
-                }
-              );
+              let cell_is_errored = (() => {
+                let _pipe$32 = cell.outcome;
+                return is_error(_pipe$32);
+              })();
               let error_class = (() => {
                 if (!cell_is_errored) {
                   return none2();
@@ -9190,16 +9312,17 @@ function view(model) {
                 }
               })();
               let colors = (() => {
-                let $3 = get4(model.value_grid, key);
+                let $3 = cell.outcome;
                 if (!$3.isOk()) {
                   return ["#b30000", "#ffe6e6"];
                 } else {
-                  let v = $3[0];
-                  if (v instanceof Text2) {
+                  let cs = $3[0];
+                  let $12 = cs.interpreted;
+                  if ($12 instanceof Text2) {
                     return ["#4a4a4a", "#f2f2f2"];
-                  } else if (v instanceof TestPass) {
+                  } else if ($12 instanceof TestPass) {
                     return ["#006400", "#e6ffe6"];
-                  } else if (v instanceof TestFail) {
+                  } else if ($12 instanceof TestFail) {
                     return ["#b30000", "#ffe6e6"];
                   } else {
                     return ["black", "white"];
@@ -9213,30 +9336,28 @@ function view(model) {
                   return colors;
                 } else if (!$12 && $22 instanceof Some) {
                   let active_cell = $22[0];
-                  let $3 = get4(model.type_checked_grid, active_cell);
+                  let $3 = get_cell(model.compiler_state, active_cell).outcome;
                   if (!$3.isOk()) {
                     return colors;
                   } else {
-                    let typed_expr = $3[0];
-                    let $4 = typed_expr.type_;
-                    if ($4 instanceof TTestResult) {
-                      let $5 = get4(model.value_grid, active_cell);
-                      if ($5.isOk() && $5[0] instanceof TestPass) {
-                        let $6 = (() => {
-                          let _pipe$32 = dependency_list(
-                            model.type_checked_grid,
-                            typed_expr,
-                            toList([])
-                          );
-                          return contains(_pipe$32, key);
-                        })();
-                        if (!$6) {
-                          return colors;
-                        } else {
-                          return ["#006400", "#e6ffe6"];
-                        }
-                      } else {
+                    let cs = $3[0];
+                    let $4 = cs.interpreted;
+                    if ($4 instanceof TestPass) {
+                      let $5 = (() => {
+                        let _pipe$32 = dependency_list(
+                          (() => {
+                            let _pipe$33 = model.compiler_state;
+                            return get_typechecked(_pipe$33);
+                          })(),
+                          cs.typechecked,
+                          toList([])
+                        );
+                        return contains(_pipe$32, key);
+                      })();
+                      if (!$5) {
                         return colors;
+                      } else {
+                        return ["#006400", "#e6ffe6"];
                       }
                     } else {
                       return colors;
@@ -9247,34 +9368,30 @@ function view(model) {
                   if ($3) {
                     return ["#006400", "#e6ffe6"];
                   } else {
-                    let $4 = get4(model.type_checked_grid, key);
+                    let $4 = cell.outcome;
                     if (!$4.isOk()) {
                       return colors;
                     } else {
-                      let te = $4[0];
-                      let $5 = get4(model.value_grid, key);
-                      if (!$5.isOk()) {
+                      let cs = $4[0];
+                      let $5 = cs.interpreted;
+                      if ($5 instanceof TestFail) {
+                        return colors;
+                      } else if ($5 instanceof TestPass) {
                         return colors;
                       } else {
-                        let v = $5[0];
-                        if (v instanceof TestFail) {
-                          return colors;
-                        } else if (v instanceof TestPass) {
-                          return colors;
+                        let $6 = cs.typechecked;
+                        if ($6 instanceof BinaryOp2) {
+                          return ["#FFA500", "#FFF8E1"];
+                        } else if ($6 instanceof BuiltinSum2) {
+                          return ["#FFA500", "#FFF8E1"];
+                        } else if ($6 instanceof BuiltinAvg) {
+                          return ["#FFA500", "#FFF8E1"];
+                        } else if ($6 instanceof Group2) {
+                          return ["#FFA500", "#FFF8E1"];
+                        } else if ($6 instanceof UnaryOp2) {
+                          return ["#FFA500", "#FFF8E1"];
                         } else {
-                          if (te instanceof BinaryOp2) {
-                            return ["#FFA500", "#FFF8E1"];
-                          } else if (te instanceof BuiltinSum2) {
-                            return ["#FFA500", "#FFF8E1"];
-                          } else if (te instanceof BuiltinAvg) {
-                            return ["#FFA500", "#FFF8E1"];
-                          } else if (te instanceof Group2) {
-                            return ["#FFA500", "#FFF8E1"];
-                          } else if (te instanceof UnaryOp2) {
-                            return ["#FFA500", "#FFF8E1"];
-                          } else {
-                            return colors;
-                          }
+                          return colors;
                         }
                       }
                     }
@@ -9402,7 +9519,7 @@ function view(model) {
     ])
   );
   let $ = (() => {
-    let _pipe = model.value_grid;
+    let _pipe = model.compiler_state.cells;
     let _pipe$1 = to_list3(_pipe);
     let _pipe$2 = map2(_pipe$1, second);
     return fold2(
@@ -9411,12 +9528,19 @@ function view(model) {
       (acc, x) => {
         let passed2 = acc[0];
         let total2 = acc[1];
-        if (x.isOk() && x[0] instanceof TestPass) {
-          return [passed2 + 1, total2 + 1];
-        } else if (x.isOk() && x[0] instanceof TestFail) {
-          return [passed2, total2 + 1];
+        let $12 = x.outcome;
+        if (!$12.isOk()) {
+          return acc;
         } else {
-          return [passed2, total2];
+          let cs = $12[0];
+          let $2 = cs.interpreted;
+          if ($2 instanceof TestFail) {
+            return [passed2, total2 + 1];
+          } else if ($2 instanceof TestPass) {
+            return [passed2 + 1, total2 + 1];
+          } else {
+            return acc;
+          }
         }
       }
     );
@@ -9486,7 +9610,7 @@ function main() {
     throw makeError(
       "let_assert",
       "squared_away",
-      34,
+      33,
       "main",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }

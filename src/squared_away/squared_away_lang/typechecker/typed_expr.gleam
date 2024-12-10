@@ -65,21 +65,20 @@ pub fn visit_cross_labels(
 // Updates the labels in a typed expr and returns the new expression and a boolean
 // flag indicating if a label was updated. The compiler uses the flag to know whether
 // or not a cell needs re-evaluating.
-pub fn update_labels(ex: TypedExpr, old: String, new: String) -> #(TypedExpr, Bool) {
+pub fn update_labels(
+  ex: TypedExpr,
+  old: String,
+  new: String,
+) -> #(TypedExpr, Bool) {
   case ex {
     BinaryOp(t, lhs, op, rhs) -> {
       let #(lhs, u1) = update_labels(lhs, old, new)
       let #(rhs, u2) = update_labels(rhs, old, new)
-      
+
       // u1 || u2 tells us if a label was updated in the expression.
-      #(BinaryOp(
-        t,
-        lhs,
-        op,
-        rhs,
-      ), u1 || u2)
+      #(BinaryOp(t, lhs, op, rhs), u1 || u2)
     }
-      
+
     CrossLabel(type_:, col_label:, row_label:, key:) -> {
       let row_label = case row_label == old {
         True -> new
@@ -91,13 +90,19 @@ pub fn update_labels(ex: TypedExpr, old: String, new: String) -> #(TypedExpr, Bo
         False -> col_label
       }
 
-      #(CrossLabel(type_:, col_label:, row_label:, key:), row_label == old || col_label == old)
+      #(
+        CrossLabel(type_:, col_label:, row_label:, key:),
+        row_label == old || col_label == old,
+      )
     }
     Group(t, inner) -> {
       let #(new, updated) = update_labels(inner, old, new)
       #(Group(t, new), updated)
     }
-    Label(key:, txt:, type_:) if txt == old -> #(Label(key:, txt: new, type_:), True)
+    Label(key:, txt:, type_:) if txt == old -> #(
+      Label(key:, txt: new, type_:),
+      True,
+    )
     Label(_, _, _) as l -> #(l, False)
     UnaryOp(t, op, inner) -> {
       let #(new, updated) = update_labels(inner, old, new)

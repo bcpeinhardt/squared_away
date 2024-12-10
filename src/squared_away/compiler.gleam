@@ -2,10 +2,11 @@
 //// an initial set of grids for all the cells, and try to only
 //// compile and update what we need based on the dependency graph.
 
-import gleam/option
 import gleam/dict
 import gleam/list
+import gleam/option
 import gleam/result
+import gleam/set
 import squared_away/squared_away_lang/error
 import squared_away/squared_away_lang/grid
 import squared_away/squared_away_lang/interpreter
@@ -17,7 +18,6 @@ import squared_away/squared_away_lang/scanner/token
 import squared_away/squared_away_lang/typechecker
 import squared_away/squared_away_lang/typechecker/typ
 import squared_away/squared_away_lang/typechecker/typed_expr
-import gleam/set
 
 pub type Cell {
   Cell(src: String, outcome: Result(CompileSteps, error.CompileError))
@@ -92,17 +92,18 @@ pub fn edit_cell(state: State, key: grid.GridKey, src: String) -> State {
     use scanned <- result.try(
       scanner.scan(src) |> result.map_error(error.ScanError),
     )
-    
+
     // Need to enrich some tokens with their key 
-    let scanned = scanned 
-    |> list.map(fn(t) {
-      case t {
-        token.BuiltinSum(option.None) -> token.BuiltinSum(option.Some(key))
-        token.BuiltinAvg(option.None) -> token.BuiltinAvg(option.Some(key))
-        _ -> t
-      }
-    })
-    
+    let scanned =
+      scanned
+      |> list.map(fn(t) {
+        case t {
+          token.BuiltinSum(option.None) -> token.BuiltinSum(option.Some(key))
+          token.BuiltinAvg(option.None) -> token.BuiltinAvg(option.Some(key))
+          _ -> t
+        }
+      })
+
     use parsed <- result.try(
       parser.parse(scanned) |> result.map_error(error.ParseError),
     )
@@ -114,44 +115,44 @@ pub fn edit_cell(state: State, key: grid.GridKey, src: String) -> State {
     // If the cell successfully typechecked, we can tell what cells
     // it depends on, so we need to update those entries in the dependency graph.
 
-    let deps =
-      dependency_list(
-        state |> get_typechecked,
-        typechecked,
-        [],
-      )
-      
+    let deps = dependency_list(state |> get_typechecked, typechecked, [])
+
     let deps_graph =
       deps
       |> list.fold(state.deps_graph, fn(s, dep) {
-        dict.upsert(
-          s,
-          dep,
-          fn(v) {
-            case v {
-              option.None -> [key]
-              option.Some(lst) -> [key, ..lst]
-            }
-          },
-        )
+        dict.upsert(s, dep, fn(v) {
+          case v {
+            option.None -> [key]
+            option.Some(lst) -> [key, ..lst]
+          }
+        })
       })
 
     use interpreted <- result.try(interpreter.interpret(
       state |> get_typechecked,
       typechecked,
     ))
-    Ok(#(CompileSteps(scanned:, parsed:, typechecked:, interpreted:), deps_graph))
+    Ok(#(
+      CompileSteps(scanned:, parsed:, typechecked:, interpreted:),
+      deps_graph,
+    ))
   }
-  
+
   let state = case res {
     Error(e) -> {
       // If the process failed, we just set the error value as the cells value
-      State(..state, cells: grid.insert(state.cells, key, Cell(src:, outcome: Error(e))))
+      State(
+        ..state,
+        cells: grid.insert(state.cells, key, Cell(src:, outcome: Error(e))),
+      )
     }
     Ok(#(cell, deps_graph)) -> {
       // If the process succeeded, we need to update the cells value AND the dependency
       // graph with the cells new dependencies.
-       State(cells: grid.insert(state.cells, key, Cell(src:, outcome: Ok(cell))), deps_graph:)
+      State(
+        cells: grid.insert(state.cells, key, Cell(src:, outcome: Ok(cell))),
+        deps_graph:,
+      )
     }
   }
 

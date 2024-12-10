@@ -177,7 +177,7 @@ pub fn typecheck(
         })
 
       case defs {
-        1 -> Ok(typed_expr.LabelDef(typ.TNil, txt))
+        0 | 1 -> Ok(typed_expr.LabelDef(typ.TNil, txt))
         _ if defs > 1 ->
           Error(error.TypeError(type_error.TypeError("Duplicate Label")))
         _ ->

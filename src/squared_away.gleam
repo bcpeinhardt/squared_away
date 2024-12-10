@@ -14,8 +14,8 @@ import lustre/effect
 import lustre/element
 import lustre/element/html
 import lustre/event
-import squared_away/renderable_error
 import squared_away/compiler
+import squared_away/renderable_error
 import squared_away/squared_away_lang/error
 import squared_away/squared_away_lang/grid
 import squared_away/squared_away_lang/interpreter/value
@@ -61,12 +61,10 @@ type Model {
     display_formulas: Bool,
     active_cell: Option(grid.GridKey),
     compiler_state: compiler.State,
-    errors_to_display: List(#(grid.GridKey, error.CompileError)),
   )
 }
 
 fn init(_flags) -> #(Model, effect.Effect(Msg)) {
-
   let model =
     Model(
       holding_shift: False,
@@ -75,10 +73,11 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
       display_formulas: False,
       show_test_coverage: False,
       active_cell: None,
-      compiler_state: compiler.init_state(initial_grid_width, initial_grid_height),
-      errors_to_display: [],
+      compiler_state: compiler.init_state(
+        initial_grid_width,
+        initial_grid_height,
+      ),
     )
-    |> update_grid
 
   #(model, effect.none())
 }
@@ -173,29 +172,39 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
       let model =
         list.fold(model.compiler_state.cells |> grid.to_list, model, fn(acc, g) {
           let #(k, c) = g
-          
+
           case c.outcome {
             // If it never compiled in the first place, don't try to change it.
             Error(_) -> acc
             Ok(cs) -> {
-              
               // Create a new src string for the cell with the label updated
               let #(new_te, was_updated) =
                 typed_expr.update_labels(cs.typechecked, old.src, val)
-                
+
               // If the src for the cell changed, we need to update it
               case was_updated {
                 False -> acc
-                True -> Model(..acc, compiler_state: compiler.edit_cell(model.compiler_state, k, typed_expr.to_string(new_te)))
+                True ->
+                  Model(
+                    ..acc,
+                    compiler_state: compiler.edit_cell(
+                      model.compiler_state,
+                      k,
+                      typed_expr.to_string(new_te),
+                    ),
+                  )
               }
             }
           }
         })
-        
+
       // Set the actual value in the cell.
       // The compiler will handle updating the cells dependencies.
       let model =
-        Model(..model, compiler_state: compiler.edit_cell(model.compiler_state, key, val))
+        Model(
+          ..model,
+          compiler_state: compiler.edit_cell(model.compiler_state, key, val),
+        )
 
       #(model, effect.none())
     }
@@ -212,17 +221,33 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
       #(Model(..model, active_cell: None), effect.none())
     }
     UserPressedArrowUp(cell) ->
-      set_active_cell_to(model, grid.cell_above(model.compiler_state.cells, cell))
+      set_active_cell_to(
+        model,
+        grid.cell_above(model.compiler_state.cells, cell),
+      )
     UserPressedArrowLeft(cell) ->
-      set_active_cell_to(model, grid.cell_to_the_left(model.compiler_state.cells, cell))
+      set_active_cell_to(
+        model,
+        grid.cell_to_the_left(model.compiler_state.cells, cell),
+      )
     UserPressedArrowRight(cell) ->
-      set_active_cell_to(model, grid.cell_to_the_right(model.compiler_state.cells, cell))
+      set_active_cell_to(
+        model,
+        grid.cell_to_the_right(model.compiler_state.cells, cell),
+      )
     UserPressedArrowDown(cell) ->
-      set_active_cell_to(model, grid.cell_underneath(model.compiler_state.cells, cell))
+      set_active_cell_to(
+        model,
+        grid.cell_underneath(model.compiler_state.cells, cell),
+      )
     UserPressedEnter(cell) ->
-      set_active_cell_to(model, grid.cell_underneath(model.compiler_state.cells, cell))
+      set_active_cell_to(
+        model,
+        grid.cell_underneath(model.compiler_state.cells, cell),
+      )
     UserShiftPressedArrowRight(cell) -> {
-      let maybe_cell_to_right = grid.cell_to_the_right(model.compiler_state.cells, cell)
+      let maybe_cell_to_right =
+        grid.cell_to_the_right(model.compiler_state.cells, cell)
       case maybe_cell_to_right {
         Error(Nil) -> #(model, effect.none())
         Ok(cell_to_right) -> {
@@ -233,7 +258,7 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
 
           let curr_cell = compiler.get_cell(model.compiler_state, cell)
 
-          // if it doesn't typecheck, don't copy it over
+          // if it's errored, don't copy it over
           use <- bool.guard(curr_cell.outcome |> result.is_error, #(
             model,
             effect.none(),
@@ -242,125 +267,154 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
           let assert Ok(cs) = curr_cell.outcome
 
           let expr_with_labels_updated =
-            typed_expr.visit_cross_labels(cs.typechecked, fn(key, row_label, col_label) {
-              // For this case, we want to get the label directly to the right of the col label
+            typed_expr.visit_cross_labels(
+              cs.typechecked,
+              fn(key, row_label, col_label) {
+                // For this case, we want to get the label directly to the right of the col label
 
-              // This assertion is safe because we know the label is present in the grid,
-              // because we got it from a typechecked cross_label
-              let assert Ok(key_for_col) = grid.find_first(model.compiler_state.cells, fn(c) {
-                c.src == col_label
-              })
+                // This assertion is safe because we know the label is present in the grid,
+                // because we got it from a typechecked cross_label
+                let assert Ok(key_for_col) =
+                  grid.find_first(model.compiler_state.cells, fn(c) {
+                    c.src == col_label
+                  })
 
-              use key_for_new_col <- result.try(grid.cell_to_the_right(
-                model.compiler_state.cells,
-                key_for_col,
-              ))
+                use key_for_new_col <- result.try(grid.cell_to_the_right(
+                  model.compiler_state.cells,
+                  key_for_col,
+                ))
 
-              let maybe_new_label = compiler.get_cell(model.compiler_state, key_for_new_col)
-              let get_new_label = fn(
-                c: compiler.Cell,
-              ) {
-                use l <- result.try(c.outcome |> result.nil_error)
-                case l.typechecked {
-                  typed_expr.LabelDef(_, txt) -> Ok(txt)
-                  _ -> Error(Nil)
+                let maybe_new_label =
+                  compiler.get_cell(model.compiler_state, key_for_new_col)
+                let get_new_label = fn(c: compiler.Cell) {
+                  use l <- result.try(c.outcome |> result.nil_error)
+                  case l.typechecked {
+                    typed_expr.LabelDef(_, txt) -> Ok(txt)
+                    _ -> Error(Nil)
+                  }
                 }
-              }
-              use new_label <- result.try(get_new_label(maybe_new_label))
+                use new_label <- result.try(get_new_label(maybe_new_label))
 
-              // There was a cell to the right of the column label, so there 
-              // must be a cell to the right of this one as well
-              let assert Ok(new_key) =
-                grid.cell_to_the_right(model.src_grid, key)
+                // There was a cell to the right of the column label, so there 
+                // must be a cell to the right of this one as well
+                let assert Ok(new_key) =
+                  grid.cell_to_the_right(model.compiler_state.cells, key)
 
-              Ok(typed_expr.CrossLabel(
-                expr.type_,
-                new_key,
-                row_label,
-                new_label,
-              ))
-            })
+                Ok(typed_expr.CrossLabel(
+                  // The type here doesn't matter, I'm just producing a cross label I can
+                  // serialize.
+                  // This whole setup is pretty jank, I'd like to refactor it asap.
+                  typ.TNil,
+                  new_key,
+                  row_label,
+                  new_label,
+                ))
+              },
+            )
 
           case expr_with_labels_updated {
             Error(_) -> #(model, effect.none())
             Ok(new_expr) -> {
-              let formula = typed_expr.to_string(new_expr)
-              let src_grid = grid.insert(model.src_grid, cell_to_right, formula)
               let id = grid.to_string(cell_to_right)
+              let formula = typed_expr.to_string(new_expr)
               let new_model =
-                Model(..model, src_grid:, active_cell: Some(cell_to_right))
-              #(update_grid(new_model), focus(id))
+                Model(
+                  ..model,
+                  active_cell: Some(cell_to_right),
+                  compiler_state: compiler.edit_cell(
+                    model.compiler_state,
+                    cell_to_right,
+                    formula,
+                  ),
+                )
+              #(new_model, focus(id))
             }
           }
         }
       }
     }
     UserShiftPressedArrowDown(cell) -> {
-      let maybe_cell_below = grid.cell_underneath(model.src_grid, cell)
+      let maybe_cell_below =
+        grid.cell_underneath(model.compiler_state.cells, cell)
       case maybe_cell_below {
         Error(Nil) -> #(model, effect.none())
         Ok(cell_below) -> {
-          let scanned = lang.scan_grid(model.src_grid)
-          let parsed = lang.parse_grid(scanned)
-          let typechecked = lang.typecheck_grid(parsed)
-          let maybe_expr = grid.get(typechecked, cell)
+          let curr_cell = compiler.get_cell(model.compiler_state, cell)
 
-          // if it doesn't typecheck, don't copy it over
-          use <- bool.guard(maybe_expr |> result.is_error, #(
+          // if its an error, don't copy it over
+          use <- bool.guard(curr_cell.outcome |> result.is_error, #(
             model,
             effect.none(),
           ))
-          let assert Ok(expr) = maybe_expr
+          let assert Ok(cs) = curr_cell.outcome
 
           let expr_with_labels_updated =
-            typed_expr.visit_cross_labels(expr, fn(key, row_label, col_label) {
-              // For this case, we want to get the label directly below the row label
-              let assert Ok(key_for_row) = grid.find(model.src_grid, row_label)
+            typed_expr.visit_cross_labels(
+              cs.typechecked,
+              fn(key, row_label, col_label) {
+                // For this case, we want to get the label directly below the row label
+                let assert Ok(key_for_row) =
+                  grid.find_first(model.compiler_state.cells, fn(c) {
+                    c.src == row_label
+                  })
 
-              use key_for_new_row <- result.try(grid.cell_underneath(
-                model.src_grid,
-                key_for_row,
-              ))
+                use key_for_new_row <- result.try(grid.cell_underneath(
+                  model.compiler_state.cells,
+                  key_for_row,
+                ))
 
-              let maybe_new_label = grid.get(typechecked, key_for_new_row)
-              let get_new_label = fn(
-                l: Result(typed_expr.TypedExpr, error.CompileError),
-              ) {
-                case l {
-                  Ok(typed_expr.LabelDef(_, txt)) -> Ok(txt)
-                  _ -> Error(Nil)
+                let maybe_new_label =
+                  compiler.get_cell(model.compiler_state, key_for_new_row)
+                let get_new_label = fn(c: compiler.Cell) {
+                  use l <- result.try(c.outcome |> result.nil_error)
+                  case l.typechecked {
+                    typed_expr.LabelDef(_, txt) -> Ok(txt)
+                    _ -> Error(Nil)
+                  }
                 }
-              }
-              use new_label <- result.try(get_new_label(maybe_new_label))
+                use new_label <- result.try(get_new_label(maybe_new_label))
 
-              // We know there's a cell underneath because there was a cell underneath the row label
-              let assert Ok(new_key) = grid.cell_underneath(model.src_grid, key)
+                // We know there's a cell underneath because there was a cell underneath the row label
+                let assert Ok(new_key) =
+                  grid.cell_underneath(model.compiler_state.cells, key)
 
-              Ok(typed_expr.CrossLabel(
-                expr.type_,
-                new_key,
-                new_label,
-                col_label,
-              ))
-            })
+                Ok(typed_expr.CrossLabel(
+                  // The type here doesn't matter, just need a cross_label to serialize.
+                  // This needs refactoring for sure.
+                  typ.TNil,
+                  new_key,
+                  new_label,
+                  col_label,
+                ))
+              },
+            )
 
           case expr_with_labels_updated {
             Error(_) -> #(model, effect.none())
             Ok(new_expr) -> {
               let formula = typed_expr.to_string(new_expr)
-
-              let src_grid = grid.insert(model.src_grid, cell_below, formula)
               let id = grid.to_string(cell_below)
               let new_model =
-                Model(..model, src_grid:, active_cell: Some(cell_below))
-              #(update_grid(new_model), focus(id))
+                Model(
+                  ..model,
+                  active_cell: Some(cell_below),
+                  compiler_state: compiler.edit_cell(
+                    model.compiler_state,
+                    cell_below,
+                    formula,
+                  ),
+                )
+              #(new_model, focus(id))
             }
           }
         }
       }
     }
     UserClickedSaveBtn -> {
-      let content = grid.src_csv(model.src_grid)
+      let content =
+        model.compiler_state.cells
+        |> grid.map_values(fn(_, c) { c.src })
+        |> grid.src_csv
       save_file(content, "myspreadsheet.csv")
 
       #(model, effect.none())
@@ -380,11 +434,24 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
       #(model, get_file_contents_effect)
     }
     FileUploadComplete(file_content) -> {
+      // Load in the src grid
       let src_grid =
         file_content
         |> grid.from_src_csv(initial_grid_width, initial_grid_height)
-      let new_model = Model(..model, src_grid:) |> update_grid
-      #(new_model, effect.none())
+
+      // To create the new sheet, we'll start with an empty grid and fold
+      // in each cell value one by one
+      let new_grid =
+        src_grid
+        |> grid.fold(
+          compiler.init_state(initial_grid_width, initial_grid_height),
+          compiler.edit_cell,
+        )
+
+      #(
+        Model(..model, compiler_state: new_grid, active_cell: None),
+        effect.none(),
+      )
     }
   }
 }
@@ -400,14 +467,14 @@ fn set_active_cell_to(model: Model, key: Result(grid.GridKey, Nil)) {
 }
 
 fn view(model: Model) -> element.Element(Msg) {
-  let error_to_display =
-    list.find_map(model.errors_to_display, fn(e) {
-      case Some(e.0) == model.active_cell {
-        False -> Error(Nil)
-        True -> Ok(error_view(e.1 |> error.to_renderable_error))
+  let error_to_display = case model.active_cell {
+    None -> element.none()
+    Some(k) ->
+      case compiler.get_cell(model.compiler_state, k).outcome {
+        Error(e) -> error_view(e |> error.to_renderable_error)
+        Ok(_) -> element.none()
       }
-    })
-    |> result.unwrap(or: html.div([], []))
+  }
 
   let col_widths =
     list.range(1, initial_grid_width)
@@ -416,33 +483,31 @@ fn view(model: Model) -> element.Element(Msg) {
 
   // In show test coverage mode, we need to check the dependency lists of *all*
   // passing tests
-  let deps =
-    model.type_checked_grid
+
+  let passing_test_cells =
+    model.compiler_state.cells
     |> grid.to_list
-    |> list.filter_map(fn(g) {
-      let #(k, mte) = g
-      case mte {
-        Error(_) -> Error(Nil)
-        Ok(te) ->
-          case te.type_ {
-            typ.TTestResult ->
-              case grid.get(model.value_grid, k) {
-                Ok(value.TestPass) -> Ok(te)
-                _ -> Error(Nil)
-              }
-            _ -> Error(Nil)
-          }
+    |> list.filter_map(fn(c) {
+      let #(_, c) = c
+      use cs <- result.try(c.outcome |> result.nil_error)
+      case cs.interpreted {
+        value.TestPass -> Ok(cs.typechecked)
+        _ -> Error(Nil)
       }
     })
-    |> list.map(lang.dependency_list(
-      model.type_checked_grid,
+
+  let deps =
+    passing_test_cells
+    |> list.map(compiler.dependency_list(
+      model.compiler_state |> compiler.get_typechecked,
       _,
       [],
     ))
     |> list.flatten
+    |> list.unique
 
   let rows =
-    model.src_grid.cells
+    model.compiler_state.cells.cells
     |> list.group(grid.row)
     |> dict.map_values(fn(_, keys) {
       let cells =
@@ -450,6 +515,7 @@ fn view(model: Model) -> element.Element(Msg) {
           int.compare(k1 |> grid.col(), k2 |> grid.col())
         })
         |> list.map(fn(key) {
+          let cell = compiler.get_cell(model.compiler_state, key)
           let on_keydown = event.on("keydown", key_press_event(_, key))
           let on_input = event.on_input(UserSetCellValue(key:, val: _))
           let out_of_focus = event.on_blur(UserFocusedOffCell)
@@ -457,11 +523,11 @@ fn view(model: Model) -> element.Element(Msg) {
           let id = attribute.id(grid.to_string(key))
           let value =
             case model.display_formulas, model.active_cell == Some(key) {
-              True, _ | False, True -> grid.get(model.src_grid, key)
+              True, _ | False, True -> cell.src
               False, _ ->
-                case grid.get(model.value_grid, key) {
-                  Error(_) -> grid.get(model.src_grid, key)
-                  Ok(v) -> value.value_to_string(v)
+                case cell.outcome {
+                  Error(_) -> cell.src
+                  Ok(cs) -> cs.interpreted |> value.value_to_string
                 }
             }
             |> attribute.value
@@ -470,10 +536,10 @@ fn view(model: Model) -> element.Element(Msg) {
             model.active_cell == Some(key) || model.display_formulas
           {
             True ->
-              case grid.get(model.type_checked_grid, key) {
+              case cell.outcome {
                 Error(_) -> "left"
-                Ok(te) ->
-                  case te {
+                Ok(cs) ->
+                  case cs.typechecked {
                     typed_expr.PercentLiteral(_, _)
                     | typed_expr.BooleanLiteral(_, _)
                     | typed_expr.UsdLiteral(_, _)
@@ -483,10 +549,10 @@ fn view(model: Model) -> element.Element(Msg) {
                   }
               }
             False ->
-              case grid.get(model.value_grid, key) {
+              case cell.outcome {
                 Error(_) -> "left"
-                Ok(v) ->
-                  case v {
+                Ok(cs) ->
+                  case cs.interpreted {
                     value.Percent(_)
                     | value.Integer(_)
                     | value.FloatingPointNumber(_)
@@ -498,17 +564,17 @@ fn view(model: Model) -> element.Element(Msg) {
               }
           }
 
-          let cell_is_errored =
-            list.any(model.errors_to_display, fn(i) { i.0 == key })
+          let cell_is_errored = cell.outcome |> result.is_error
+
           let error_class = case cell_is_errored {
             False -> attribute.none()
             True -> attribute.class("errorcell")
           }
 
-          let colors = case grid.get(model.value_grid, key) {
+          let colors = case cell.outcome {
             Error(_) -> #("#b30000", "#ffe6e6")
-            Ok(v) ->
-              case v {
+            Ok(cs) ->
+              case cs.interpreted {
                 value.Text(_) -> #("#4a4a4a", "#f2f2f2")
                 value.TestPass -> #("#006400", "#e6ffe6")
                 value.TestFail -> #("#b30000", "#ffe6e6")
@@ -522,25 +588,23 @@ fn view(model: Model) -> element.Element(Msg) {
           {
             False, None -> colors
             False, Some(active_cell) ->
-              case grid.get(model.type_checked_grid, active_cell) {
+              case
+                compiler.get_cell(model.compiler_state, active_cell).outcome
+              {
                 Error(_) -> colors
-                Ok(typed_expr) ->
-                  case typed_expr.type_ {
-                    typ.TTestResult ->
-                      case grid.get(model.value_grid, active_cell) {
-                        Ok(value.TestPass) ->
-                          case
-                            lang.dependency_list(
-                              model.type_checked_grid,
-                              typed_expr,
-                              [],
-                            )
-                            |> list.contains(key)
-                          {
-                            False -> colors
-                            True -> #("#006400", "#e6ffe6")
-                          }
-                        _ -> colors
+                Ok(cs) ->
+                  case cs.interpreted {
+                    value.TestPass ->
+                      case
+                        compiler.dependency_list(
+                          model.compiler_state |> compiler.get_typechecked,
+                          cs.typechecked,
+                          [],
+                        )
+                        |> list.contains(key)
+                      {
+                        False -> colors
+                        True -> #("#006400", "#e6ffe6")
                       }
                     _ -> colors
                   }
@@ -550,28 +614,24 @@ fn view(model: Model) -> element.Element(Msg) {
                 True -> #("#006400", "#e6ffe6")
                 False -> {
                   // If it's a formula not covered by a test, we'll make it orange 
-                  case grid.get(model.type_checked_grid, key) {
+                  case cell.outcome {
                     Error(_) -> colors
-                    Ok(te) ->
-                      case grid.get(model.value_grid, key) {
-                        Error(_) -> colors
-                        Ok(v) ->
-                          case v {
-                            value.TestFail -> colors
-                            value.TestPass -> colors
-                            _ ->
-                              case te {
-                                typed_expr.BinaryOp(_, _, _, _)
-                                | typed_expr.BuiltinSum(_, _)
-                                | typed_expr.BuiltinAvg(_, _)
-                                | typed_expr.Group(_, _)
-                                | typed_expr.UnaryOp(_, _, _) -> #(
-                                  "#FFA500",
-                                  "#FFF8E1",
-                                )
+                    Ok(cs) ->
+                      case cs.interpreted {
+                        value.TestFail -> colors
+                        value.TestPass -> colors
+                        _ ->
+                          case cs.typechecked {
+                            typed_expr.BinaryOp(_, _, _, _)
+                            | typed_expr.BuiltinSum(_, _)
+                            | typed_expr.BuiltinAvg(_, _)
+                            | typed_expr.Group(_, _)
+                            | typed_expr.UnaryOp(_, _, _) -> #(
+                              "#FFA500",
+                              "#FFF8E1",
+                            )
 
-                                _ -> colors
-                              }
+                            _ -> colors
                           }
                       }
                   }
@@ -660,15 +720,19 @@ fn view(model: Model) -> element.Element(Msg) {
     ])
 
   let #(passed, total) =
-    model.value_grid
+    model.compiler_state.cells
     |> grid.to_list
     |> list.map(pair.second)
     |> list.fold(#(0, 0), fn(acc, x) {
       let #(passed, total) = acc
-      case x {
-        Ok(value.TestPass) -> #(passed + 1, total + 1)
-        Ok(value.TestFail) -> #(passed, total + 1)
-        _ -> #(passed, total)
+      case x.outcome {
+        Error(_) -> acc
+        Ok(cs) ->
+          case cs.interpreted {
+            value.TestFail -> #(passed, total + 1)
+            value.TestPass -> #(passed + 1, total + 1)
+            _ -> acc
+          }
       }
     })
 

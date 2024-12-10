@@ -6,8 +6,8 @@ import gleam/dict
 import gleam/int
 import gleam/list
 import gleam/order
-import gleam/result
 import gleam/pair
+import gleam/result
 import gsv
 
 // Making the type generic since we do a grid of src
@@ -72,7 +72,10 @@ pub fn find(grid: Grid(a), item: a) -> Result(GridKey, Nil) {
   })
 }
 
-pub fn find_first(grid: Grid(a), cell_that_satisfies func: fn(a) -> Bool) -> Result(GridKey, Nil) {
+pub fn find_first(
+  grid: Grid(a),
+  cell_that_satisfies func: fn(a) -> Bool,
+) -> Result(GridKey, Nil) {
   grid.inner
   |> dict.to_list
   |> list.find(fn(x) {

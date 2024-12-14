@@ -2,9 +2,11 @@
 //// an initial set of grids for all the cells, and try to only
 //// compile and update what we need based on the dependency graph.
 
+import squared_away/squared_away_lang/parser/parse_error
 import gleam/dict
 import gleam/list
 import gleam/option
+import gleam/bool
 import gleam/result
 import gleam/set
 import squared_away/squared_away_lang/error
@@ -107,6 +109,7 @@ pub fn edit_cell(state: State, key: grid.GridKey, src: String) -> State {
     use parsed <- result.try(
       parser.parse(scanned) |> result.map_error(error.ParseError),
     )
+    
     use typechecked <- result.try(typechecker.typecheck(
       state |> get_parsed,
       parsed,
@@ -132,6 +135,7 @@ pub fn edit_cell(state: State, key: grid.GridKey, src: String) -> State {
       state |> get_typechecked,
       typechecked,
     ))
+    
     Ok(#(
       CompileSteps(scanned:, parsed:, typechecked:, interpreted:),
       deps_graph,
@@ -147,8 +151,6 @@ pub fn edit_cell(state: State, key: grid.GridKey, src: String) -> State {
       )
     }
     Ok(#(cell, deps_graph)) -> {
-      // If the process succeeded, we need to update the cells value AND the dependency
-      // graph with the cells new dependencies.
       State(
         cells: grid.insert(state.cells, key, Cell(src:, outcome: Ok(cell))),
         deps_graph:,

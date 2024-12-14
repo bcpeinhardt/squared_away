@@ -7717,17 +7717,9 @@ function typecheck(env, expr) {
     );
     if (defs === 0) {
       return new Ok(new LabelDef2(new TNil(), txt));
-    } else if (defs === 1) {
-      return new Ok(new LabelDef2(new TNil(), txt));
-    } else if (defs > 1) {
-      return new Error(
-        new TypeError2(new TypeError("Duplicate Label"))
-      );
     } else {
       return new Error(
-        new TypeError2(
-          new TypeError("This is an internal compiler error.")
-        )
+        new TypeError2(new TypeError("Duplicate Label"))
       );
     }
   } else if (expr instanceof Label) {
@@ -9361,7 +9353,7 @@ function view(model) {
                         let _pipe$32 = model.compiler_state.deps_graph;
                         let _pipe$42 = filter(
                           _pipe$32,
-                          (k, v) => {
+                          (_2, v) => {
                             return contains(v, active_cell);
                           }
                         );

@@ -177,15 +177,9 @@ pub fn typecheck(
         })
 
       case defs {
-        0 | 1 -> Ok(typed_expr.LabelDef(typ.TNil, txt))
-        _ if defs > 1 ->
-          Error(error.TypeError(type_error.TypeError("Duplicate Label")))
+        0 -> Ok(typed_expr.LabelDef(typ.TNil, txt))
         _ ->
-          Error(
-            error.TypeError(type_error.TypeError(
-              "This is an internal compiler error.",
-            )),
-          )
+          Error(error.TypeError(type_error.TypeError("Duplicate Label")))
       }
     }
     expr.Label(txt) -> {

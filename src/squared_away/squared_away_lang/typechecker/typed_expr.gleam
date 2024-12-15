@@ -20,6 +20,7 @@ pub type TypedExpr {
   )
   LabelDef(type_: typ.Typ, txt: String)
   IntegerLiteral(type_: typ.Typ, n: Int)
+  StringLiteral(type_: typ.Typ, txt: String)
   BooleanLiteral(type_: typ.Typ, b: Bool)
   UnaryOp(type_: typ.Typ, op: expr.UnaryOpKind, expr: TypedExpr)
   BinaryOp(
@@ -136,6 +137,7 @@ fn do_to_string(te: TypedExpr) -> String {
     Empty(_) -> ""
     FloatLiteral(_, f) -> float.to_string(f)
     IntegerLiteral(_, i) -> int.to_string(i)
+    StringLiteral(_, txt) -> "\"" <> txt <> "\""
     PercentLiteral(_, p) ->
       rational.to_string(
         rational.multiply(p, rational.from_int(100)),

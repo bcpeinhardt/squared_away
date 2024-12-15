@@ -10,6 +10,22 @@ import squared_away/squared_away_lang/util/rational
 import squared_away/squared_away_lang/scanner/scan_error
 import squared_away/squared_away_lang/scanner/token
 
+fn get_str(
+  chars: String,
+  acc: String,
+) -> Result(#(String, String), scan_error.ScanError) {
+  case string.pop_grapheme(chars) {
+    // Error means we reached the end of the string without finding a closing quote
+    Error(_) -> Error(scan_error.ScanError("Missing closing quote for string"))
+    Ok(#(c, rest)) -> {
+      case c {
+        "\"" -> Ok(#(acc, rest))
+        _ -> get_str(rest, c <> acc)
+      }
+    }
+  }
+}
+
 pub fn scan(src: String) -> Result(List(token.Token), scan_error.ScanError) {
   case string.trim(src) {
     // No tokens will become an empty type
@@ -36,6 +52,18 @@ pub fn scan(src: String) -> Result(List(token.Token), scan_error.ScanError) {
       )
       Ok([token.UsdLiteral(dollars: n)])
     }
+
+    // String literal
+    // For now, we'll make a string literal be wrapped in quotes.
+    // We're not adding escape for backslashes or anything yet because I'm not convinced we'll
+    // keep this format, as most spreadsheets opt for unquoted text in cells.
+    "\"" <> rest ->
+      case get_str(rest, "") {
+        Error(e) -> Error(e)
+        Ok(#(str_content, "")) -> Ok([token.StringLiteral(str_content |> string.reverse)])
+        Ok(_) ->
+          Error(scan_error.ScanError("Found extra content after string literal"))
+      }
 
     txt -> {
       // Try an identifier

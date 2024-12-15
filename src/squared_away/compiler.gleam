@@ -2,11 +2,10 @@
 //// an initial set of grids for all the cells, and try to only
 //// compile and update what we need based on the dependency graph.
 
-import squared_away/squared_away_lang/parser/parse_error
+import gleam/bool
 import gleam/dict
 import gleam/list
 import gleam/option
-import gleam/bool
 import gleam/result
 import gleam/set
 import squared_away/squared_away_lang/error
@@ -15,6 +14,7 @@ import squared_away/squared_away_lang/interpreter
 import squared_away/squared_away_lang/interpreter/value
 import squared_away/squared_away_lang/parser
 import squared_away/squared_away_lang/parser/expr
+import squared_away/squared_away_lang/parser/parse_error
 import squared_away/squared_away_lang/scanner
 import squared_away/squared_away_lang/scanner/token
 import squared_away/squared_away_lang/typechecker
@@ -109,7 +109,7 @@ pub fn edit_cell(state: State, key: grid.GridKey, src: String) -> State {
     use parsed <- result.try(
       parser.parse(scanned) |> result.map_error(error.ParseError),
     )
-    
+
     use typechecked <- result.try(typechecker.typecheck(
       state |> get_parsed,
       parsed,
@@ -135,7 +135,7 @@ pub fn edit_cell(state: State, key: grid.GridKey, src: String) -> State {
       state |> get_typechecked,
       typechecked,
     ))
-    
+
     Ok(#(
       CompileSteps(scanned:, parsed:, typechecked:, interpreted:),
       deps_graph,
@@ -217,5 +217,6 @@ pub fn dependency_list(
     typed_expr.PercentLiteral(_, _) -> acc
     typed_expr.UnaryOp(_, _, inner) -> dependency_list(input, inner, acc)
     typed_expr.UsdLiteral(_, _) -> acc
+    typed_expr.StringLiteral(_, _) -> acc
   }
 }

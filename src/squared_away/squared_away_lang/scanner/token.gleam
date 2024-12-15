@@ -58,4 +58,6 @@ pub type Token {
   Minimum
 
   UpAnglePlus
+
+  StringLiteral(content_without_quotes: String)
 }

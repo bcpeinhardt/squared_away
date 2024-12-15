@@ -86,6 +86,12 @@ fn do_parse(
         Error(_) -> Ok(#(expr.PercentLiteral(percent), rest))
       }
     }
+    [token.StringLiteral(txt), ..rest] -> {
+      case try_parse_binary_ops(rest) {
+        Ok(#(op, rest)) -> Ok(#(op(expr.StringLiteral(txt)), rest))
+        Error(_) -> Ok(#(expr.StringLiteral(txt), rest))
+      }
+    }
 
     // Unary Ops
     [token.Minus, ..rest] -> {

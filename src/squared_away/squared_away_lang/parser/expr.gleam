@@ -5,6 +5,7 @@ import squared_away/squared_away_lang/util/rational
 pub type Expr {
   Empty
   FloatLiteral(f: Float)
+  StringLiteral(txt: String)
   UsdLiteral(cents: rational.Rat)
   PercentLiteral(percent: rational.Rat)
   LabelDef(txt: String)

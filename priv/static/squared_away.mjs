@@ -1110,6 +1110,20 @@ function graphemes_iterator(string3) {
     return segmenter.segment(string3)[Symbol.iterator]();
   }
 }
+function pop_grapheme(string3) {
+  let first3;
+  const iterator = graphemes_iterator(string3);
+  if (iterator) {
+    first3 = iterator.next().value?.segment;
+  } else {
+    first3 = string3.match(/./su)?.[0];
+  }
+  if (first3) {
+    return new Ok([first3, string3.slice(first3.length)]);
+  } else {
+    return new Error(Nil);
+  }
+}
 function uppercase(string3) {
   return string3.toUpperCase();
 }
@@ -2525,6 +2539,9 @@ function trim2(string3) {
 }
 function trim_left2(string3) {
   return trim_left(string3);
+}
+function pop_grapheme2(string3) {
+  return pop_grapheme(string3);
 }
 function inspect2(term) {
   let _pipe = inspect(term);
@@ -4783,6 +4800,12 @@ var FloatLiteral = class extends CustomType {
     this.f = f;
   }
 };
+var StringLiteral = class extends CustomType {
+  constructor(txt) {
+    super();
+    this.txt = txt;
+  }
+};
 var UsdLiteral = class extends CustomType {
   constructor(cents) {
     super();
@@ -5030,6 +5053,13 @@ var IntegerLiteral2 = class extends CustomType {
     this.n = n;
   }
 };
+var StringLiteral2 = class extends CustomType {
+  constructor(type_2, txt) {
+    super();
+    this.type_ = type_2;
+    this.txt = txt;
+  }
+};
 var BooleanLiteral2 = class extends CustomType {
   constructor(type_2, b) {
     super();
@@ -5205,6 +5235,9 @@ function do_to_string2(te) {
   } else if (te instanceof IntegerLiteral2) {
     let i = te.n;
     return to_string3(i);
+  } else if (te instanceof StringLiteral2) {
+    let txt = te.txt;
+    return '"' + txt + '"';
   } else if (te instanceof PercentLiteral2) {
     let p2 = te.percent;
     return to_string9(
@@ -5510,6 +5543,9 @@ function interpret(loop$env, loop$expr) {
     } else if (expr instanceof PercentLiteral2) {
       let r = expr.percent;
       return new Ok(new Percent(r));
+    } else if (expr instanceof StringLiteral2) {
+      let txt = expr.txt;
+      return new Ok(new Text2(txt));
     } else if (expr instanceof Group2) {
       let expr$1 = expr.expr;
       loop$env = env;
@@ -5712,7 +5748,7 @@ function interpret(loop$env, loop$expr) {
                           throw makeError(
                             "let_assert",
                             "squared_away/squared_away_lang/interpreter",
-                            160,
+                            161,
                             "",
                             "Pattern match failed, no pattern matched the value.",
                             { value: $ }
@@ -5748,7 +5784,7 @@ function interpret(loop$env, loop$expr) {
                       throw makeError(
                         "let_assert",
                         "squared_away/squared_away_lang/interpreter",
-                        182,
+                        183,
                         "",
                         "Pattern match failed, no pattern matched the value.",
                         { value: $ }
@@ -5906,7 +5942,7 @@ function interpret(loop$env, loop$expr) {
                           throw makeError(
                             "let_assert",
                             "squared_away/squared_away_lang/interpreter",
-                            302,
+                            303,
                             "",
                             "Pattern match failed, no pattern matched the value.",
                             { value: $ }
@@ -5997,7 +6033,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                354,
+                355,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -6018,7 +6054,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                362,
+                363,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -6039,7 +6075,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                370,
+                371,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -6109,7 +6145,7 @@ function interpret(loop$env, loop$expr) {
                 throw makeError(
                   "let_assert",
                   "squared_away/squared_away_lang/interpreter",
-                  411,
+                  412,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: v }
@@ -6135,7 +6171,7 @@ function interpret(loop$env, loop$expr) {
                 throw makeError(
                   "let_assert",
                   "squared_away/squared_away_lang/interpreter",
-                  422,
+                  423,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: v }
@@ -6156,7 +6192,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                432,
+                433,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -6274,6 +6310,12 @@ var BuiltinAvg2 = class extends CustomType {
 var MustBe2 = class extends CustomType {
 };
 var Minimum2 = class extends CustomType {
+};
+var StringLiteral3 = class extends CustomType {
+  constructor(content_without_quotes) {
+    super();
+    this.content_without_quotes = content_without_quotes;
+  }
 };
 
 // build/dev/javascript/squared_away/squared_away/squared_away_lang/parser.mjs
@@ -6827,6 +6869,17 @@ function do_parse2(tokens) {
     } else {
       return new Ok([new PercentLiteral(percent), rest]);
     }
+  } else if (tokens.atLeastLength(1) && tokens.head instanceof StringLiteral3) {
+    let txt = tokens.head.content_without_quotes;
+    let rest = tokens.tail;
+    let $ = try_parse_binary_ops(rest);
+    if ($.isOk()) {
+      let op = $[0][0];
+      let rest$1 = $[0][1];
+      return new Ok([op(new StringLiteral(txt)), rest$1]);
+    } else {
+      return new Ok([new StringLiteral(txt), rest]);
+    }
   } else if (tokens.atLeastLength(1) && tokens.head instanceof Minus) {
     let rest = tokens.tail;
     return try$(
@@ -6902,6 +6955,27 @@ function parse3(tokens) {
 }
 
 // build/dev/javascript/squared_away/squared_away/squared_away_lang/scanner.mjs
+function get_str(loop$chars, loop$acc) {
+  while (true) {
+    let chars = loop$chars;
+    let acc = loop$acc;
+    let $ = pop_grapheme2(chars);
+    if (!$.isOk()) {
+      return new Error(
+        new ScanError("Missing closing quote for string")
+      );
+    } else {
+      let c = $[0][0];
+      let rest = $[0][1];
+      if (c === '"') {
+        return new Ok([acc, rest]);
+      } else {
+        loop$chars = rest;
+        loop$acc = c + acc;
+      }
+    }
+  }
+}
 function parse_identifier(loop$src, loop$acc) {
   while (true) {
     let src = loop$src;
@@ -7338,6 +7412,29 @@ function scan(src) {
         );
       }
     );
+  } else if ($.startsWith('"')) {
+    let rest = $.slice(1);
+    let $1 = get_str(rest, "");
+    if (!$1.isOk()) {
+      let e = $1[0];
+      return new Error(e);
+    } else if ($1.isOk() && $1[0][1] === "") {
+      let str_content = $1[0][0];
+      return new Ok(
+        toList([
+          new StringLiteral3(
+            (() => {
+              let _pipe = str_content;
+              return reverse3(_pipe);
+            })()
+          )
+        ])
+      );
+    } else {
+      return new Error(
+        new ScanError("Found extra content after string literal")
+      );
+    }
   } else {
     let txt = $;
     let $1 = parse_identifier(txt, "");
@@ -7877,6 +7974,9 @@ function typecheck(env, expr) {
   } else if (expr instanceof IntegerLiteral) {
     let n = expr.n;
     return new Ok(new IntegerLiteral2(new TInt(), n));
+  } else if (expr instanceof StringLiteral) {
+    let txt = expr.txt;
+    return new Ok(new StringLiteral2(new TString(), txt));
   } else if (expr instanceof Group) {
     let inner = expr.inner;
     return try$(
@@ -8306,6 +8406,8 @@ function dependency_list(loop$input, loop$te, loop$acc) {
       loop$input = input2;
       loop$te = inner;
       loop$acc = acc;
+    } else if (te instanceof UsdLiteral2) {
+      return acc;
     } else {
       return acc;
     }

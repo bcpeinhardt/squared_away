@@ -178,8 +178,7 @@ pub fn typecheck(
 
       case defs {
         0 -> Ok(typed_expr.LabelDef(typ.TNil, txt))
-        _ ->
-          Error(error.TypeError(type_error.TypeError("Duplicate Label")))
+        _ -> Error(error.TypeError(type_error.TypeError("Duplicate Label")))
       }
     }
     expr.Label(txt) -> {
@@ -299,6 +298,7 @@ pub fn typecheck(
     expr.UsdLiteral(cents) -> Ok(typed_expr.UsdLiteral(type_: typ.TUsd, cents:))
     expr.PercentLiteral(p) -> Ok(typed_expr.PercentLiteral(typ.TPercent, p))
     expr.IntegerLiteral(n) -> Ok(typed_expr.IntegerLiteral(type_: typ.TInt, n:))
+    expr.StringLiteral(txt) -> Ok(typed_expr.StringLiteral(type_: typ.TString, txt:))
     expr.Group(inner) -> {
       use expr <- result.try(typecheck(env, inner))
       Ok(typed_expr.Group(type_: expr.type_, expr:))

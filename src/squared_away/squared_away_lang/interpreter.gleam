@@ -18,7 +18,7 @@ pub fn interpret(
 ) -> Result(value.Value, error.CompileError) {
   case expr {
     typed_expr.Empty(_) -> Ok(value.Empty)
-    typed_expr.LabelDef(_, txt) -> Ok(value.Text(txt))
+    typed_expr.LabelDef(_, txt) -> Ok(value.DoNotEvaluate(txt))
     typed_expr.UsdLiteral(_, cents) -> Ok(value.Usd(cents))
     typed_expr.PercentLiteral(_, r) -> Ok(value.Percent(r))
     typed_expr.StringLiteral(_, txt) -> Ok(value.Text(txt))

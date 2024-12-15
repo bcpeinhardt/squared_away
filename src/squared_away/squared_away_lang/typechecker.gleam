@@ -167,6 +167,8 @@ pub fn typecheck(
       }
     }
     expr.LabelDef(txt) -> {
+      // A Label Definition pointing at a label definition is an error
+      
       // Duplicate label definitions should be a type error
       let defs =
         grid.fold(env, 0, fn(count, _, expr) {
@@ -177,7 +179,8 @@ pub fn typecheck(
         })
 
       case defs {
-        0 -> Ok(typed_expr.LabelDef(typ.TNil, txt))
+        // A LabelDefinition should not be referenced in a formula.
+        0 -> Ok(typed_expr.LabelDef(typ.TDoNotEvaluate, txt))
         _ -> Error(error.TypeError(type_error.TypeError("Duplicate Label")))
       }
     }

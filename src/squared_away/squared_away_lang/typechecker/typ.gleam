@@ -7,6 +7,7 @@ pub type Typ {
   TTestResult
   TUsd
   TPercent
+  TDoNotEvaluate
 }
 
 pub fn to_string(typ: Typ) {
@@ -19,5 +20,6 @@ pub fn to_string(typ: Typ) {
     TTestResult -> "Test Result (Pass or Fail)"
     TUsd -> "Usd"
     TPercent -> "Percent"
+    TDoNotEvaluate -> "Not an expression"
   }
 }

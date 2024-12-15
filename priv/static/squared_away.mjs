@@ -4974,6 +4974,8 @@ var TUsd = class extends CustomType {
 };
 var TPercent = class extends CustomType {
 };
+var TDoNotEvaluate = class extends CustomType {
+};
 function to_string10(typ) {
   if (typ instanceof TNil) {
     return "Empty";
@@ -4989,8 +4991,10 @@ function to_string10(typ) {
     return "Test Result (Pass or Fail)";
   } else if (typ instanceof TUsd) {
     return "Usd";
-  } else {
+  } else if (typ instanceof TPercent) {
     return "Percent";
+  } else {
+    return "Not an expression";
   }
 }
 
@@ -5482,8 +5486,17 @@ var TestFail = class extends CustomType {
 };
 var TestPass = class extends CustomType {
 };
+var DoNotEvaluate = class extends CustomType {
+  constructor(txt) {
+    super();
+    this.txt = txt;
+  }
+};
 function value_to_string(fv) {
-  if (fv instanceof Empty4) {
+  if (fv instanceof DoNotEvaluate) {
+    let txt = fv.txt;
+    return txt;
+  } else if (fv instanceof Empty4) {
     return "";
   } else if (fv instanceof Text2) {
     let t2 = fv.inner;
@@ -5536,7 +5549,7 @@ function interpret(loop$env, loop$expr) {
       return new Ok(new Empty4());
     } else if (expr instanceof LabelDef2) {
       let txt = expr.txt;
-      return new Ok(new Text2(txt));
+      return new Ok(new DoNotEvaluate(txt));
     } else if (expr instanceof UsdLiteral2) {
       let cents = expr.cents;
       return new Ok(new Usd(cents));
@@ -7813,7 +7826,7 @@ function typecheck(env, expr) {
       }
     );
     if (defs === 0) {
-      return new Ok(new LabelDef2(new TNil(), txt));
+      return new Ok(new LabelDef2(new TDoNotEvaluate(), txt));
     } else {
       return new Error(
         new TypeError2(new TypeError("Duplicate Label"))
@@ -9402,6 +9415,8 @@ function view(model) {
                       return "center";
                     } else if ($22 instanceof Empty4) {
                       return "center";
+                    } else if ($22 instanceof Text2) {
+                      return "left";
                     } else {
                       return "left";
                     }
@@ -9426,7 +9441,7 @@ function view(model) {
                 } else {
                   let cs = $3[0];
                   let $12 = cs.interpreted;
-                  if ($12 instanceof Text2) {
+                  if ($12 instanceof DoNotEvaluate) {
                     return ["#4a4a4a", "#f2f2f2"];
                   } else if ($12 instanceof TestPass) {
                     return ["#006400", "#e6ffe6"];

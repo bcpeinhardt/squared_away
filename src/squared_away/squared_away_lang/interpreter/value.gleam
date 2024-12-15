@@ -14,10 +14,18 @@ pub type Value {
   Boolean(b: Bool)
   TestFail
   TestPass
+  
+  // There are cells whose content is never meant to be used in a formula.
+  // Their "value" at runtime should be this DoNotEvaluate to ensure they
+  // are not used. This includes:
+  // - Variable Definitions
+  // - Comments
+  DoNotEvaluate(txt: String)
 }
 
 pub fn value_to_string(fv: Value) -> String {
   case fv {
+    DoNotEvaluate(txt) -> txt
     Empty -> ""
     Text(t) -> t
     Integer(n) -> int.to_string(n)

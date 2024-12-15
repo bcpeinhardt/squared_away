@@ -560,6 +560,7 @@ fn view(model: Model) -> element.Element(Msg) {
                     | value.Boolean(_) -> "right"
                     value.TestFail | value.TestPass | value.Empty -> "center"
                     value.Text(_) -> "left"
+                    value.DoNotEvaluate(_) -> "left"
                   }
               }
           }
@@ -573,7 +574,7 @@ fn view(model: Model) -> element.Element(Msg) {
             Error(_) -> #("#b30000", "#ffe6e6")
             Ok(cs) ->
               case cs.interpreted {
-                value.Text(_) -> #("#4a4a4a", "#f2f2f2")
+                value.DoNotEvaluate(_) -> #("#4a4a4a", "#f2f2f2")
                 value.TestPass -> #("#006400", "#e6ffe6")
                 value.TestFail -> #("#b30000", "#ffe6e6")
                 _ -> #("black", "white")

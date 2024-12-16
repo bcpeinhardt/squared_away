@@ -3,6 +3,7 @@ import gleam/int
 import gleam/list.{Continue, Stop}
 import gleam/option.{None, Some}
 import gleam/result
+import gleam/io
 import squared_away/squared_away_lang/error
 import squared_away/squared_away_lang/grid
 import squared_away/squared_away_lang/parser/expr
@@ -167,7 +168,6 @@ pub fn typecheck(
       }
     }
     expr.LabelDef(txt) -> {
-      // A Label Definition pointing at a label definition is an error
       
       // Duplicate label definitions should be a type error
       let defs =
@@ -181,7 +181,7 @@ pub fn typecheck(
       case defs {
         // A LabelDefinition should not be referenced in a formula.
         0 -> Ok(typed_expr.LabelDef(typ.TDoNotEvaluate, txt))
-        _ -> Error(error.TypeError(type_error.TypeError("Duplicate Label")))
+        _ -> Error(error.TypeError(type_error.TypeError("Duplicate Label!!!")))
       }
     }
     expr.Label(txt) -> {
@@ -214,6 +214,11 @@ pub fn typecheck(
             Ok(expr.Label(ltxt)) if ltxt == txt -> {
               Error(
                 error.TypeError(type_error.TypeError("Label points to itself")),
+              )
+            }
+            Ok(expr.LabelDef(ldtxt)) -> {
+              Error(
+                error.TypeError(type_error.TypeError("Label points to another label definition, cannot be used as a standalone label. Did you mean to use a cross_label?"))
               )
             }
             Ok(expr) -> {

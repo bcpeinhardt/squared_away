@@ -7523,7 +7523,7 @@ function typecheck(env, expr) {
       throw makeError(
         "let_assert",
         "squared_away/squared_away_lang/typechecker",
-        20,
+        21,
         "typecheck",
         "Pattern match failed, no pattern matched the value.",
         { value: key }
@@ -7587,7 +7587,7 @@ function typecheck(env, expr) {
                 throw makeError(
                   "let_assert",
                   "squared_away/squared_away_lang/typechecker",
-                  58,
+                  59,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: i }
@@ -7620,7 +7620,7 @@ function typecheck(env, expr) {
                     throw makeError(
                       "let_assert",
                       "squared_away/squared_away_lang/typechecker",
-                      75,
+                      76,
                       "",
                       "Pattern match failed, no pattern matched the value.",
                       { value: t2 }
@@ -7670,7 +7670,7 @@ function typecheck(env, expr) {
       throw makeError(
         "let_assert",
         "squared_away/squared_away_lang/typechecker",
-        95,
+        96,
         "typecheck",
         "Pattern match failed, no pattern matched the value.",
         { value: key }
@@ -7734,7 +7734,7 @@ function typecheck(env, expr) {
                 throw makeError(
                   "let_assert",
                   "squared_away/squared_away_lang/typechecker",
-                  133,
+                  134,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: i }
@@ -7767,7 +7767,7 @@ function typecheck(env, expr) {
                     throw makeError(
                       "let_assert",
                       "squared_away/squared_away_lang/typechecker",
-                      150,
+                      151,
                       "",
                       "Pattern match failed, no pattern matched the value.",
                       { value: t2 }
@@ -7829,7 +7829,7 @@ function typecheck(env, expr) {
       return new Ok(new LabelDef2(new TDoNotEvaluate(), txt));
     } else {
       return new Error(
-        new TypeError2(new TypeError("Duplicate Label"))
+        new TypeError2(new TypeError("Duplicate Label!!!"))
       );
     }
   } else if (expr instanceof Label) {
@@ -7876,6 +7876,15 @@ function typecheck(env, expr) {
         return new Error(
           new TypeError2(
             new TypeError("Label points to itself")
+          )
+        );
+      } else if (x.isOk() && x[0] instanceof LabelDef) {
+        let ldtxt = x[0].txt;
+        return new Error(
+          new TypeError2(
+            new TypeError(
+              "Label points to another label definition, cannot be used as a standalone label. Did you mean to use a cross_label?"
+            )
           )
         );
       } else {

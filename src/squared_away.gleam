@@ -162,51 +162,8 @@ fn key_press_event(event, cell) {
 fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
   case msg {
     UserSetCellValue(key, val) -> {
-      let old = compiler.get_cell(model.compiler_state, key)
-
-      // If updating a label, 
-      // for every typed_expr that references the label, 
-      // we need to update the source.
-      // We do this by passing in the new label name to the typechecked expression
-      // and re-serializing it to a string.
-      let model =
-        list.fold(model.compiler_state.cells |> grid.to_list, model, fn(acc, g) {
-          let #(k, c) = g
-
-          case c.outcome {
-            // If it never compiled in the first place, don't try to change it.
-            Error(_) -> acc
-            Ok(cs) -> {
-              // Create a new src string for the cell with the label updated
-              let #(new_te, was_updated) =
-                typed_expr.update_labels(cs.typechecked, old.src, val)
-
-              // If the src for the cell changed, we need to update it
-              case was_updated {
-                False -> acc
-                True ->
-                  Model(
-                    ..acc,
-                    compiler_state: compiler.edit_cell(
-                      model.compiler_state,
-                      k,
-                      typed_expr.to_string(new_te),
-                    ),
-                  )
-              }
-            }
-          }
-        })
-
-      // Set the actual value in the cell.
-      // The compiler will handle updating the cells dependencies.
-      let model =
-        Model(
-          ..model,
-          compiler_state: compiler.edit_cell(model.compiler_state, key, val),
-        )
-
-      #(model, effect.none())
+      let compiler_state = model.compiler_state |> compiler.edit_cell(key, val)
+      #(Model(..model, compiler_state:), effect.none())
     }
     UserToggledFormulaMode(display_formulas) -> {
       #(Model(..model, display_formulas:), effect.none())

@@ -1,9 +1,9 @@
 import gleam/bool
 import gleam/int
+import gleam/io
 import gleam/list.{Continue, Stop}
 import gleam/option.{None, Some}
 import gleam/result
-import gleam/io
 import squared_away/squared_away_lang/error
 import squared_away/squared_away_lang/grid
 import squared_away/squared_away_lang/parser/expr
@@ -168,7 +168,6 @@ pub fn typecheck(
       }
     }
     expr.LabelDef(txt) -> {
-      
       // Duplicate label definitions should be a type error
       let defs =
         grid.fold(env, 0, fn(count, _, expr) {
@@ -196,8 +195,9 @@ pub fn typecheck(
             _ -> Continue(None)
           }
         })
-        
-        let key = label_def_key
+
+      let key =
+        label_def_key
         |> option.map(grid.cell_to_the_right(env, _))
         |> option.map(option.from_result)
         |> option.flatten
@@ -214,12 +214,15 @@ pub fn typecheck(
             }
             Ok(expr.LabelDef(ldtxt)) -> {
               Error(
-                error.TypeError(type_error.TypeError("Label points to another label definition, cannot be used as a standalone label. Did you mean to use a cross_label?"))
+                error.TypeError(type_error.TypeError(
+                  "Label points to another label definition, cannot be used as a standalone label. Did you mean to use a cross_label?",
+                )),
               )
             }
             Ok(expr) -> {
               case typecheck(env, expr) {
-                Ok(te) -> Ok(typed_expr.Label(type_: te.type_, key:, def_key:, txt:))
+                Ok(te) ->
+                  Ok(typed_expr.Label(type_: te.type_, key:, def_key:, txt:))
                 Error(e) -> Error(e)
               }
             }
@@ -308,7 +311,8 @@ pub fn typecheck(
     expr.UsdLiteral(cents) -> Ok(typed_expr.UsdLiteral(type_: typ.TUsd, cents:))
     expr.PercentLiteral(p) -> Ok(typed_expr.PercentLiteral(typ.TPercent, p))
     expr.IntegerLiteral(n) -> Ok(typed_expr.IntegerLiteral(type_: typ.TInt, n:))
-    expr.StringLiteral(txt) -> Ok(typed_expr.StringLiteral(type_: typ.TString, txt:))
+    expr.StringLiteral(txt) ->
+      Ok(typed_expr.StringLiteral(type_: typ.TString, txt:))
     expr.Group(inner) -> {
       use expr <- result.try(typecheck(env, inner))
       Ok(typed_expr.Group(type_: expr.type_, expr:))

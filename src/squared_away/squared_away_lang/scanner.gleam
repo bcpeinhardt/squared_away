@@ -60,7 +60,8 @@ pub fn scan(src: String) -> Result(List(token.Token), scan_error.ScanError) {
     "\"" <> rest ->
       case get_str(rest, "") {
         Error(e) -> Error(e)
-        Ok(#(str_content, "")) -> Ok([token.StringLiteral(str_content |> string.reverse)])
+        Ok(#(str_content, "")) ->
+          Ok([token.StringLiteral(str_content |> string.reverse)])
         Ok(_) ->
           Error(scan_error.ScanError("Found extra content after string literal"))
       }

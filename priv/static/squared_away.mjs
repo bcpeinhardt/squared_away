@@ -5155,72 +5155,6 @@ function visit_cross_labels(te, f) {
     return new Ok(te);
   }
 }
-function update_labels(ex, old, new$5) {
-  if (ex instanceof BinaryOp2) {
-    let t2 = ex.type_;
-    let lhs = ex.lhs;
-    let op = ex.op;
-    let rhs = ex.rhs;
-    let $ = update_labels(lhs, old, new$5);
-    let lhs$1 = $[0];
-    let u1 = $[1];
-    let $1 = update_labels(rhs, old, new$5);
-    let rhs$1 = $1[0];
-    let u2 = $1[1];
-    return [new BinaryOp2(t2, lhs$1, op, rhs$1), u1 || u2];
-  } else if (ex instanceof CrossLabel2) {
-    let type_2 = ex.type_;
-    let key = ex.key;
-    let row_label = ex.row_label;
-    let col_label = ex.col_label;
-    let row_label$1 = (() => {
-      let $ = row_label === old;
-      if ($) {
-        return new$5;
-      } else {
-        return row_label;
-      }
-    })();
-    let col_label$1 = (() => {
-      let $ = col_label === old;
-      if ($) {
-        return new$5;
-      } else {
-        return col_label;
-      }
-    })();
-    return [
-      new CrossLabel2(type_2, key, row_label$1, col_label$1),
-      row_label$1 === old || col_label$1 === old
-    ];
-  } else if (ex instanceof Group2) {
-    let t2 = ex.type_;
-    let inner = ex.expr;
-    let $ = update_labels(inner, old, new$5);
-    let new$1 = $[0];
-    let updated = $[1];
-    return [new Group2(t2, new$1), updated];
-  } else if (ex instanceof Label2 && ex.txt === old) {
-    let type_2 = ex.type_;
-    let key = ex.key;
-    let def_key = ex.def_key;
-    let txt = ex.txt;
-    return [new Label2(type_2, key, def_key, new$5), true];
-  } else if (ex instanceof Label2) {
-    let l = ex;
-    return [l, false];
-  } else if (ex instanceof UnaryOp2) {
-    let t2 = ex.type_;
-    let op = ex.op;
-    let inner = ex.expr;
-    let $ = update_labels(inner, old, new$5);
-    let new$1 = $[0];
-    let updated = $[1];
-    return [new UnaryOp2(t2, op, new$1), updated];
-  } else {
-    return [ex, false];
-  }
-}
 function do_to_string2(te) {
   if (te instanceof BooleanLiteral2) {
     let b = te.b;
@@ -8443,6 +8377,7 @@ function dependency_list(loop$input, loop$te, loop$acc) {
   }
 }
 function edit_cell(state, key, src) {
+  let old_cell = get4(state.cells, key);
   let res = try$(
     (() => {
       let _pipe = scan(src);
@@ -8572,7 +8507,8 @@ function edit_cell(state, key, src) {
       _pipe,
       state$1,
       (s, k) => {
-        return edit_cell(s, k, get4(s.cells, k).src);
+        let c = get4(s.cells, k);
+        return edit_cell(s, k, c.src);
       }
     );
   })();
@@ -8811,42 +8747,14 @@ function update(model, msg) {
   if (msg instanceof UserSetCellValue) {
     let key = msg.key;
     let val = msg.val;
-    let old = get_cell(model.compiler_state, key);
-    let model$1 = fold2(
-      (() => {
-        let _pipe = model.compiler_state.cells;
-        return to_list3(_pipe);
-      })(),
-      model,
-      (acc, g) => {
-        let k = g[0];
-        let c = g[1];
-        let $ = c.outcome;
-        if (!$.isOk()) {
-          return acc;
-        } else {
-          let cs = $[0];
-          let $1 = update_labels(cs.typechecked, old.src, val);
-          let new_te = $1[0];
-          let was_updated = $1[1];
-          if (!was_updated) {
-            return acc;
-          } else {
-            return acc.withFields({
-              compiler_state: edit_cell(
-                model.compiler_state,
-                k,
-                to_string11(new_te)
-              )
-            });
-          }
-        }
-      }
-    );
-    let model$2 = model$1.withFields({
-      compiler_state: edit_cell(model$1.compiler_state, key, val)
-    });
-    return [model$2, none()];
+    let compiler_state = (() => {
+      let _pipe = model.compiler_state;
+      return edit_cell(_pipe, key, val);
+    })();
+    return [
+      model.withFields({ compiler_state }),
+      none()
+    ];
   } else if (msg instanceof UserToggledFormulaMode) {
     let display_formulas = msg.to;
     return [
@@ -8917,7 +8825,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              267,
+              224,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: $ }
@@ -8937,7 +8845,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  277,
+                  234,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $1 }
@@ -8979,7 +8887,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          300,
+                          257,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $2 }
@@ -9042,7 +8950,7 @@ function update(model, msg) {
             throw makeError(
               "let_assert",
               "squared_away",
-              349,
+              306,
               "",
               "Pattern match failed, no pattern matched the value.",
               { value: $ }
@@ -9062,7 +8970,7 @@ function update(model, msg) {
                 throw makeError(
                   "let_assert",
                   "squared_away",
-                  356,
+                  313,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: $1 }
@@ -9104,7 +9012,7 @@ function update(model, msg) {
                         throw makeError(
                           "let_assert",
                           "squared_away",
-                          378,
+                          335,
                           "",
                           "Pattern match failed, no pattern matched the value.",
                           { value: $2 }

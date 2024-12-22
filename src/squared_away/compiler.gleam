@@ -87,6 +87,8 @@ pub fn get_interpreted(state: State) {
 }
 
 pub fn edit_cell(state: State, key: grid.GridKey, src: String) -> State {
+  let old_cell = grid.get(state.cells, key)
+
   // Scan, parse, typecheck, and evaluate the cell
   let res = {
     use scanned <- result.try(
@@ -162,7 +164,10 @@ pub fn edit_cell(state: State, key: grid.GridKey, src: String) -> State {
   let deps = state.deps_graph |> dict.get(key) |> result.unwrap(or: [])
   let new_state =
     deps
-    |> list.fold(state, fn(s, k) { edit_cell(s, k, grid.get(s.cells, k).src) })
+    |> list.fold(state, fn(s, k) {
+      let c = grid.get(s.cells, k)
+      edit_cell(s, k, c.src)
+    })
   new_state
 }
 

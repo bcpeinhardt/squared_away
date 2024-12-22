@@ -14,7 +14,7 @@ pub type Value {
   Boolean(b: Bool)
   TestFail
   TestPass
-  
+
   // There are cells whose content is never meant to be used in a formula.
   // Their "value" at runtime should be this DoNotEvaluate to ensure they
   // are not used. This includes:

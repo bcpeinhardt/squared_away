@@ -29,12 +29,12 @@ pub fn interpret(
         Error(_) -> Ok(value.Empty)
       }
     }
-    typed_expr.Label(_, key, txt) -> {
+    typed_expr.Label(_, key, _, txt) -> {
       case grid.get(env, key) {
         Error(e) -> Error(e)
         Ok(te) -> {
           case te {
-            typed_expr.Label(_, _, ltxt) if ltxt == txt -> {
+            typed_expr.Label(_, _, _, ltxt) if ltxt == txt -> {
               Error(
                 error.RuntimeError(runtime_error.RuntimeError(
                   "Label points to itself",

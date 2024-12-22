@@ -5027,10 +5027,11 @@ var PercentLiteral2 = class extends CustomType {
   }
 };
 var Label2 = class extends CustomType {
-  constructor(type_2, key, txt) {
+  constructor(type_2, key, def_key, txt) {
     super();
     this.type_ = type_2;
     this.key = key;
+    this.def_key = def_key;
     this.txt = txt;
   }
 };
@@ -5202,8 +5203,9 @@ function update_labels(ex, old, new$5) {
   } else if (ex instanceof Label2 && ex.txt === old) {
     let type_2 = ex.type_;
     let key = ex.key;
+    let def_key = ex.def_key;
     let txt = ex.txt;
-    return [new Label2(type_2, key, new$5), true];
+    return [new Label2(type_2, key, def_key, new$5), true];
   } else if (ex instanceof Label2) {
     let l = ex;
     return [l, false];
@@ -7834,10 +7836,10 @@ function typecheck(env, expr) {
     }
   } else if (expr instanceof Label) {
     let txt = expr.txt;
-    let key = (() => {
+    let label_def_key = (() => {
       let _pipe = env;
       let _pipe$1 = to_list3(_pipe);
-      let _pipe$2 = fold_until(
+      return fold_until(
         _pipe$1,
         new None(),
         (_, i) => {
@@ -7850,22 +7852,20 @@ function typecheck(env, expr) {
           }
         }
       );
-      let _pipe$3 = map(
-        _pipe$2,
+    })();
+    let key = (() => {
+      let _pipe = label_def_key;
+      let _pipe$1 = map(
+        _pipe,
         (_capture) => {
           return cell_to_the_right(env, _capture);
         }
       );
-      let _pipe$4 = map(_pipe$3, from_result);
-      return flatten(_pipe$4);
+      let _pipe$2 = map(_pipe$1, from_result);
+      return flatten(_pipe$2);
     })();
-    if (key instanceof None) {
-      return new Error(
-        new TypeError2(
-          new TypeError("Label doesn't point to anything")
-        )
-      );
-    } else {
+    if (label_def_key instanceof Some && key instanceof Some) {
+      let def_key = label_def_key[0];
       let key$1 = key[0];
       let x = get4(env, key$1);
       if (!x.isOk()) {
@@ -7892,12 +7892,18 @@ function typecheck(env, expr) {
         let $ = typecheck(env, expr$1);
         if ($.isOk()) {
           let te = $[0];
-          return new Ok(new Label2(te.type_, key$1, txt));
+          return new Ok(new Label2(te.type_, key$1, def_key, txt));
         } else {
           let e = $[0];
           return new Error(e);
         }
       }
+    } else {
+      return new Error(
+        new TypeError2(
+          new TypeError("Label doesn't point to anything")
+        )
+      );
     }
   } else if (expr instanceof CrossLabel) {
     let row2 = expr.row;
@@ -8410,14 +8416,15 @@ function dependency_list(loop$input, loop$te, loop$acc) {
       return acc;
     } else if (te instanceof Label2) {
       let key = te.key;
+      let def_key = te.def_key;
       let $ = get4(input2, key);
       if (!$.isOk()) {
-        return prepend(key, acc);
+        return prepend(key, prepend(def_key, acc));
       } else {
         let te$1 = $[0];
         loop$input = input2;
         loop$te = te$1;
-        loop$acc = prepend(key, acc);
+        loop$acc = prepend(key, prepend(def_key, acc));
       }
     } else if (te instanceof LabelDef2) {
       return acc;

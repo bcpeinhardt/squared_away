@@ -11,7 +11,7 @@ pub type TypedExpr {
   FloatLiteral(type_: typ.Typ, f: Float)
   UsdLiteral(type_: typ.Typ, cents: rational.Rat)
   PercentLiteral(type_: typ.Typ, percent: rational.Rat)
-  Label(type_: typ.Typ, key: grid.GridKey, txt: String)
+  Label(type_: typ.Typ, key: grid.GridKey, def_key: grid.GridKey, txt: String)
   CrossLabel(
     type_: typ.Typ,
     key: grid.GridKey,
@@ -100,11 +100,11 @@ pub fn update_labels(
       let #(new, updated) = update_labels(inner, old, new)
       #(Group(t, new), updated)
     }
-    Label(key:, txt:, type_:) if txt == old -> #(
-      Label(key:, txt: new, type_:),
+    Label(key:, txt:, def_key:, type_:) if txt == old -> #(
+      Label(key:, txt: new, type_:, def_key:),
       True,
     )
-    Label(_, _, _) as l -> #(l, False)
+    Label(_, _, _, _) as l -> #(l, False)
     UnaryOp(t, op, inner) -> {
       let #(new, updated) = update_labels(inner, old, new)
       #(UnaryOp(t, op, new), updated)
@@ -115,7 +115,7 @@ pub fn update_labels(
 
 pub fn to_string(te: TypedExpr) -> String {
   case te {
-    Label(_, _, _)
+    Label(_, _, _, _)
     | UnaryOp(_, _, _)
     | BinaryOp(_, _, _, _)
     | Group(_, _)
@@ -145,7 +145,7 @@ fn do_to_string(te: TypedExpr) -> String {
         False,
       )
       <> "%"
-    Label(_, _, l) -> l
+    Label(_, _, _, l) -> l
     LabelDef(_, l) -> l
     Group(_, t) -> "(" <> do_to_string(t) <> ")"
     UnaryOp(_, op, te) -> expr.unary_to_string(op) <> do_to_string(te)

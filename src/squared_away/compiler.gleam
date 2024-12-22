@@ -2,7 +2,6 @@
 //// an initial set of grids for all the cells, and try to only
 //// compile and update what we need based on the dependency graph.
 
-import gleam/bool
 import gleam/dict
 import gleam/list
 import gleam/option
@@ -14,7 +13,6 @@ import squared_away/squared_away_lang/interpreter
 import squared_away/squared_away_lang/interpreter/value
 import squared_away/squared_away_lang/parser
 import squared_away/squared_away_lang/parser/expr
-import squared_away/squared_away_lang/parser/parse_error
 import squared_away/squared_away_lang/scanner
 import squared_away/squared_away_lang/scanner/token
 import squared_away/squared_away_lang/typechecker
@@ -144,7 +142,7 @@ pub fn edit_cell(state: State, key: grid.GridKey, src: String) -> State {
 
   let state = case res {
     Error(e) -> {
-      // If the process failed, we just set the error value as the cells value
+      // If the process failed, we just set the error value as the cells value.
       State(
         ..state,
         cells: grid.insert(state.cells, key, Cell(src:, outcome: Error(e))),
@@ -208,10 +206,10 @@ pub fn dependency_list(
     typed_expr.FloatLiteral(_, _) -> acc
     typed_expr.Group(_, inner) -> dependency_list(input, inner, acc)
     typed_expr.IntegerLiteral(_, _) -> acc
-    typed_expr.Label(_, key:, txt: _) ->
+    typed_expr.Label(_, key:, def_key:, txt: _) ->
       case grid.get(input, key) {
-        Error(_) -> [key, ..acc]
-        Ok(te) -> dependency_list(input, te, [key, ..acc])
+        Error(_) -> [key, def_key, ..acc]
+        Ok(te) -> dependency_list(input, te, [key, def_key, ..acc])
       }
     typed_expr.LabelDef(_, _) -> acc
     typed_expr.PercentLiteral(_, _) -> acc

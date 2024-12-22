@@ -185,7 +185,7 @@ pub fn typecheck(
       }
     }
     expr.Label(txt) -> {
-      let key =
+      let label_def_key =
         env
         |> grid.to_list
         |> list.fold_until(None, fn(_, i) {
@@ -196,18 +196,14 @@ pub fn typecheck(
             _ -> Continue(None)
           }
         })
+        
+        let key = label_def_key
         |> option.map(grid.cell_to_the_right(env, _))
         |> option.map(option.from_result)
         |> option.flatten
 
-      case key {
-        None ->
-          Error(
-            error.TypeError(type_error.TypeError(
-              "Label doesn't point to anything",
-            )),
-          )
-        Some(key) -> {
+      case label_def_key, key {
+        Some(def_key), Some(key) -> {
           let x = grid.get(env, key)
           case x {
             Error(e) -> Error(e)
@@ -223,12 +219,18 @@ pub fn typecheck(
             }
             Ok(expr) -> {
               case typecheck(env, expr) {
-                Ok(te) -> Ok(typed_expr.Label(type_: te.type_, key:, txt:))
+                Ok(te) -> Ok(typed_expr.Label(type_: te.type_, key:, def_key:, txt:))
                 Error(e) -> Error(e)
               }
             }
           }
         }
+        _, _ ->
+          Error(
+            error.TypeError(type_error.TypeError(
+              "Label doesn't point to anything",
+            )),
+          )
       }
     }
     expr.CrossLabel(row:, col:) -> {

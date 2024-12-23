@@ -63,5 +63,6 @@ pub fn describe_binary_op_kind_for_err(bo: expr.BinaryOpKind) -> String {
     expr.Subtract -> "Subtraction `-`"
     expr.MustBe -> "MustBe `mustbe`"
     expr.Minimum -> "Minimum `min`"
+    expr.Maximum -> "Maximum `max`"
   }
 }

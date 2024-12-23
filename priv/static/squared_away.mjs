@@ -1432,6 +1432,14 @@ function min(a, b) {
     return b;
   }
 }
+function max(a, b) {
+  let $ = a > b;
+  if ($) {
+    return a;
+  } else {
+    return b;
+  }
+}
 function ceiling2(x) {
   return ceiling(x);
 }
@@ -1502,7 +1510,7 @@ function min2(a, b) {
     return b;
   }
 }
-function max(a, b) {
+function max2(a, b) {
   let $ = a > b;
   if ($) {
     return a;
@@ -4790,6 +4798,19 @@ function min3(r1, r2) {
     return r2;
   }
 }
+function max3(r1, r2) {
+  let $ = subtract2(r1, r2);
+  let x = $.numerator;
+  let y = $.denominator;
+  let num_neg = isEqual(compare4(x, from2(0)), new Lt());
+  let den_neg = isEqual(compare4(y, from2(0)), new Lt());
+  let $1 = num_neg === den_neg;
+  if (!$1) {
+    return r2;
+  } else {
+    return r1;
+  }
+}
 
 // build/dev/javascript/squared_away/squared_away/squared_away_lang/parser/expr.mjs
 var Empty2 = class extends CustomType {
@@ -4912,6 +4933,8 @@ var MustBe = class extends CustomType {
 };
 var Minimum = class extends CustomType {
 };
+var Maximum = class extends CustomType {
+};
 var Negate = class extends CustomType {
 };
 var Not = class extends CustomType {
@@ -4945,8 +4968,10 @@ function binary_to_string(b) {
     return "-";
   } else if (b instanceof MustBe) {
     return "mustbe";
-  } else {
+  } else if (b instanceof Minimum) {
     return "min";
+  } else {
+    return "max";
   }
 }
 function unary_to_string(u) {
@@ -5295,8 +5320,10 @@ function describe_binary_op_kind_for_err(bo) {
     return "Subtraction `-`";
   } else if (bo instanceof MustBe) {
     return "MustBe `mustbe`";
-  } else {
+  } else if (bo instanceof Minimum) {
     return "Minimum `min`";
+  } else {
+    return "Maximum `max`";
   }
 }
 function to_renderable_error(te) {
@@ -5624,6 +5651,10 @@ function interpret(loop$env, loop$expr) {
                 let a = lhs2.n;
                 let b = rhs2.n;
                 return new Ok(new Integer(min2(a, b)));
+              } else if (lhs2 instanceof Integer && op instanceof Maximum && rhs2 instanceof Integer) {
+                let a = lhs2.n;
+                let b = rhs2.n;
+                return new Ok(new Integer(max2(a, b)));
               } else if (lhs2 instanceof FloatingPointNumber && op instanceof Add && rhs2 instanceof FloatingPointNumber) {
                 let a = lhs2.f;
                 let b = rhs2.f;
@@ -5668,6 +5699,10 @@ function interpret(loop$env, loop$expr) {
                 let a = lhs2.f;
                 let b = rhs2.f;
                 return new Ok(new FloatingPointNumber(min(a, b)));
+              } else if (lhs2 instanceof FloatingPointNumber && op instanceof Maximum && rhs2 instanceof FloatingPointNumber) {
+                let a = lhs2.f;
+                let b = rhs2.f;
+                return new Ok(new FloatingPointNumber(max(a, b)));
               } else if (lhs2 instanceof FloatingPointNumber && op instanceof Power && rhs2 instanceof FloatingPointNumber) {
                 let base = lhs2.f;
                 let exponent = rhs2.f;
@@ -5697,7 +5732,7 @@ function interpret(loop$env, loop$expr) {
                           throw makeError(
                             "let_assert",
                             "squared_away/squared_away_lang/interpreter",
-                            161,
+                            165,
                             "",
                             "Pattern match failed, no pattern matched the value.",
                             { value: $ }
@@ -5733,7 +5768,7 @@ function interpret(loop$env, loop$expr) {
                       throw makeError(
                         "let_assert",
                         "squared_away/squared_away_lang/interpreter",
-                        183,
+                        187,
                         "",
                         "Pattern match failed, no pattern matched the value.",
                         { value: $ }
@@ -5787,6 +5822,10 @@ function interpret(loop$env, loop$expr) {
                 let d = lhs2.cents;
                 let p2 = rhs2.cents;
                 return new Ok(new Usd(min3(d, p2)));
+              } else if (lhs2 instanceof Usd && op instanceof Maximum && rhs2 instanceof Usd) {
+                let d = lhs2.cents;
+                let p2 = rhs2.cents;
+                return new Ok(new Usd(max3(d, p2)));
               } else if (lhs2 instanceof Percent && op instanceof Multiply && rhs2 instanceof Usd) {
                 let p2 = lhs2.percent;
                 let d = rhs2.cents;
@@ -5811,6 +5850,10 @@ function interpret(loop$env, loop$expr) {
                 let p1 = lhs2.percent;
                 let p2 = rhs2.percent;
                 return new Ok(new Percent(min3(p1, p2)));
+              } else if (lhs2 instanceof Percent && op instanceof Maximum && rhs2 instanceof Percent) {
+                let p1 = lhs2.percent;
+                let p2 = rhs2.percent;
+                return new Ok(new Percent(max3(p1, p2)));
               } else if (lhs2 instanceof Percent && op instanceof Power && rhs2 instanceof Percent) {
                 let base = lhs2.percent;
                 let exponent = rhs2.percent;
@@ -5891,7 +5934,7 @@ function interpret(loop$env, loop$expr) {
                           throw makeError(
                             "let_assert",
                             "squared_away/squared_away_lang/interpreter",
-                            303,
+                            313,
                             "",
                             "Pattern match failed, no pattern matched the value.",
                             { value: $ }
@@ -5982,7 +6025,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                355,
+                365,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -6003,7 +6046,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                363,
+                373,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -6024,7 +6067,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                371,
+                381,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -6094,7 +6137,7 @@ function interpret(loop$env, loop$expr) {
                 throw makeError(
                   "let_assert",
                   "squared_away/squared_away_lang/interpreter",
-                  412,
+                  422,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: v }
@@ -6120,7 +6163,7 @@ function interpret(loop$env, loop$expr) {
                 throw makeError(
                   "let_assert",
                   "squared_away/squared_away_lang/interpreter",
-                  423,
+                  433,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: v }
@@ -6141,7 +6184,7 @@ function interpret(loop$env, loop$expr) {
               throw makeError(
                 "let_assert",
                 "squared_away/squared_away_lang/interpreter",
-                433,
+                443,
                 "",
                 "Pattern match failed, no pattern matched the value.",
                 { value: v }
@@ -6259,6 +6302,8 @@ var BuiltinAvg2 = class extends CustomType {
 var MustBe2 = class extends CustomType {
 };
 var Minimum2 = class extends CustomType {
+};
+var Maximum2 = class extends CustomType {
 };
 var StringLiteral3 = class extends CustomType {
   constructor(content_without_quotes) {
@@ -6690,6 +6735,33 @@ function try_parse_binary_ops(tokens) {
               [
                 (_capture) => {
                   return new BinaryOp(_capture, new Minimum(), rhs);
+                },
+                rest$1
+              ]
+            );
+          }
+        );
+      }
+    );
+  } else if (tokens.atLeastLength(1) && tokens.head instanceof Maximum2) {
+    let rest = tokens.tail;
+    return try$(
+      do_parse2(rest),
+      (_use0) => {
+        let rhs = _use0[0];
+        let rest$1 = _use0[1];
+        return guard(
+          isEqual(rhs, new Empty2()),
+          new Error(
+            new ParseError(
+              "No item on right hand side of binary operation."
+            )
+          ),
+          () => {
+            return new Ok(
+              [
+                (_capture) => {
+                  return new BinaryOp(_capture, new Maximum(), rhs);
                 },
                 rest$1
               ]
@@ -7225,6 +7297,10 @@ function do_scan(loop$src, loop$acc) {
       let rest = src.slice(3);
       loop$src = trim_left2(rest);
       loop$acc = prepend(new Minimum2(), acc);
+    } else if (src.startsWith("max")) {
+      let rest = src.slice(3);
+      loop$src = trim_left2(rest);
+      loop$acc = prepend(new Maximum2(), acc);
     } else if (src.startsWith("&&")) {
       let rest = src.slice(2);
       loop$src = trim_left2(rest);
@@ -8011,6 +8087,10 @@ function typecheck(env, expr) {
               return new Ok(
                 new BinaryOp2(new TFloat(), lhs2, op, rhs2)
               );
+            } else if ($ instanceof TFloat && op instanceof Maximum && $1 instanceof TFloat) {
+              return new Ok(
+                new BinaryOp2(new TFloat(), lhs2, op, rhs2)
+              );
             } else if ($ instanceof TFloat && op instanceof Power && $1 instanceof TInt) {
               return new Ok(
                 new BinaryOp2(new TFloat(), lhs2, op, rhs2)
@@ -8040,6 +8120,10 @@ function typecheck(env, expr) {
                 new BinaryOp2(new TPercent(), lhs2, op, rhs2)
               );
             } else if ($ instanceof TUsd && op instanceof Minimum && $1 instanceof TUsd) {
+              return new Ok(
+                new BinaryOp2(new TUsd(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TUsd && op instanceof Maximum && $1 instanceof TUsd) {
               return new Ok(
                 new BinaryOp2(new TUsd(), lhs2, op, rhs2)
               );
@@ -8077,6 +8161,10 @@ function typecheck(env, expr) {
               return new Ok(
                 new BinaryOp2(new TPercent(), lhs2, op, rhs2)
               );
+            } else if ($ instanceof TPercent && op instanceof Maximum && $1 instanceof TPercent) {
+              return new Ok(
+                new BinaryOp2(new TPercent(), lhs2, op, rhs2)
+              );
             } else if ($ instanceof TBool && op instanceof And && $1 instanceof TBool) {
               return new Ok(
                 new BinaryOp2(new TBool(), lhs2, op, rhs2)
@@ -8106,6 +8194,10 @@ function typecheck(env, expr) {
                 new BinaryOp2(new TInt(), lhs2, op, rhs2)
               );
             } else if ($ instanceof TInt && op instanceof Minimum && $1 instanceof TInt) {
+              return new Ok(
+                new BinaryOp2(new TInt(), lhs2, op, rhs2)
+              );
+            } else if ($ instanceof TInt && op instanceof Maximum && $1 instanceof TInt) {
               return new Ok(
                 new BinaryOp2(new TInt(), lhs2, op, rhs2)
               );
@@ -9156,7 +9248,7 @@ function recalculate_col_width(model, col2) {
       );
     }
   })();
-  let _pipe$1 = fold2(_pipe, min_cell_size_ch - 1, max);
+  let _pipe$1 = fold2(_pipe, min_cell_size_ch - 1, max2);
   return add(_pipe$1, 1);
 }
 function view(model) {

@@ -128,6 +128,7 @@ fn do_scan(
     "avg" <> rest ->
       do_scan(string.trim_left(rest), [token.BuiltinAvg(option.None), ..acc])
     "min" <> rest -> do_scan(string.trim_left(rest), [token.Minimum, ..acc])
+    "max" <> rest -> do_scan(string.trim_left(rest), [token.Maximum, ..acc])
 
     "&&" <> rest -> do_scan(string.trim_left(rest), [token.And, ..acc])
     "||" <> rest -> do_scan(string.trim_left(rest), [token.Or, ..acc])

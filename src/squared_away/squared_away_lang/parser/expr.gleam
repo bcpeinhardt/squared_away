@@ -36,6 +36,7 @@ pub type BinaryOpKind {
   Or
   MustBe
   Minimum
+  Maximum
 }
 
 pub fn binary_to_string(b: BinaryOpKind) -> String {
@@ -55,6 +56,7 @@ pub fn binary_to_string(b: BinaryOpKind) -> String {
     Subtract -> "-"
     MustBe -> "mustbe"
     Minimum -> "min"
+    Maximum -> "max"
   }
 }
 

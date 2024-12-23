@@ -146,6 +146,16 @@ pub fn min(r1: Rat, r2: Rat) -> Rat {
   }
 }
 
+pub fn max(r1: Rat, r2: Rat) -> Rat {
+  let Rat(x, y) = subtract(r1, r2)
+  let num_neg = bigi.compare(x, bigi.from_int(0)) == order.Lt
+  let den_neg = bigi.compare(y, bigi.from_int(0)) == order.Lt
+  case num_neg == den_neg {
+    False -> r2
+    True -> r1
+  }
+}
+
 pub fn to_string(rat: Rat, precision: Int, with_commas: Bool) -> String {
   let Rat(n, d) = rat
   let whole = bigi.to_string(bigi.divide(n, d))

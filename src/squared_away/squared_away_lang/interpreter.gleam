@@ -92,6 +92,8 @@ pub fn interpret(
           Ok(value.Boolean(a <= b))
         value.Integer(a), expr.Minimum, value.Integer(b) ->
           Ok(value.Integer(int.min(a, b)))
+          value.Integer(a), expr.Maximum, value.Integer(b) ->
+            Ok(value.Integer(int.max(a, b)))
 
         // Float x Float
         value.FloatingPointNumber(a), expr.Add, value.FloatingPointNumber(b) ->
@@ -132,6 +134,8 @@ pub fn interpret(
         -> Ok(value.Boolean(a <=. b))
         value.FloatingPointNumber(a), expr.Minimum, value.FloatingPointNumber(b)
         -> Ok(value.FloatingPointNumber(float.min(a, b)))
+        value.FloatingPointNumber(a), expr.Maximum, value.FloatingPointNumber(b)
+        -> Ok(value.FloatingPointNumber(float.max(a, b)))
 
         value.FloatingPointNumber(base),
           expr.Power,
@@ -217,6 +221,9 @@ pub fn interpret(
         value.Usd(d), expr.Minimum, value.Usd(p) -> {
           Ok(value.Usd(rational.min(d, p)))
         }
+        value.Usd(d), expr.Maximum, value.Usd(p) -> {
+          Ok(value.Usd(rational.max(d, p)))
+        }
 
         // Percent x Usd
         value.Percent(p), expr.Multiply, value.Usd(d) -> {
@@ -240,6 +247,9 @@ pub fn interpret(
         }
         value.Percent(p1), expr.Minimum, value.Percent(p2) -> {
           Ok(value.Percent(rational.min(p1, p2)))
+        }
+        value.Percent(p1), expr.Maximum, value.Percent(p2) -> {
+          Ok(value.Percent(rational.max(p1, p2)))
         }
         value.Percent(base), expr.Power, value.Percent(exponent) -> {
           let fractional_exponent = !rational.is_whole_number(exponent)

@@ -115,44 +115,24 @@ var UtfCodepoint = class {
   }
 };
 function byteArrayToInt(byteArray, start3, end, isBigEndian, isSigned) {
-  const byteSize = end - start3;
-  if (byteSize <= 6) {
-    let value3 = 0;
-    if (isBigEndian) {
-      for (let i = start3; i < end; i++) {
-        value3 = value3 * 256 + byteArray[i];
-      }
-    } else {
-      for (let i = end - 1; i >= start3; i--) {
-        value3 = value3 * 256 + byteArray[i];
-      }
+  let value3 = 0;
+  if (isBigEndian) {
+    for (let i = start3; i < end; i++) {
+      value3 = value3 * 256 + byteArray[i];
     }
-    if (isSigned) {
-      const highBit = 2 ** (byteSize * 8 - 1);
-      if (value3 >= highBit) {
-        value3 -= highBit * 2;
-      }
-    }
-    return value3;
   } else {
-    let value3 = 0n;
-    if (isBigEndian) {
-      for (let i = start3; i < end; i++) {
-        value3 = (value3 << 8n) + BigInt(byteArray[i]);
-      }
-    } else {
-      for (let i = end - 1; i >= start3; i--) {
-        value3 = (value3 << 8n) + BigInt(byteArray[i]);
-      }
+    for (let i = end - 1; i >= start3; i--) {
+      value3 = value3 * 256 + byteArray[i];
     }
-    if (isSigned) {
-      const highBit = 1n << BigInt(byteSize * 8 - 1);
-      if (value3 >= highBit) {
-        value3 -= highBit * 2n;
-      }
-    }
-    return Number(value3);
   }
+  if (isSigned) {
+    const byteSize = end - start3;
+    const highBit = 2 ** (byteSize * 8 - 1);
+    if (value3 >= highBit) {
+      value3 -= highBit * 2;
+    }
+  }
+  return value3;
 }
 function byteArrayToFloat(byteArray, start3, end, isBigEndian) {
   const view2 = new DataView(byteArray.buffer);
@@ -8322,10 +8302,11 @@ function typecheck(env, expr) {
 
 // build/dev/javascript/squared_away/squared_away/compiler.mjs
 var Cell = class extends CustomType {
-  constructor(src, outcome) {
+  constructor(src, outcome, up_to_date) {
     super();
     this.src = src;
     this.outcome = outcome;
+    this.up_to_date = up_to_date;
   }
 };
 var CompileSteps = class extends CustomType {
@@ -8365,6 +8346,14 @@ function get_typechecked(state) {
       });
     }
   );
+}
+function invalidate_cell(state, key) {
+  let c = (() => {
+    let _pipe = state.cells;
+    return get4(_pipe, key);
+  })();
+  let c$1 = c.withFields({ up_to_date: false });
+  return state.withFields({ cells: insert4(state.cells, key, c$1) });
 }
 function get_cell(state, key) {
   return get4(state.cells, key);
@@ -8470,100 +8459,106 @@ function dependency_list(loop$input, loop$te, loop$acc) {
 }
 function edit_cell(state, key, src) {
   let old_cell = get4(state.cells, key);
-  let res = try$(
-    (() => {
-      let _pipe = scan(src);
-      return map_error(
-        _pipe,
-        (var0) => {
-          return new ScanError2(var0);
-        }
-      );
-    })(),
-    (scanned) => {
-      let scanned$1 = (() => {
-        let _pipe = scanned;
-        return map2(
-          _pipe,
-          (t2) => {
-            if (t2 instanceof BuiltinSum3 && t2.key instanceof None) {
-              return new BuiltinSum3(new Some(key));
-            } else if (t2 instanceof BuiltinAvg2 && t2.key instanceof None) {
-              return new BuiltinAvg2(new Some(key));
-            } else {
-              return t2;
-            }
-          }
-        );
-      })();
-      return try$(
+  return guard(
+    old_cell.src === src && old_cell.up_to_date,
+    state,
+    () => {
+      let res = try$(
         (() => {
-          let _pipe = parse3(scanned$1);
+          let _pipe = scan(src);
           return map_error(
             _pipe,
             (var0) => {
-              return new ParseError2(var0);
+              return new ScanError2(var0);
             }
           );
         })(),
-        (parsed) => {
+        (scanned) => {
+          let scanned$1 = (() => {
+            let _pipe = scanned;
+            return map2(
+              _pipe,
+              (t2) => {
+                if (t2 instanceof BuiltinSum3 && t2.key instanceof None) {
+                  return new BuiltinSum3(new Some(key));
+                } else if (t2 instanceof BuiltinAvg2 && t2.key instanceof None) {
+                  return new BuiltinAvg2(new Some(key));
+                } else {
+                  return t2;
+                }
+              }
+            );
+          })();
           return try$(
-            typecheck(
-              (() => {
-                let _pipe = state;
-                return get_parsed(_pipe);
-              })(),
-              parsed
-            ),
-            (typechecked) => {
-              let deps2 = dependency_list(
-                (() => {
-                  let _pipe = state;
-                  return get_typechecked(_pipe);
-                })(),
-                typechecked,
-                toList([])
+            (() => {
+              let _pipe = parse3(scanned$1);
+              return map_error(
+                _pipe,
+                (var0) => {
+                  return new ParseError2(var0);
+                }
               );
-              let deps_graph = (() => {
-                let _pipe = deps2;
-                return fold2(
-                  _pipe,
-                  state.deps_graph,
-                  (s, dep) => {
-                    return upsert(
-                      s,
-                      dep,
-                      (v) => {
-                        if (v instanceof None) {
-                          return toList([key]);
-                        } else {
-                          let lst = v[0];
-                          return prepend(key, lst);
-                        }
-                      }
-                    );
-                  }
-                );
-              })();
+            })(),
+            (parsed) => {
               return try$(
-                interpret(
+                typecheck(
                   (() => {
                     let _pipe = state;
-                    return get_typechecked(_pipe);
+                    return get_parsed(_pipe);
                   })(),
-                  typechecked
+                  parsed
                 ),
-                (interpreted) => {
-                  return new Ok(
-                    [
-                      new CompileSteps(
-                        scanned$1,
-                        parsed,
-                        typechecked,
-                        interpreted
-                      ),
-                      deps_graph
-                    ]
+                (typechecked) => {
+                  let deps2 = dependency_list(
+                    (() => {
+                      let _pipe = state;
+                      return get_typechecked(_pipe);
+                    })(),
+                    typechecked,
+                    toList([])
+                  );
+                  let deps_graph = (() => {
+                    let _pipe = deps2;
+                    return fold2(
+                      _pipe,
+                      state.deps_graph,
+                      (s, dep) => {
+                        return upsert(
+                          s,
+                          dep,
+                          (v) => {
+                            if (v instanceof None) {
+                              return toList([key]);
+                            } else {
+                              let lst = v[0];
+                              return prepend(key, lst);
+                            }
+                          }
+                        );
+                      }
+                    );
+                  })();
+                  return try$(
+                    interpret(
+                      (() => {
+                        let _pipe = state;
+                        return get_typechecked(_pipe);
+                      })(),
+                      typechecked
+                    ),
+                    (interpreted) => {
+                      return new Ok(
+                        [
+                          new CompileSteps(
+                            scanned$1,
+                            parsed,
+                            typechecked,
+                            interpreted
+                          ),
+                          deps_graph
+                        ]
+                      );
+                    }
                   );
                 }
               );
@@ -8571,40 +8566,54 @@ function edit_cell(state, key, src) {
           );
         }
       );
+      let state$1 = (() => {
+        if (!res.isOk()) {
+          let e = res[0];
+          return state.withFields({
+            cells: insert4(
+              state.cells,
+              key,
+              new Cell(src, new Error(e), true)
+            )
+          });
+        } else {
+          let cell = res[0][0];
+          let deps_graph = res[0][1];
+          return new State(
+            insert4(state.cells, key, new Cell(src, new Ok(cell), true)),
+            deps_graph
+          );
+        }
+      })();
+      let deps = (() => {
+        let _pipe = state$1.deps_graph;
+        let _pipe$1 = get(_pipe, key);
+        return unwrap(_pipe$1, toList([]));
+      })();
+      let new_state = (() => {
+        let _pipe = deps;
+        return fold2(
+          _pipe,
+          state$1,
+          (s, k) => {
+            return invalidate_cell(s, k);
+          }
+        );
+      })();
+      let new_state$1 = (() => {
+        let _pipe = deps;
+        return fold2(
+          _pipe,
+          new_state,
+          (s, k) => {
+            let c = get4(s.cells, k);
+            return edit_cell(s, k, c.src);
+          }
+        );
+      })();
+      return new_state$1;
     }
   );
-  let state$1 = (() => {
-    if (!res.isOk()) {
-      let e = res[0];
-      return state.withFields({
-        cells: insert4(state.cells, key, new Cell(src, new Error(e)))
-      });
-    } else {
-      let cell = res[0][0];
-      let deps_graph = res[0][1];
-      return new State(
-        insert4(state.cells, key, new Cell(src, new Ok(cell))),
-        deps_graph
-      );
-    }
-  })();
-  let deps = (() => {
-    let _pipe = state$1.deps_graph;
-    let _pipe$1 = get(_pipe, key);
-    return unwrap(_pipe$1, toList([]));
-  })();
-  let new_state = (() => {
-    let _pipe = deps;
-    return fold2(
-      _pipe,
-      state$1,
-      (s, k) => {
-        let c = get4(s.cells, k);
-        return edit_cell(s, k, c.src);
-      }
-    );
-  })();
-  return new_state;
 }
 var empty_cell = /* @__PURE__ */ new Cell(
   "",
@@ -8615,7 +8624,8 @@ var empty_cell = /* @__PURE__ */ new Cell(
       /* @__PURE__ */ new Empty3(/* @__PURE__ */ new TNil()),
       /* @__PURE__ */ new Empty4()
     )
-  )
+  ),
+  true
 );
 function init_state(width, height) {
   return new State(new$4(width, height, empty_cell), new$());

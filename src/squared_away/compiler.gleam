@@ -2,6 +2,7 @@
 //// an initial set of grids for all the cells, and try to only
 //// compile and update what we need based on the dependency graph.
 
+import gleam/bool
 import gleam/dict
 import gleam/list
 import gleam/option
@@ -20,7 +21,11 @@ import squared_away/squared_away_lang/typechecker/typ
 import squared_away/squared_away_lang/typechecker/typed_expr
 
 pub type Cell {
-  Cell(src: String, outcome: Result(CompileSteps, error.CompileError))
+  Cell(
+    src: String,
+    outcome: Result(CompileSteps, error.CompileError),
+    up_to_date: Bool,
+  )
 }
 
 pub type CompileSteps {
@@ -42,6 +47,7 @@ const empty_cell = Cell(
       interpreted: value.Empty,
     ),
   ),
+  up_to_date: True,
 )
 
 pub type State {
@@ -86,8 +92,18 @@ pub fn get_interpreted(state: State) {
   })
 }
 
+pub fn invalidate_cell(state: State, key: grid.GridKey) -> State {
+  let c = state.cells |> grid.get(key)
+  let c = Cell(..c, up_to_date: False)
+  State(..state, cells: grid.insert(state.cells, key, c))
+}
+
 pub fn edit_cell(state: State, key: grid.GridKey, src: String) -> State {
   let old_cell = grid.get(state.cells, key)
+
+  // If the source being entered into the cell isn't different from what it used to be, 
+  // only recompile if the cell has been invalidated
+  use <- bool.guard(old_cell.src == src && old_cell.up_to_date, state)
 
   // Scan, parse, typecheck, and evaluate the cell
   let res = {
@@ -147,12 +163,20 @@ pub fn edit_cell(state: State, key: grid.GridKey, src: String) -> State {
       // If the process failed, we just set the error value as the cells value.
       State(
         ..state,
-        cells: grid.insert(state.cells, key, Cell(src:, outcome: Error(e))),
+        cells: grid.insert(
+          state.cells,
+          key,
+          Cell(src:, outcome: Error(e), up_to_date: True),
+        ),
       )
     }
     Ok(#(cell, deps_graph)) -> {
       State(
-        cells: grid.insert(state.cells, key, Cell(src:, outcome: Ok(cell))),
+        cells: grid.insert(
+          state.cells,
+          key,
+          Cell(src:, outcome: Ok(cell), up_to_date: True),
+        ),
         deps_graph:,
       )
     }
@@ -164,7 +188,11 @@ pub fn edit_cell(state: State, key: grid.GridKey, src: String) -> State {
   let deps = state.deps_graph |> dict.get(key) |> result.unwrap(or: [])
   let new_state =
     deps
-    |> list.fold(state, fn(s, k) {
+    |> list.fold(state, fn(s, k) { invalidate_cell(s, k) })
+
+  let new_state =
+    deps
+    |> list.fold(new_state, fn(s, k) {
       let c = grid.get(s.cells, k)
       edit_cell(s, k, c.src)
     })

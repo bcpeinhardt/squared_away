@@ -349,8 +349,8 @@ pub fn typecheck(
           Ok(typed_expr.BinaryOp(type_: typ.TFloat, lhs:, op:, rhs:))
         typ.TFloat, expr.Minimum, typ.TFloat ->
           Ok(typed_expr.BinaryOp(type_: typ.TFloat, lhs:, op:, rhs:))
-          typ.TFloat, expr.Maximum, typ.TFloat ->
-            Ok(typed_expr.BinaryOp(type_: typ.TFloat, lhs:, op:, rhs:))
+        typ.TFloat, expr.Maximum, typ.TFloat ->
+          Ok(typed_expr.BinaryOp(type_: typ.TFloat, lhs:, op:, rhs:))
 
         // USD x Float (None for now)
         // Percent x Float (None for now)
@@ -382,8 +382,8 @@ pub fn typecheck(
           Ok(typed_expr.BinaryOp(type_: typ.TPercent, lhs:, op:, rhs:))
         typ.TUsd, expr.Minimum, typ.TUsd ->
           Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
-          typ.TUsd, expr.Maximum, typ.TUsd ->
-            Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
+        typ.TUsd, expr.Maximum, typ.TUsd ->
+          Ok(typed_expr.BinaryOp(type_: typ.TUsd, lhs:, op:, rhs:))
         typ.TUsd, expr.Multiply, typ.TUsd ->
           Error(error.TypeError(type_error.CannotMultiplyUsdByUsd(lhs:, rhs:)))
 
@@ -409,8 +409,8 @@ pub fn typecheck(
           Ok(typed_expr.BinaryOp(type_: typ.TPercent, lhs:, op:, rhs:))
         typ.TPercent, expr.Minimum, typ.TPercent ->
           Ok(typed_expr.BinaryOp(type_: typ.TPercent, lhs:, op:, rhs:))
-          typ.TPercent, expr.Maximum, typ.TPercent ->
-            Ok(typed_expr.BinaryOp(type_: typ.TPercent, lhs:, op:, rhs:))
+        typ.TPercent, expr.Maximum, typ.TPercent ->
+          Ok(typed_expr.BinaryOp(type_: typ.TPercent, lhs:, op:, rhs:))
 
         // String x Percent (None for now)
         // Boolean x Percent (None for now)
@@ -442,8 +442,8 @@ pub fn typecheck(
           Ok(typed_expr.BinaryOp(type_: typ.TInt, lhs:, op:, rhs:))
         typ.TInt, expr.Minimum, typ.TInt ->
           Ok(typed_expr.BinaryOp(type_: typ.TInt, lhs:, op:, rhs:))
-          typ.TInt, expr.Maximum, typ.TInt ->
-            Ok(typed_expr.BinaryOp(type_: typ.TInt, lhs:, op:, rhs:))
+        typ.TInt, expr.Maximum, typ.TInt ->
+          Ok(typed_expr.BinaryOp(type_: typ.TInt, lhs:, op:, rhs:))
 
         // Int x Usd
         typ.TInt, expr.Multiply, typ.TUsd ->

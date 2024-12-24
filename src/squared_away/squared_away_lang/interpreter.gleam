@@ -92,8 +92,8 @@ pub fn interpret(
           Ok(value.Boolean(a <= b))
         value.Integer(a), expr.Minimum, value.Integer(b) ->
           Ok(value.Integer(int.min(a, b)))
-          value.Integer(a), expr.Maximum, value.Integer(b) ->
-            Ok(value.Integer(int.max(a, b)))
+        value.Integer(a), expr.Maximum, value.Integer(b) ->
+          Ok(value.Integer(int.max(a, b)))
 
         // Float x Float
         value.FloatingPointNumber(a), expr.Add, value.FloatingPointNumber(b) ->

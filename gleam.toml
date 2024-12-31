@@ -19,6 +19,7 @@ gleam_stdlib = ">= 0.41.0 and < 1.0.0"
 lustre = ">= 4.6.1 and < 5.0.0"
 gleam_javascript = ">= 0.13.0 and < 1.0.0"
 bigi = ">= 3.2.0 and < 4.0.0"
+simplifile = ">= 2.2.0 and < 3.0.0"
 
 
 [dev-dependencies]

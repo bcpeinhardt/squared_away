@@ -37,3 +37,7 @@ pub fn rat_test() {
 
   rational.to_string(two_thirds, 10, False) |> should.equal("0.6666666666")
 }
+
+pub fn new_scanner_test() {
+  todo
+}

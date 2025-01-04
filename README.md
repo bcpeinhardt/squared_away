@@ -1,4 +1,9 @@
-# Squared Away
+# Squared Away (Archived)
+
+### Archiving
+
+This prototype had a good life and served its purpose well. Development is continuing under
+the [Squared Away Github Organization](https://github.com/squaredaway-dev)
 
 ### A statically typed spreadsheet with testing as a first class citizen
 
